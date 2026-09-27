@@ -1,0 +1,32 @@
+[project]
+name = "iphs400-mp2-cms"
+version = "0.1.0"
+description = "IPHS 400 MP2 — a small web CMS with a local admin console and a static public site"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.12",   # form posts
+    "itsdangerous>=2.2",          # signed session cookies
+    "argon2-cffi>=23.1",          # password hashing (never store plain passwords)
+    "markdown-it-py>=3.0",        # Markdown -> HTML
+    "nh3>=0.2",                   # HTML sanitizer (strips <script> etc.)
+    "ghp-import>=2.1",            # push site/ to the gh-pages branch
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "httpx>=0.28"]
+
+[project.scripts]
+cms = "app.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

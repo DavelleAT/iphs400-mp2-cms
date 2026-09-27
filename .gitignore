@@ -1,0 +1,8 @@
+.env
+*.db
+site/
+__pycache__/
+.pytest_cache/
+.venv/
+.claude/state/
+.DS_Store
