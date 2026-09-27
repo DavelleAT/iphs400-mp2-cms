@@ -36,3 +36,13 @@ admin console never goes on the public internet.
   starts `T0N:` and ends `Closes #N`.
 - Ask before adding a dependency. The stack in `pyproject.toml` is fixed for this
   project.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `DavelleAT/iphs400-mp2-cms`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
