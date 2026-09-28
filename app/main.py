@@ -15,7 +15,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import db, settings
 from app.auth import LoginRequired, current_user
-from app.routes import admin, auth, users
+from app.data_bites import list_published as published_data_bites
+from app.routes import admin, auth, data_bites, users
 from app.templating import templates
 
 SESSION_MAX_AGE = 8 * 60 * 60  # one working day
@@ -46,14 +47,18 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def public_home(request: Request):
+        # Titles only: the public Data Bite pages (and links to them) arrive
+        # with the public-site ticket, T07.
+        items = [{"title": b["title"]} for b in published_data_bites()]
         return templates.TemplateResponse(
             request, "public/home.html",
-            {"title": settings.SITE_TITLE, "items": []},
+            {"title": settings.SITE_TITLE, "items": items},
         )
 
     app.include_router(auth.router)
     app.include_router(admin.router)
     app.include_router(users.router)
+    app.include_router(data_bites.router)
 
     # Must stay last: any /admin request no router above claimed, by path or by
     # method. Anonymous visitors are sent to login (so they can't probe which

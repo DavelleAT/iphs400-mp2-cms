@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="/admin/data-bites">All Data Bites</a></p>
+  <h1>Edit Data Bite</h1>
+  <p>{{ status_labels[bite.status] }}. Created {{ bite.created_at }} by {{ bite.author_name }}.
+     Last updated {{ bite.updated_at }}.</p>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  {% set action = "/admin/data-bites/" ~ bite.id %}
+  {% set submit = "Save changes" %}
+  {% include "admin/_data_bite_fields.html" %}
+{% endblock %}

@@ -2,7 +2,7 @@
 {% block content %}
   <h1>{{ title }}</h1>
   {% if items %}
-    <ul>{% for item in items %}<li><a href="{{ item.href }}">{{ item.title }}</a></li>{% endfor %}</ul>
+    <ul>{% for item in items %}<li>{% if item.href %}<a href="{{ item.href }}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</li>{% endfor %}</ul>
   {% else %}
     <p>Nothing published yet.</p>
   {% endif %}

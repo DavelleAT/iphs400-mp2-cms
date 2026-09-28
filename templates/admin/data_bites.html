@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Data Bites</h1>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  {% if bites %}
+  <table>
+    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+    {% for b in bites %}
+      <tr id="data-bite-{{ b.id }}">
+        <td><a href="/admin/data-bites/{{ b.id }}">{{ b.title }}</a></td>
+        <td><code>{{ b.slug }}</code></td>
+        <td>{{ status_labels[b.status] }}</td>
+        <td>{{ b.author_name }}</td>
+        <td>{{ b.updated_at }}</td>
+        <td>
+          {% set action = "unpublish" if b.status == "published" else "publish" %}
+          <form method="post" action="/admin/data-bites/{{ b.id }}/{{ action }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <button type="submit">{{ action | capitalize }}</button>
+          </form>
+          {% if user.role == "admin" %}
+          <form method="post" action="/admin/data-bites/{{ b.id }}/delete">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <button type="submit">Delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No Data Bites yet.</p>
+  {% endif %}
+
+  <h2>New Data Bite</h2>
+  {% set action = "/admin/data-bites" %}
+  {% set submit = "Save draft" %}
+  {% include "admin/_data_bite_fields.html" %}
+{% endblock %}
