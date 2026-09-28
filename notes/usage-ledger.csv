@@ -24,3 +24,14 @@ ts,session,phase,provider,model,effort,ctx_pct,five_h_pct,weekly_pct
 2026-09-28T21:48:08Z,924a6506,T02,anthropic,Opus 5.5,high,22.0,24,4
 2026-09-28T21:50:51Z,061351ff,T02,anthropic,Opus 5.5,medium,4.0,24,4
 2026-09-28T21:51:55Z,061351ff,T02,anthropic,Opus 5.5,medium,5.0,25,4
+2026-09-28T21:55:46Z,c82bd2e4,T02,anthropic,Opus 5.5,high,4.0,25,5
+2026-09-28T21:56:54Z,c82bd2e4,T02,anthropic,Opus 5.5,high,4.0,26,5
+2026-09-28T21:56:57Z,924a6506,T02,anthropic,Opus 5.5,high,22.0,26,5
+2026-09-28T22:01:12Z,c82bd2e4,T03,anthropic,Opus 5.5,high,5.0,27,5
+2026-09-28T22:06:46Z,fc138a42,T03,anthropic,Opus 5.5,high,10.0,31,5
+2026-09-28T22:07:13Z,fc138a42,T03,anthropic,Opus 5.5,high,10.0,31,5
+2026-09-28T22:08:38Z,fc138a42,T03,anthropic,Opus 5.5,high,11.0,33,6
+2026-09-28T22:13:33Z,7d2512d4,T04,anthropic,Opus 5.5,high,10.0,37,6
+2026-09-28T22:14:27Z,7d2512d4,T04,anthropic,Opus 5.5,high,10.0,38,6
+2026-09-28T22:16:40Z,7d2512d4,T04,anthropic,Opus 5.5,high,12.0,40,6
+2026-09-28T22:25:32Z,7d2512d4,T04,anthropic,Opus 5.5,high,12.0,40,6
