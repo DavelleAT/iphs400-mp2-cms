@@ -5,10 +5,12 @@ door.
 """
 
 
-def test_admin_console_answers(client):
-    response = client.get("/admin")
+def test_admin_console_answers(client_as):
+    # Since T01 the admin console requires a login; the placeholder
+    # "hello admin" page became the signed-in console home.
+    response = client_as("admin").get("/admin")
     assert response.status_code == 200
-    assert "hello admin" in response.text.lower()
+    assert "admin console" in response.text.lower()
 
 
 def test_public_home_answers(client):

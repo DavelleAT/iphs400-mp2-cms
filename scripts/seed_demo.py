@@ -3,9 +3,10 @@
 
     uv run python scripts/seed_demo.py
 
-T00 has nothing to seed. As you build content types, extend this so it creates:
-  - one admin and one editor (passwords read from .env, never hard-coded)
-  - a few posts and pages, at least one draft and one published
+Creates one Director (admin) and one Analyst (editor), with passwords read from
+.env, never hard-coded. Safe to re-run: existing accounts are left alone.
+As content types land (T03+), extend this with demo Data Bites and Reports,
+at least one draft and one published.
 
 The rubric expects this to run clean on a fresh clone with .env.example values
 (item E4), because the database itself is never committed.
@@ -13,20 +14,33 @@ The rubric expects this to run clean on a fresh clone with .env.example values
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
+
+from app import db, settings, users
+
+# Keep in step with DEMO_USERS in tests/conftest.py.
+DEMO_ACCOUNTS = [
+    ("admin@example.test", "CMS_ADMIN_PASSWORD", "admin", "Demo Director"),
+    ("editor@example.test", "CMS_EDITOR_PASSWORD", "editor", "Demo Analyst"),
+]
 
 
 def main() -> int:
-    admin_pw = os.environ.get("CMS_ADMIN_PASSWORD")
-    editor_pw = os.environ.get("CMS_EDITOR_PASSWORD")
-    if not admin_pw or not editor_pw:
-        print("Set CMS_ADMIN_PASSWORD and CMS_EDITOR_PASSWORD in .env "
-              "(copy .env.example).")
+    missing = [var for _, var, _, _ in DEMO_ACCOUNTS if not os.environ.get(var)]
+    if missing:
+        print(f"Set {' and '.join(missing)} in .env (copy .env.example).")
         return 1
 
-    # TODO (your tickets): create the users, then the demo content.
-    print("Nothing to seed yet: no content types exist. "
-          "Extend scripts/seed_demo.py as you build T01+.")
+    db.init_db()
+    for email, var, role, name in DEMO_ACCOUNTS:
+        try:
+            users.create_user(email, os.environ[var], role, name=name)
+        except sqlite3.IntegrityError:
+            print(f"  exists   {email}")
+        else:
+            print(f"  created  {email} ({users.ROLE_LABELS[role]})")
+    print(f"Seeded {settings.DATABASE_PATH}")
     return 0
 
 

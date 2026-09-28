@@ -9,9 +9,12 @@ so access-control tests stay one line:
 """
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
+from app import db, settings, users
 from app.main import create_app
 
 # Matches scripts/seed_demo.py. Passwords come from the environment there; in
@@ -20,6 +23,23 @@ DEMO_USERS = {
     "admin": {"email": "admin@example.test", "password": "test-admin-pw"},
     "editor": {"email": "editor@example.test", "password": "test-editor-pw"},
 }
+
+
+def csrf_from(html: str) -> str:
+    """Pull the CSRF token out of a rendered form."""
+    match = re.search(r'name="csrf_token" value="([^"]+)"', html)
+    assert match, "no csrf_token field in the page"
+    return match.group(1)
+
+
+@pytest.fixture(autouse=True)
+def seeded_db(tmp_path, monkeypatch):
+    """Every test gets its own database holding the DEMO_USERS."""
+    monkeypatch.setattr(settings, "DATABASE_PATH", tmp_path / "test.db")
+    db.init_db()
+    for role, user in DEMO_USERS.items():
+        users.create_user(user["email"], user["password"], role)
+    return settings.DATABASE_PATH
 
 
 @pytest.fixture
@@ -34,11 +54,13 @@ def client_as():
     def _login(role: str) -> TestClient:
         user = DEMO_USERS[role]
         c = TestClient(create_app())
-        response = c.post("/login", data={"email": user["email"],
-                                          "password": user["password"]},
-                          follow_redirects=False)
-        if response.status_code == 404:
+        form = c.get("/login")
+        if form.status_code == 404:
             pytest.skip("No /login route yet — build the login ticket first.")
+        response = c.post("/login", data={"email": user["email"],
+                                          "password": user["password"],
+                                          "csrf_token": csrf_from(form.text)},
+                          follow_redirects=False)
         assert response.status_code in (200, 302, 303), (
             f"Login as {role} failed with {response.status_code}")
         return c
