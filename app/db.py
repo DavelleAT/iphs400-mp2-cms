@@ -37,9 +37,17 @@ CREATE TABLE IF NOT EXISTS reports (
     status     TEXT    NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
     author_id  INTEGER NOT NULL REFERENCES users (id),
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    file_name  TEXT    -- the attached PDF's sanitized name for display; NULL if none
 );
 """
+
+# Columns added after a table was first created: (table, column, definition).
+# CREATE TABLE IF NOT EXISTS leaves an existing table alone, so init_db adds
+# any of these an older database is missing.
+ADDED_COLUMNS = [
+    ("reports", "file_name", "TEXT"),
+]
 
 
 @contextmanager
@@ -59,3 +67,7 @@ def connect() -> Iterator[sqlite3.Connection]:
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
+        for table, column, definition in ADDED_COLUMNS:
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            if column not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")

@@ -40,5 +40,6 @@
   <h2>New Report</h2>
   {% set action = "/admin/reports" %}
   {% set submit = "Save draft" %}
+  {% set file_label = "Attach PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
   {% include "admin/_content_fields.html" %}
 {% endblock %}

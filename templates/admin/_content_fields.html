@@ -1,9 +1,13 @@
-  <form method="post" action="{{ action }}">
+  <form method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     <p><label>Title <input type="text" name="title" value="{{ form.title }}" required></label></p>
     <p><label>Slug <input type="text" name="slug" value="{{ form.slug }}" required
       pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint"></label>
       <small id="slug-hint">Lowercase letters, digits, and hyphens.</small></p>
     <p><label>Body (Markdown)<br><textarea name="body" rows="10" cols="60" required>{{ form.body }}</textarea></label></p>
+    {% if file_label %}
+    <p><label>{{ file_label }}
+      <input type="file" name="file" accept="application/pdf,.pdf"></label></p>
+    {% endif %}
     <p><button type="submit">{{ submit }}</button></p>
   </form>

@@ -10,11 +10,15 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from app import db
 
 STATUS_LABELS = {"draft": "Draft", "published": "Published"}
+# Runs inside the transaction that wrote an item's row, given the connection and
+# the item's id; if it raises, the row's change is rolled back with it.
+AlsoWrite = Callable[[sqlite3.Connection, int], None]
 _SLUG_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
@@ -59,34 +63,40 @@ class ContentTable:
             raise exc
         return DuplicateSlug(f"Another {self.noun} already uses the slug {slug}.")
 
-    def create(self, title: str, slug: str, body: str, author_id: int) -> int:
+    def create(self, title: str, slug: str, body: str, author_id: int, *,
+               also: AlsoWrite | None = None) -> int:
         """Create a draft."""
         title, slug, body = validate(title, slug, body)
         try:
             with db.connect() as conn:
-                cursor = conn.execute(
+                item_id = conn.execute(
                     f"INSERT INTO {self.table} (title, slug, body, author_id)"
                     " VALUES (?, ?, ?, ?)",
                     (title, slug, body, author_id),
-                )
+                ).lastrowid
+                if also:
+                    also(conn, item_id)
         except sqlite3.IntegrityError as exc:
             raise self._duplicate_slug_error(exc, slug) from None
-        return cursor.lastrowid
+        return item_id
 
     def update(self, item_id: int, title: str, slug: str, body: str, *,
-               drafts_only: bool = False) -> bool:
+               drafts_only: bool = False, also: AlsoWrite | None = None) -> bool:
         """Edit title, slug, and body. The author, created_at, and status are
         kept. With drafts_only, a published item is left alone. False if
         nothing was changed."""
         title, slug, body = validate(title, slug, body)
         try:
             with db.connect() as conn:
-                return conn.execute(
+                changed = conn.execute(
                     f"UPDATE {self.table} SET title = ?, slug = ?, body = ?,"
                     " updated_at = datetime('now')"
                     " WHERE id = ? AND (status = 'draft' OR NOT ?)",
                     (title, slug, body, item_id, drafts_only),
                 ).rowcount == 1
+                if changed and also:
+                    also(conn, item_id)
+                return changed
         except sqlite3.IntegrityError as exc:
             raise self._duplicate_slug_error(exc, slug) from None
 

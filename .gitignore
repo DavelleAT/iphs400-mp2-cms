@@ -6,3 +6,4 @@ __pycache__/
 .venv/
 .claude/state/
 .DS_Store
+uploads/

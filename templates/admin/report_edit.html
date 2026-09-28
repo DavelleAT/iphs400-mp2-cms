@@ -5,9 +5,18 @@
   <p>{{ status_labels[report.status] }}. Created {{ report.created_at }} by {{ report.author_name }}.
      Last updated {{ report.updated_at }}.</p>
   {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  <p>Attached file:
+    {% if report.file_name %}<a href="/admin/reports/{{ report.id }}/file">{{ report.file_name }}</a>{% else %}none{% endif %}</p>
   {% if can_edit %}
+  {% if report.file_name %}
+  <form method="post" action="/admin/reports/{{ report.id }}/file/delete">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button type="submit">Remove file</button>
+  </form>
+  {% endif %}
   {% set action = "/admin/reports/" ~ report.id %}
   {% set submit = "Save changes" %}
+  {% set file_label = ("Replace" if report.file_name else "Attach") ~ " PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
   {% include "admin/_content_fields.html" %}
   {% else %}
   <p>Only the Director can edit, unpublish, or delete a published Report.</p>

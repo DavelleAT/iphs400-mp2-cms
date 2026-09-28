@@ -30,6 +30,8 @@ SECRET_KEY_IS_PLACEHOLDER = SECRET_KEY in (
     "dev-only-not-for-production", "change-me-to-a-long-random-string")
 # A relative CMS_DATABASE is relative to the repo, not the current directory.
 DATABASE_PATH = ROOT / os.environ.get("CMS_DATABASE", "cms.db")
+# Uploaded Report files. Outside site/, and gitignored like the database.
+UPLOADS = ROOT / os.environ.get("CMS_UPLOADS", "uploads")
 SITE_TITLE = os.environ.get("CMS_SITE_TITLE", "My CMS")
 # Set this to your Pages URL once you deploy, e.g.
 # https://yourname.github.io/iphs400-mp2-cms/

@@ -1,19 +1,21 @@
 """Reports in the admin console. Any signed-in user may list Reports, create a
-draft, and edit a draft. Editing a published Report, and publishing,
-unpublishing, or deleting any Report, is Director only."""
+draft, edit a draft (its body or its attached file), and download a Report's
+file. Editing a published Report or its file, and publishing, unpublishing, or
+deleting any Report, is Director only."""
 from __future__ import annotations
 
 import sqlite3
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse
 
-from app import reports
+from app import reports, uploads
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/reports", dependencies=[Depends(current_user)])
+_MAX_FILE_MB = uploads.MAX_BYTES // uploads.MIB
 
 
 def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
@@ -22,7 +24,7 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
         request, "admin/reports.html",
         {"title": "Reports", "home_path": "/admin", "user": user,
          "reports": reports.list_all(), "status_labels": STATUS_LABELS,
-         "error": error, "form": form or {}},
+         "error": error, "form": form or {}, "max_file_mb": _MAX_FILE_MB},
         status_code=status_code,
     )
 
@@ -34,9 +36,10 @@ def list_reports(request: Request, user=Depends(current_user)):
 
 @router.post("", dependencies=[Depends(require_csrf)])
 def create_report(request: Request, user=Depends(current_user), title: str = Form(""),
-                  slug: str = Form(""), body: str = Form("")):
+                  slug: str = Form(""), body: str = Form(""),
+                  file: UploadFile | None = File(None)):
     try:
-        reports.create(title, slug, body, user["id"])
+        reports.create(title, slug, body, user["id"], pdf=uploads.read_pdf(file))
     except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
@@ -50,7 +53,8 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
         request, "admin/report_edit.html",
         {"title": "Edit Report", "home_path": "/admin", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
-         "status_labels": STATUS_LABELS, "error": error, "form": form or report},
+         "status_labels": STATUS_LABELS, "error": error, "form": form or report,
+         "max_file_mb": _MAX_FILE_MB},
         status_code=status_code,
     )
 
@@ -69,19 +73,42 @@ def edit_form(request: Request, report_id: int, user=Depends(current_user)):
 
 @router.post("/{report_id}", dependencies=[Depends(require_csrf)])
 def edit_report(request: Request, report_id: int, user=Depends(current_user),
-                title: str = Form(""), slug: str = Form(""), body: str = Form("")):
+                title: str = Form(""), slug: str = Form(""), body: str = Form(""),
+                file: UploadFile | None = File(None)):
     report = _get_or_404(report_id)
     # Permission before validation: a locked Report is 403 whatever was sent.
     if not reports.can_edit(report, user):
         raise HTTPException(status_code=403, detail="Only the Director can edit a published Report.")
     try:
-        if not reports.update(report_id, title, slug, body, user=user):
+        if not reports.update(report_id, title, slug, body, user=user,
+                              pdf=uploads.read_pdf(file)):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
         return _edit_page(request, user, report, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
+    return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
+
+
+@router.get("/{report_id}/file")
+def download_file(report_id: int):
+    report = _get_or_404(report_id)
+    path = reports.file_path(report_id)
+    if report["file_name"] is None or not path.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(path, media_type="application/pdf",
+                        filename=report["file_name"],
+                        headers={"X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/{report_id}/file/delete", dependencies=[Depends(require_csrf)])
+def remove_file(report_id: int, user=Depends(current_user)):
+    try:
+        if not reports.remove_file(report_id, user=user):
+            raise HTTPException(status_code=404)
+    except reports.ReportLocked as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from None
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 
 
