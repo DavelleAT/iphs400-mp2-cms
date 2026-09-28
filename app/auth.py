@@ -31,7 +31,7 @@ def current_user(request: Request) -> sqlite3.Row:
 
 def require_director(user: sqlite3.Row = Depends(current_user)) -> sqlite3.Row:
     """Dependency: current_user, but 403 unless they are a Director."""
-    if user["role"] != "admin":
+    if not users.is_director(user):
         raise HTTPException(status_code=403, detail="Directors only.")
     return user
 

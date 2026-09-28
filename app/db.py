@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS data_bites (
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS reports (
+    id         INTEGER PRIMARY KEY,
+    title      TEXT    NOT NULL,
+    slug       TEXT    NOT NULL UNIQUE,  -- unique among Reports only; a Data Bite may share it
+    body       TEXT    NOT NULL,  -- raw Markdown; sanitized only when rendered
+    status     TEXT    NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+    author_id  INTEGER NOT NULL REFERENCES users (id),
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 

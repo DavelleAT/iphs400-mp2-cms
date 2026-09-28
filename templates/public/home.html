@@ -1,9 +1,16 @@
 {% extends "base.html" %}
+{% macro item_list(entries) %}
+    <ul>{% for item in entries %}<li>{% if item.href %}<a href="{{ item.href }}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</li>{% endfor %}</ul>
+{% endmacro %}
 {% block content %}
   <h1>{{ title }}</h1>
+  {% if reports %}
+    <h2>Reports</h2>
+    {{ item_list(reports) }}
+  {% endif %}
   {% if items %}
-    <ul>{% for item in items %}<li>{% if item.href %}<a href="{{ item.href }}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</li>{% endfor %}</ul>
-  {% else %}
+    {{ item_list(items) }}
+  {% elif not reports %}
     <p>Nothing published yet.</p>
   {% endif %}
 {% endblock %}

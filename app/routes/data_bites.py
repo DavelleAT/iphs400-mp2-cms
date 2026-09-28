@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 
 from app import data_bites
 from app.auth import current_user, require_csrf, require_director
+from app.content import STATUS_LABELS, ContentError
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/data-bites", dependencies=[Depends(current_user)])
@@ -19,7 +20,7 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
     return templates.TemplateResponse(
         request, "admin/data_bites.html",
         {"title": "Data Bites", "home_path": "/admin", "user": user,
-         "bites": data_bites.list_all(), "status_labels": data_bites.STATUS_LABELS,
+         "bites": data_bites.list_all(), "status_labels": STATUS_LABELS,
          "error": error, "form": form or {}},
         status_code=status_code,
     )
@@ -35,7 +36,7 @@ def create_bite(request: Request, user=Depends(current_user), title: str = Form(
                 slug: str = Form(""), body: str = Form("")):
     try:
         data_bites.create(title, slug, body, user["id"])
-    except data_bites.DataBiteError as exc:
+    except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
     return RedirectResponse("/admin/data-bites", status_code=303)
@@ -47,7 +48,7 @@ def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
     return templates.TemplateResponse(
         request, "admin/data_bite_edit.html",
         {"title": "Edit Data Bite", "home_path": "/admin", "user": user,
-         "bite": bite, "status_labels": data_bites.STATUS_LABELS,
+         "bite": bite, "status_labels": STATUS_LABELS,
          "error": error, "form": form or bite},
         status_code=status_code,
     )
@@ -71,7 +72,7 @@ def edit_bite(request: Request, bite_id: int, user=Depends(current_user),
     bite = _get_or_404(bite_id)
     try:
         data_bites.update(bite_id, title, slug, body)
-    except data_bites.DataBiteError as exc:
+    except ContentError as exc:
         return _edit_page(request, user, bite, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)

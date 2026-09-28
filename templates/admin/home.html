@@ -3,6 +3,7 @@
   <h1>Admin console</h1>
   <p>Signed in as {{ user.email }} ({{ user.role | role_label }}).</p>
   <p><a href="/admin/data-bites">Data Bites</a></p>
+  <p><a href="/admin/reports">Reports</a></p>
   {% if user.role == "admin" %}
     <p><a href="/admin/users">Manage users</a></p>
   {% endif %}

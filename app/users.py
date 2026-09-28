@@ -31,6 +31,10 @@ class DuplicateEmail(UserError):
     pass
 
 
+def is_director(user: sqlite3.Row) -> bool:
+    return user["role"] == "admin"
+
+
 def _check_role(role: str) -> None:
     if role not in ROLE_LABELS:
         raise UserError(f"Choose a role: {' or '.join(ROLE_LABELS.values())}.")

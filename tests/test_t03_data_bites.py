@@ -6,9 +6,7 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
-from app import db
-from app.main import create_app
-from tests.conftest import csrf_from, post_form
+from tests.conftest import backdate, post_form, second_analyst
 
 BITE = {"title": "Fall enrollment snapshot", "slug": "fall-enrollment",
         "body": "Enrollment is **1,745** this fall."}
@@ -85,29 +83,10 @@ def test_duplicate_slug_is_rejected_with_a_validation_error(client_as):
     assert analyst.get("/admin/data-bites").text.count("<code>fall-enrollment</code>") == 1
 
 
-def second_analyst(director: TestClient) -> TestClient:
-    """A logged-in client for a second, named Analyst (not the seeded one)."""
-    account = {"name": "Riley Intern", "email": "riley@example.test",
-               "password": "a-long-enough-password", "role": "editor"}
-    assert post_form(director, "/admin/users", account).status_code == 303
-    c = TestClient(create_app())
-    token = csrf_from(c.get("/login").text)
-    c.post("/login", data={**account, "csrf_token": token})
-    return c
-
-
-def backdate(bite_id: str) -> None:
-    """Setup only: move a Data Bite's timestamps into the past, so an edit made
-    within the same second still visibly changes updated_at."""
-    with db.connect() as conn:
-        conn.execute("UPDATE data_bites SET created_at = '2026-01-05 09:00:00',"
-                     " updated_at = '2026-01-05 09:00:00' WHERE id = ?", (bite_id,))
-
-
 def test_any_analyst_edits_any_data_bite_and_author_and_created_at_are_kept(client_as):
     riley = second_analyst(client_as("admin"))
     bid = create_bite(riley)
-    backdate(bid)
+    backdate("data_bites", bid)
 
     analyst = client_as("editor")  # a different Analyst from the author
     edit_page = analyst.get(f"/admin/data-bites/{bid}")

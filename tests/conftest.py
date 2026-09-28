@@ -51,6 +51,25 @@ def user_id(director: TestClient, email: str) -> str:
     return re.match(r' id="user-(\d+)"', user_row(director, email)).group(1)
 
 
+def second_analyst(director: TestClient) -> TestClient:
+    """A logged-in client for a second, named Analyst (not the seeded one)."""
+    account = {"name": "Riley Intern", "email": "riley@example.test",
+               "password": "a-long-enough-password", "role": "editor"}
+    assert post_form(director, "/admin/users", account).status_code == 303
+    c = TestClient(create_app())
+    token = csrf_from(c.get("/login").text)
+    c.post("/login", data={**account, "csrf_token": token})
+    return c
+
+
+def backdate(table: str, row_id: str) -> None:
+    """Setup only: move a content row's timestamps into the past, so an edit
+    made within the same second still visibly changes updated_at."""
+    with db.connect() as conn:
+        conn.execute(f"UPDATE {table} SET created_at = '2026-01-05 09:00:00',"
+                     " updated_at = '2026-01-05 09:00:00' WHERE id = ?", (row_id,))
+
+
 @pytest.fixture(autouse=True)
 def seeded_db(tmp_path, monkeypatch):
     """Every test gets its own database holding the DEMO_USERS."""
