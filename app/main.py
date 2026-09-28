@@ -15,7 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import db, settings
 from app.auth import LoginRequired, current_user
-from app.routes import admin, auth
+from app.routes import admin, auth, users
 from app.templating import templates
 
 SESSION_MAX_AGE = 8 * 60 * 60  # one working day
@@ -53,6 +53,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(admin.router)
+    app.include_router(users.router)
 
     # Must stay last: any /admin request no router above claimed, by path or by
     # method. Anonymous visitors are sent to login (so they can't probe which

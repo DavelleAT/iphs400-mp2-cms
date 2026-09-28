@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Users</h1>
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr id="user-{{ u.id }}">
+        <td>{{ u.name }}{% if u.id == user.id %} (you){% endif %}</td>
+        <td>{{ u.email }}</td>
+        {# No controls on your own row (you can't demote or deactivate yourself)
+           or on a deactivated one. #}
+        {% if u.id == user.id or not u.is_active %}
+        <td>{{ u.role | role_label }}</td>
+        <td>{{ "Active" if u.is_active else "Deactivated" }}</td>
+        {% else %}
+        <td>
+          <form method="post" action="/admin/users/{{ u.id }}/role">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <select name="role" aria-label="Role for {{ u.email }}">
+              {% for value, label in role_labels.items() %}
+                <option value="{{ value }}"{% if value == u.role %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit">Change role</button>
+          </form>
+        </td>
+        <td>
+          Active
+          <form method="post" action="/admin/users/{{ u.id }}/deactivate">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <button type="submit">Deactivate</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Add a user</h2>
+  <form method="post" action="/admin/users">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <p><label>Name <input type="text" name="name" value="{{ form.name }}" required></label></p>
+    <p><label>Email <input type="email" name="email" value="{{ form.email }}" required></label></p>
+    <p><label>Password <input type="password" name="password" required minlength="{{ min_password_length }}" autocomplete="new-password"></label></p>
+    <p><label>Role
+      <select name="role">
+        {% for value, label in role_labels.items() %}
+          <option value="{{ value }}"{% if value == form.role | default("editor") %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label></p>
+    <p><button type="submit">Add user</button></p>
+  </form>
+{% endblock %}

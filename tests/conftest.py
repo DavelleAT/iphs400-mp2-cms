@@ -32,6 +32,25 @@ def csrf_from(html: str) -> str:
     return match.group(1)
 
 
+def post_form(c: TestClient, path: str, data: dict, *, with_csrf=True):
+    """POST an admin form as the logged-in client, with the session's CSRF token."""
+    if with_csrf:
+        data = {**data, "csrf_token": csrf_from(c.get("/admin").text)}
+    return c.post(path, data=data, follow_redirects=False)
+
+
+def user_row(director: TestClient, email: str) -> str:
+    """This user's row of the Director's user list, as HTML."""
+    for row in director.get("/admin/users").text.split("<tr")[1:]:
+        if email in row:
+            return row
+    raise AssertionError(f"{email} is not listed")
+
+
+def user_id(director: TestClient, email: str) -> str:
+    return re.match(r' id="user-(\d+)"', user_row(director, email)).group(1)
+
+
 @pytest.fixture(autouse=True)
 def seeded_db(tmp_path, monkeypatch):
     """Every test gets its own database holding the DEMO_USERS."""

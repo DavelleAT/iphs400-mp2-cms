@@ -2,6 +2,9 @@
 {% block content %}
   <h1>Admin console</h1>
   <p>Signed in as {{ user.email }} ({{ user.role | role_label }}).</p>
+  {% if user.role == "admin" %}
+    <p><a href="/admin/users">Manage users</a></p>
+  {% endif %}
   <form method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     <button type="submit">Log out</button>

@@ -10,7 +10,7 @@ from __future__ import annotations
 import secrets
 import sqlite3
 
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 
 from app import users
 
@@ -26,6 +26,13 @@ def current_user(request: Request) -> sqlite3.Row:
     if user is None:
         request.session.clear()
         raise LoginRequired
+    return user
+
+
+def require_director(user: sqlite3.Row = Depends(current_user)) -> sqlite3.Row:
+    """Dependency: current_user, but 403 unless they are a Director."""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Directors only.")
     return user
 
 

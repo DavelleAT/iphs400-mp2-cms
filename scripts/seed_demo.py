@@ -14,7 +14,6 @@ The rubric expects this to run clean on a fresh clone with .env.example values
 from __future__ import annotations
 
 import os
-import sqlite3
 import sys
 
 from app import db, settings, users
@@ -36,8 +35,11 @@ def main() -> int:
     for email, var, role, name in DEMO_ACCOUNTS:
         try:
             users.create_user(email, os.environ[var], role, name=name)
-        except sqlite3.IntegrityError:
+        except users.DuplicateEmail:
             print(f"  exists   {email}")
+        except users.UserError as exc:
+            print(f"  {var}: {exc}")
+            return 1
         else:
             print(f"  created  {email} ({users.ROLE_LABELS[role]})")
     print(f"Seeded {settings.DATABASE_PATH}")

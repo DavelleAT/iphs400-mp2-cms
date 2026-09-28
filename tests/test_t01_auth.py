@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-from tests.conftest import DEMO_USERS, csrf_from
+from tests.conftest import DEMO_USERS, csrf_from, post_form, user_id
 
 
 def _post_login(client, email, password, *, with_csrf=True):
@@ -15,10 +15,11 @@ def _post_login(client, email, password, *, with_csrf=True):
     return client.post("/login", data=data, follow_redirects=False)
 
 
-def _deactivate(db_path, email):
-    # No user-management UI until T02, so flip the flag directly.
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("UPDATE users SET is_active = 0 WHERE email = ?", (email,))
+def _deactivate(client_as, email):
+    """Deactivate through the Director's user-management UI (T02)."""
+    director = client_as("admin")
+    response = post_form(director, f"/admin/users/{user_id(director, email)}/deactivate", {})
+    assert response.status_code == 303
 
 
 @pytest.mark.parametrize("role, label", [("admin", "Director"), ("editor", "Analyst")])
@@ -45,9 +46,9 @@ def test_wrong_password_and_unknown_account_get_the_same_generic_error(client):
     assert client.get("/admin", follow_redirects=False).status_code == 303
 
 
-def test_deactivated_user_cannot_log_in(client, seeded_db):
+def test_deactivated_user_cannot_log_in(client, client_as):
     user = DEMO_USERS["editor"]
-    _deactivate(seeded_db, user["email"])
+    _deactivate(client_as, user["email"])
     response = _post_login(client, user["email"], user["password"])
     assert response.status_code == 401
     assert "Invalid email or password." in response.text
@@ -83,10 +84,10 @@ def test_signed_in_user_gets_404_for_unknown_admin_path(client_as):
     assert response.status_code == 404
 
 
-def test_deactivated_users_existing_session_fails_on_next_request(client_as, seeded_db):
+def test_deactivated_users_existing_session_fails_on_next_request(client_as):
     c = client_as("editor")
     assert c.get("/admin", follow_redirects=False).status_code == 200
-    _deactivate(seeded_db, DEMO_USERS["editor"]["email"])
+    _deactivate(client_as, DEMO_USERS["editor"]["email"])
     response = c.get("/admin", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"] == "/login"
