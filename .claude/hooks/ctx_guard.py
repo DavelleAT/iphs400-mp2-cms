@@ -64,7 +64,10 @@ def decide(pct: float, last_band: int) -> tuple[str | None, int]:
     Warn once per upward crossing. When usage drops (after /compact or
     /clear), store the lower band so the next crossing warns again.
     """
-    raise NotImplementedError("MP2 Exercise A: implement me with /tdd")
+    band = band_for(pct, *thresholds())
+    if band > last_band:
+        return message_for(band, pct), band
+    return None, band
 
 LEDGER_COLUMNS = [
     "ts", "session", "phase", "provider", "model", "effort",
