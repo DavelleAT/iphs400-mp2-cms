@@ -11,6 +11,11 @@ replacing, or removing it follows the same lockdown as the body. The file is
 stored under settings.UPLOADS, outside site/, named by the Report's id; the
 `file_name` column says whether there is one.
 
+A Report may also carry chart images (app.chart_images, ADR-004), stored apart
+from its PDF, so that changing one never touches the other. Adding or
+removing an image follows the same lockdown again. Deleting a Report deletes
+its file and its images.
+
 Public-facing code reads Reports only through `list_published` and
 `get_published`, so a draft cannot leak through it.
 """
@@ -19,12 +24,14 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from app import db, settings
+from app import chart_images, db, settings
 from app.content import AlsoWrite, ContentError, ContentTable
 from app.uploads import Pdf, write_atomically
 from app.users import is_director
 
 _TABLE = ContentTable("reports", "Report")
+_IMAGES = "reports"  # the chart_images kind
+LOCKED = "Only the Director can change a published Report."
 
 get = _TABLE.get
 list_all = _TABLE.list_all
@@ -38,8 +45,8 @@ class ReportLocked(ContentError):
 
 
 def can_edit(report: sqlite3.Row, user: sqlite3.Row) -> bool:
-    """The lockdown rule. `update` and `remove_file` apply the same rule in
-    their UPDATEs."""
+    """The lockdown rule. `update`, `remove_file`, `add_image`, and
+    `remove_image` apply the same rule in their UPDATEs."""
     return report["status"] == "draft" or is_director(user)
 
 
@@ -66,13 +73,22 @@ def _missing_or_locked(report_id: int) -> bool:
     Report, otherwise it was published and locked."""
     if get(report_id) is None:
         return False
-    raise ReportLocked("Only the Director can change a published Report.")
+    raise ReportLocked(LOCKED)
 
 
 def create(title: str, slug: str, body: str, author_id: int, *,
            pdf: Pdf | None = None) -> int:
-    """Create a draft Report, with its file if one is given."""
-    return _TABLE.create(title, slug, body, author_id, also=_attaching(pdf))
+    """Create a draft Report, with its file if one is given. It starts with no
+    images, even if a deleted Report that had its id left some behind (SQLite
+    may reuse the highest id)."""
+    attach = _attaching(pdf)
+
+    def clear_images_then_attach(conn: sqlite3.Connection, report_id: int) -> None:
+        chart_images.remove_all(_IMAGES, report_id)
+        if attach:
+            attach(conn, report_id)
+
+    return _TABLE.create(title, slug, body, author_id, also=clear_images_then_attach)
 
 
 def update(report_id: int, title: str, slug: str, body: str, *,
@@ -101,11 +117,39 @@ def remove_file(report_id: int, *, user: sqlite3.Row) -> bool:
     return True
 
 
+def images(report_id: int) -> dict[str, Path]:
+    """The Report's chart images, {name: where it is stored}, by name."""
+    return chart_images.stored(_IMAGES, report_id)
+
+
+def add_image(report_id: int, image: chart_images.Image, *, user: sqlite3.Row) -> bool:
+    """Add a chart image on behalf of `user`, or replace the one of the same
+    name. False if there is no such Report; ReportLocked as `update`;
+    ContentError if it already has the most allowed."""
+    if _TABLE.touch(report_id, drafts_only=not is_director(user),
+                    also=lambda conn, item_id: chart_images.save(_IMAGES, item_id, image)):
+        return True
+    return _missing_or_locked(report_id)
+
+
+def remove_image(report_id: int, name: str, *, user: sqlite3.Row) -> bool:
+    """Remove a chart image on behalf of `user`. False if there is no such
+    Report or it has no image of that name; ReportLocked as `update`."""
+    if name not in images(report_id):
+        return False
+    if _TABLE.touch(report_id, drafts_only=not is_director(user),
+                    also=lambda conn, item_id: chart_images.remove(_IMAGES, item_id, name)):
+        return True
+    return _missing_or_locked(report_id)
+
+
 def delete(report_id: int) -> bool:
-    """Delete the Report and its file. False if there is no such Report."""
+    """Delete the Report, its file, and its images. False if there is no such
+    Report."""
     if not _TABLE.delete(report_id):
         return False
     file_path(report_id).unlink(missing_ok=True)
+    chart_images.remove_all(_IMAGES, report_id)
     return True
 
 

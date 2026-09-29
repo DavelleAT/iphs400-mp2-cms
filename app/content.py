@@ -106,14 +106,17 @@ class ContentTable:
         except sqlite3.IntegrityError as exc:
             raise self._duplicate_slug_error(exc, slug) from None
 
-    def touch(self, item_id: int, *, also: AlsoWrite | None = None) -> bool:
+    def touch(self, item_id: int, *, drafts_only: bool = False,
+              also: AlsoWrite | None = None) -> bool:
         """Mark the item as changed now, for a change outside its row (e.g.
-        its images), made by `also` in the same transaction. False if there is
-        no such item."""
+        its images), made by `also` in the same transaction. With drafts_only,
+        a published item is left alone, as `update`. False if nothing was
+        changed."""
         with db.connect() as conn:
             changed = conn.execute(
-                f"UPDATE {self.table} SET updated_at = datetime('now') WHERE id = ?",
-                (item_id,),
+                f"UPDATE {self.table} SET updated_at = datetime('now')"
+                " WHERE id = ? AND (status = 'draft' OR NOT ?)",
+                (item_id, drafts_only),
             ).rowcount == 1
             if changed and also:
                 also(conn, item_id)

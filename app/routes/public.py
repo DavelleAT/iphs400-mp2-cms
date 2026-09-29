@@ -58,6 +58,14 @@ def report(slug: str):
     return _html(public_site.report(slug))
 
 
+@router.get("/images/reports/{slug}/{name}")
+def report_image(slug: str, name: str):
+    path = public_site.report_image(slug, name)
+    if path is None:
+        raise HTTPException(status_code=404)
+    return chart_images.response(path)
+
+
 @router.get("/reports/files/{slug}.pdf")
 def report_file(slug: str):
     found = public_site.report_file(slug)

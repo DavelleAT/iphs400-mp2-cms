@@ -57,6 +57,10 @@ def report_file_path(slug: str) -> str:
     return f"reports/files/{slug}.pdf"
 
 
+def report_image_path(slug: str, name: str) -> str:
+    return f"images/reports/{slug}/{name}"
+
+
 @dataclass(frozen=True)
 class Page:
     path: str      # where the page sits in the site, relative to its root
@@ -134,7 +138,9 @@ def report(slug: str) -> Page | None:
 def _report_page(found: sqlite3.Row) -> Page:
     return Page(report_path(found["slug"]), "public/report.html",
                 {"page_title": found["title"], "report": found,
-                 "has_file": _stored_file(found) is not None})
+                 "has_file": _stored_file(found) is not None},
+                images={name: report_image_path(found["slug"], name)
+                        for name in reports.images(found["id"])})
 
 
 def report_file(slug: str) -> tuple[Path, str] | None:
@@ -146,6 +152,14 @@ def report_file(slug: str) -> tuple[Path, str] | None:
     return (stored, found["file_name"]) if stored else None
 
 
+def report_image(slug: str, name: str) -> Path | None:
+    """Where a published Report's chart image, at report_image_path(slug,
+    name) in the site, is stored. None for a draft, no such image, or no such
+    Report."""
+    found = reports.get_published(slug)
+    return None if found is None else reports.images(found["id"]).get(name)
+
+
 def pages() -> list[Page]:
     """Every page of the site: what `cms publish` writes."""
     return [home(), data_bite_list(), report_list(),
@@ -155,10 +169,15 @@ def pages() -> list[Page]:
 
 def files() -> dict[str, Path]:
     """Every file the site's pages link to besides the stylesheet, as
-    {path in the site: where it is stored}: the published Data Bites' chart
-    images and the published Reports' files."""
-    images = {data_bite_image_path(bite["slug"], name): path
-              for bite in data_bites.list_published()
-              for name, path in data_bites.images(bite["id"]).items()}
-    stored = {found["slug"]: _stored_file(found) for found in reports.list_published()}
-    return {**images, **{report_file_path(slug): path for slug, path in stored.items() if path}}
+    {path in the site: where it is stored}: the published Data Bites' and
+    Reports' chart images, and the published Reports' files."""
+    bite_images = {data_bite_image_path(bite["slug"], name): path
+                   for bite in data_bites.list_published()
+                   for name, path in data_bites.images(bite["id"]).items()}
+    published_reports = reports.list_published()
+    report_images = {report_image_path(found["slug"], name): path
+                     for found in published_reports
+                     for name, path in reports.images(found["id"]).items()}
+    stored = {found["slug"]: _stored_file(found) for found in published_reports}
+    return {**bite_images, **report_images,
+            **{report_file_path(slug): path for slug, path in stored.items() if path}}
