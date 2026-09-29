@@ -30,6 +30,7 @@ _TABLE = ContentTable("reports", "Report")
 
 get = _TABLE.get
 list_all = _TABLE.list_all
+count_by_status = _TABLE.count_by_status
 set_status = _TABLE.set_status
 
 

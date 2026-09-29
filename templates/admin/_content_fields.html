@@ -5,6 +5,41 @@
       pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint"></label>
       <small id="slug-hint">Lowercase letters, digits, and hyphens.</small></p>
     <p><label>Body (Markdown)<br><textarea name="body" rows="10" cols="60" required>{{ form.body }}</textarea></label></p>
+    <p><strong>Preview</strong> <small>(as it will render; unsafe HTML is removed)</small>
+      <small class="content-preview-status" role="status"></small></p>
+    <div class="content-preview">{{ form.body | markdown }}</div><!-- /content-preview -->
+    <script>
+      // Re-render the preview on the server as the body is typed, so it goes
+      // through the same sanitizer as the published page.
+      (() => {
+        const form = document.currentScript.closest("form");
+        const out = form.querySelector(".content-preview");
+        const status = form.querySelector(".content-preview-status");
+        let timer, latest = 0;
+        form.elements.body.addEventListener("input", () => {
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            const request = ++latest;
+            const data = new FormData();
+            data.append("csrf_token", form.elements.csrf_token.value);
+            data.append("body", form.elements.body.value);
+            let html = null;
+            try {
+              const response = await fetch("/admin/preview", {method: "POST", body: data});
+              // A redirect means the session ended; don't show the login page here.
+              if (response.ok && !response.redirected) html = await response.text();
+            } catch {}
+            if (request !== latest) return;
+            if (html === null) {
+              status.textContent = "Preview is not updating. Reload the page (you may need to log in again).";
+            } else {
+              out.innerHTML = html;
+              status.textContent = "";
+            }
+          }, 250);
+        });
+      })();
+    </script>
     {% if file_label %}
     <p><label>{{ file_label }}
       <input type="file" name="file" accept="application/pdf,.pdf"></label></p>

@@ -2,8 +2,25 @@
 {% block content %}
   <h1>Admin console</h1>
   <p>Signed in as {{ user.email }} ({{ user.role | role_label }}).</p>
-  <p><a href="/admin/data-bites">Data Bites</a></p>
-  <p><a href="/admin/reports">Reports</a></p>
+
+  <h2>Dashboard</h2>
+  <table>
+    <thead><tr><th>Content</th>{% for label in status_labels.values() %}<th>{{ label }}</th>{% endfor %}<th>Total</th></tr></thead>
+    <tbody>
+    {% for ctype in content_types %}
+      {% set by_status = counts[ctype.key] %}
+      <tr>
+        <th scope="row"><a href="{{ ctype.list_path }}">{{ ctype.plural }}</a></th>
+        {% for status in status_labels %}
+        <td id="count-{{ ctype.key }}-{{ status }}"><a href="/admin/content?type={{ ctype.key }}&amp;status={{ status }}">{{ by_status[status] }}</a></td>
+        {% endfor %}
+        <td id="count-{{ ctype.key }}-total">{{ by_status.values() | sum }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p><a href="/admin/content">All content</a></p>
+
   {% if user.role == "admin" %}
     <p><a href="/admin/users">Manage users</a></p>
   {% endif %}

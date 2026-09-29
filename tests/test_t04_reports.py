@@ -116,7 +116,8 @@ def test_analyst_sees_a_published_report_read_only(client_as):
     rid = published_report(director, analyst)
     page = analyst.get(f"/admin/reports/{rid}")
     assert page.status_code == 200
-    assert REPORT["body"] in page.text
+    # Shown rendered (T06), not as raw Markdown.
+    assert "<p>Admissions, enrollment, and <strong>program</strong> statistics.</p>" in page.text
     assert f'action="/admin/reports/{rid}"' not in page.text
     assert "Only the Director" in page.text
 

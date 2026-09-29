@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="/admin">Dashboard</a></p>
+  <h1>All content</h1>
+  <form method="get" action="/admin/content">
+    <label>Type
+      <select name="type">
+        <option value="">All</option>
+        {% for ctype in content_types %}
+        <option value="{{ ctype.key }}"{% if ctype.key == chosen.type %} selected{% endif %}>{{ ctype.plural }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        {% for value, label in status_labels.items() %}
+        <option value="{{ value }}"{% if value == chosen.status %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+  </form>
+  {% if items %}
+  <table>
+    <thead><tr><th>Type</th><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th></tr></thead>
+    <tbody>
+    {% for ctype, item in items %}
+      <tr class="content-row">
+        <td>{{ ctype.noun }}</td>
+        <td><a href="{{ ctype.list_path }}/{{ item.id }}">{{ item.title }}</a></td>
+        <td><code>{{ item.slug }}</code></td>
+        <td>{{ status_labels[item.status] }}</td>
+        <td>{{ item.author_name }}</td>
+        <td>{{ item.updated_at }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Nothing matches these filters.</p>
+  {% endif %}
+{% endblock %}

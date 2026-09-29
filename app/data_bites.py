@@ -18,6 +18,7 @@ _TABLE = ContentTable("data_bites", "Data Bite")
 create = _TABLE.create
 get = _TABLE.get
 list_all = _TABLE.list_all
+count_by_status = _TABLE.count_by_status
 set_status = _TABLE.set_status
 delete = _TABLE.delete
 

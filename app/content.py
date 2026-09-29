@@ -104,8 +104,18 @@ class ContentTable:
         rows = self._select("c.id = ?", "c.id", (item_id,))
         return rows[0] if rows else None
 
-    def list_all(self) -> list[sqlite3.Row]:
-        return self._select("1", "c.updated_at DESC, c.id DESC")
+    def list_all(self, status: str | None = None) -> list[sqlite3.Row]:
+        """Every item, or only those in `status`; most recently updated first."""
+        where, params = ("1", ()) if status is None else ("c.status = ?", (status,))
+        return self._select(where, "c.updated_at DESC, c.id DESC", params)
+
+    def count_by_status(self) -> dict[str, int]:
+        """How many items are in each status, zero included, e.g.
+        {"draft": 2, "published": 0}."""
+        with db.connect() as conn:
+            rows = conn.execute(
+                f"SELECT status, COUNT(*) FROM {self.table} GROUP BY status").fetchall()
+        return {**dict.fromkeys(STATUS_LABELS, 0), **dict(rows)}
 
     def list_published(self, order: str) -> list[sqlite3.Row]:
         return self._select("c.status = 'published'", order)

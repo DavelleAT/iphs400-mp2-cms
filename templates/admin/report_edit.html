@@ -21,6 +21,6 @@
   {% else %}
   <p>Only the Director can edit, unpublish, or delete a published Report.</p>
   <p>Slug: <code>{{ report.slug }}</code></p>
-  <pre>{{ report.body }}</pre>
+  <div class="content-preview">{{ report.body | markdown }}</div><!-- /content-preview -->
   {% endif %}
 {% endblock %}
