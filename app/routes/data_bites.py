@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import chart_images, data_bites
+from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.rendering import ImageSrc, images_without_description, render_markdown
@@ -41,6 +42,7 @@ def create_bite(request: Request, user=Depends(current_user), title: str = Form(
     except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
+    confirm(request, "Data Bite created as a Draft.")
     return RedirectResponse("/admin/data-bites", status_code=303)
 
 
@@ -90,6 +92,7 @@ def edit_bite(request: Request, bite_id: int, user=Depends(current_user),
     except ContentError as exc:
         return _edit_page(request, user, bite, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
+    confirm(request, "Data Bite saved.")
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)
 
 
@@ -117,35 +120,39 @@ def upload_image(request: Request, bite_id: int, user=Depends(current_user),
             raise HTTPException(status_code=404)
     except ContentError as exc:
         return _edit_page(request, user, bite, error=str(exc), status_code=400)
+    confirm(request, "Chart image uploaded.")
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)
 
 
 @router.post("/{bite_id}/images/{name}/delete", dependencies=[Depends(require_csrf)])
-def delete_image(bite_id: int, name: str):
+def delete_image(request: Request, bite_id: int, name: str):
     if not data_bites.remove_image(bite_id, name):
         raise HTTPException(status_code=404)
+    confirm(request, "Chart image deleted.")
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)
 
 
-def _set_status(bite_id: int, status: str):
+def _set_status(request: Request, bite_id: int, status: str, message: str):
     if not data_bites.set_status(bite_id, status):
         raise HTTPException(status_code=404)
+    confirm(request, message + SITE_NOTE)
     return RedirectResponse("/admin/data-bites", status_code=303)
 
 
 @router.post("/{bite_id}/publish", dependencies=[Depends(require_csrf)])
-def publish(bite_id: int):
-    return _set_status(bite_id, "published")
+def publish(request: Request, bite_id: int):
+    return _set_status(request, bite_id, "published", "Data Bite published.")
 
 
 @router.post("/{bite_id}/unpublish", dependencies=[Depends(require_csrf)])
-def unpublish(bite_id: int):
-    return _set_status(bite_id, "draft")
+def unpublish(request: Request, bite_id: int):
+    return _set_status(request, bite_id, "draft", "Data Bite moved back to Draft.")
 
 
 @router.post("/{bite_id}/delete",
              dependencies=[Depends(require_director), Depends(require_csrf)])
-def delete(bite_id: int):
+def delete(request: Request, bite_id: int):
     if not data_bites.delete(bite_id):
         raise HTTPException(status_code=404)
+    confirm(request, "Data Bite deleted.")
     return RedirectResponse("/admin/data-bites", status_code=303)

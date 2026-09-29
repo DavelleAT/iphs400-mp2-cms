@@ -49,6 +49,13 @@ that a Data Bite or Report shows inline, placed in its Markdown body as
 Not a Report's **attached file**, which is a PDF offered for download.
 _Avoid_: figure, graphic, media, attachment
 
+**Confirmation**:
+The one-line message the admin console shows, once, after a save, publish,
+upload, delete, or user change succeeds (`app/flash.py`). Fixed text only:
+never a title, email, filename, or password. A refused action gets an error,
+not a Confirmation.
+_Avoid_: flash, toast, notification, success message
+
 **Factbook**:
 A specific Report: the office's running reference document of admissions,
 enrollment, diversity, and academic program statistics.

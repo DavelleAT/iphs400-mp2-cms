@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from app import chart_images, reports, uploads
+from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.rendering import ImageSrc, images_without_description, render_markdown
@@ -42,10 +43,13 @@ def create_report(request: Request, user=Depends(current_user), title: str = For
                   slug: str = Form(""), body: str = Form(""),
                   file: UploadFile | None = File(None)):
     try:
-        reports.create(title, slug, body, user["id"], pdf=uploads.read_pdf(file))
+        pdf = uploads.read_pdf(file)
+        reports.create(title, slug, body, user["id"], pdf=pdf)
     except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
+    confirm(request, "Report created as a Draft, with its attached file." if pdf
+            else "Report created as a Draft.")
     return RedirectResponse("/admin/reports", status_code=303)
 
 
@@ -104,14 +108,16 @@ def edit_report(request: Request, report_id: int, user=Depends(current_user),
                 file: UploadFile | None = File(None)):
     report = _editable_or_403(report_id, user)
     try:
-        if not reports.update(report_id, title, slug, body, user=user,
-                              pdf=uploads.read_pdf(file)):
+        pdf = uploads.read_pdf(file)
+        if not reports.update(report_id, title, slug, body, user=user, pdf=pdf):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
         return _edit_page(request, user, report, error=str(exc), status_code=400,
                           form={"title": title, "slug": slug, "body": body})
+    confirm(request, "Report saved, with its new attached file." if pdf
+            else "Report saved.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 
 
@@ -127,12 +133,13 @@ def download_file(report_id: int):
 
 
 @router.post("/{report_id}/file/delete", dependencies=[Depends(require_csrf)])
-def remove_file(report_id: int, user=Depends(current_user)):
+def remove_file(request: Request, report_id: int, user=Depends(current_user)):
     try:
         if not reports.remove_file(report_id, user=user):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
+    confirm(request, "Attached file removed.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 
 
@@ -162,41 +169,46 @@ def upload_image(request: Request, report_id: int, user=Depends(current_user),
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
         return _edit_page(request, user, report, error=str(exc), status_code=400)
+    confirm(request, "Chart image uploaded.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 
 
 @router.post("/{report_id}/images/{name}/delete", dependencies=[Depends(require_csrf)])
-def delete_image(report_id: int, name: str, user=Depends(current_user)):
+def delete_image(request: Request, report_id: int, name: str,
+                 user=Depends(current_user)):
     _editable_or_403(report_id, user)
     try:
         if not reports.remove_image(report_id, name, user=user):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
+    confirm(request, "Chart image deleted.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 
 
-def _set_status(report_id: int, status: str):
+def _set_status(request: Request, report_id: int, status: str, message: str):
     if not reports.set_status(report_id, status):
         raise HTTPException(status_code=404)
+    confirm(request, message + SITE_NOTE)
     return RedirectResponse("/admin/reports", status_code=303)
 
 
 @router.post("/{report_id}/publish",
              dependencies=[Depends(require_director), Depends(require_csrf)])
-def publish(report_id: int):
-    return _set_status(report_id, "published")
+def publish(request: Request, report_id: int):
+    return _set_status(request, report_id, "published", "Report published.")
 
 
 @router.post("/{report_id}/unpublish",
              dependencies=[Depends(require_director), Depends(require_csrf)])
-def unpublish(report_id: int):
-    return _set_status(report_id, "draft")
+def unpublish(request: Request, report_id: int):
+    return _set_status(request, report_id, "draft", "Report moved back to Draft.")
 
 
 @router.post("/{report_id}/delete",
              dependencies=[Depends(require_director), Depends(require_csrf)])
-def delete(report_id: int):
+def delete(request: Request, report_id: int):
     if not reports.delete(report_id):
         raise HTTPException(status_code=404)
+    confirm(request, "Report deleted.")
     return RedirectResponse("/admin/reports", status_code=303)

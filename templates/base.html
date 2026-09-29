@@ -8,7 +8,10 @@
 </head>
 <body>
   <header><a class="header-home" href="{{ home_path | default('index.html') }}">{{ title }}</a>{% block nav %}{% endblock %}</header>
-  <main>{% block content %}{% endblock %}</main>
+  <main>
+    {%- if user is defined and user %}{% set message = confirmation() %}
+    {%- if message %}<p class="admin-confirmation" role="status">{{ message }}</p>{% endif %}{% endif %}
+    {%- block content %}{% endblock %}</main>
   <footer><small>IPHS 400 Mini-Project #2</small></footer>
 </body>
 </html>

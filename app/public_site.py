@@ -26,6 +26,8 @@ body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; p
 .header-home { font-weight: 700; text-decoration: none; }
 .nav-site ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
 main { margin-block: 2rem; }
+/* Admin only: the message after a successful save (app.flash). */
+.admin-confirmation { background: color-mix(in srgb, #2e7d32 12%, transparent); border-left: 4px solid #2e7d32; margin: 0 0 1.5rem; padding: 0.6rem 0.9rem; }
 /* Markdown tables, in a Data Bite's or Report's body. A wide one scrolls
    sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
    the page; on a phone, rather than squeezing its text to a word a line. */

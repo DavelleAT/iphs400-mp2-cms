@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 
 from app import users
 from app.auth import require_csrf, require_director
+from app.flash import confirm
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/users", dependencies=[Depends(require_director)])
@@ -40,6 +41,7 @@ def create_user(request: Request, user=Depends(require_director),
         # Re-fill everything but the password.
         return _users_page(request, user, error=str(exc), status_code=400,
                            form={"email": email, "name": name, "role": role})
+    confirm(request, "User created.")
     return RedirectResponse("/admin/users", status_code=303)
 
 
@@ -59,6 +61,7 @@ def change_role(request: Request, user_id: int, user=Depends(require_director),
         return _users_page(request, user, error=str(exc), status_code=400)
     if not found:
         raise HTTPException(status_code=404)
+    confirm(request, "Role changed.")
     return RedirectResponse("/admin/users", status_code=303)
 
 
@@ -68,4 +71,5 @@ def deactivate(request: Request, user_id: int, user=Depends(require_director)):
         return _users_page(request, user, error=SELF_LOCKOUT, status_code=400)
     if not users.deactivate(user_id):
         raise HTTPException(status_code=404)
+    confirm(request, "User deactivated.")
     return RedirectResponse("/admin/users", status_code=303)
