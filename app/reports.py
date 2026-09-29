@@ -11,8 +11,8 @@ replacing, or removing it follows the same lockdown as the body. The file is
 stored under settings.UPLOADS, outside site/, named by the Report's id; the
 `file_name` column says whether there is one.
 
-Public-facing code reads Reports only through `list_published`, so a draft
-cannot leak through it.
+Public-facing code reads Reports only through `list_published` and
+`get_published`, so a draft cannot leak through it.
 """
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ get = _TABLE.get
 list_all = _TABLE.list_all
 count_by_status = _TABLE.count_by_status
 set_status = _TABLE.set_status
+get_published = _TABLE.get_published
 
 
 class ReportLocked(ContentError):

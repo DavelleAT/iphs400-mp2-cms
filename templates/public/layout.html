@@ -1,0 +1,10 @@
+{# Every public page. Links are relative to the site's root via `root`,
+   never root-absolute, so the pages work exported to a Pages subfolder. #}
+{% extends "base.html" %}
+{% from "public/_lists.html" import report_list with context %}
+{% block title %}{% if page_title %}{{ page_title }} · {% endif %}{{ title }}{% endblock %}
+{% block nav %}
+  {% if nav_reports %}
+    <nav class="nav-site" aria-label="Reports">{{ report_list(nav_reports) }}</nav>
+  {% endif %}
+{% endblock %}

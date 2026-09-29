@@ -15,13 +15,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app import settings
-
-CSS = """/* Minimal starter styles — make them yours. */
-:root { color-scheme: light dark; }
-body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; }
-header a { font-weight: 700; text-decoration: none; }
-main { margin-block: 2rem; }
-"""
+from app.public_site import CSS
 
 
 def environment() -> Environment:

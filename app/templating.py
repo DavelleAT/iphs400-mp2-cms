@@ -1,4 +1,4 @@
-"""The Jinja environment the admin console renders with."""
+"""The Jinja environment the admin console and the public site render with."""
 from __future__ import annotations
 
 from fastapi.templating import Jinja2Templates

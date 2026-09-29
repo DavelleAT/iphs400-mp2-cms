@@ -1,0 +1,10 @@
+{% extends "public/layout.html" %}
+{% from "public/_lists.html" import created_date with context %}
+{% block content %}
+  <article>
+    <h1>{{ bite.title }}</h1>
+    <p class="data-bite-meta"><small>{{ created_date(bite) }}</small></p>
+    {{ bite.body | markdown }}
+  </article>
+  <p><a href="{{ root }}data-bites/index.html">All Data Bites</a></p>
+{% endblock %}

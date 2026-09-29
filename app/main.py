@@ -1,8 +1,8 @@
 """The FastAPI application.
 
-The admin console lives under /admin (login required) and the public preview
-at /. Routes live in their own modules under app/routes/ and are included here.
-Keep this file small.
+The admin console lives under /admin (login required) and the public site
+at /. Routes live in their own modules under app/routes/ and are included
+here. Keep this file small.
 """
 from __future__ import annotations
 
@@ -15,10 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import db, settings
 from app.auth import LoginRequired, current_user
-from app.data_bites import list_published as published_data_bites
-from app.reports import list_published as published_reports
-from app.routes import admin, auth, data_bites, reports, users
-from app.templating import templates
+from app.routes import admin, auth, data_bites, public, reports, users
 
 SESSION_MAX_AGE = 8 * 60 * 60  # one working day
 ALL_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -46,18 +43,7 @@ def create_app() -> FastAPI:
     def redirect_to_login(request: Request, exc: LoginRequired):
         return RedirectResponse("/login", status_code=303)
 
-    @app.get("/")
-    def public_home(request: Request):
-        # Titles only: the public pages (and links to them) arrive with the
-        # public-site ticket, T07.
-        data_bite_items = [{"title": b["title"]} for b in published_data_bites()]
-        report_items = [{"title": r["title"]} for r in published_reports()]
-        return templates.TemplateResponse(
-            request, "public/home.html",
-            {"title": settings.SITE_TITLE, "items": data_bite_items,
-             "reports": report_items},
-        )
-
+    app.include_router(public.router)
     app.include_router(auth.router)
     app.include_router(admin.router)
     app.include_router(users.router)

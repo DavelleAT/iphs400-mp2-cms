@@ -20,6 +20,9 @@ STATUS_LABELS = {"draft": "Draft", "published": "Published"}
 # the item's id; if it raises, the row's change is rolled back with it.
 AlsoWrite = Callable[[sqlite3.Connection, int], None]
 _SLUG_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+# A slug names its item's page, <type folder>/<slug>.html, on the public site;
+# <type folder>/index.html is taken by the type's list page.
+_RESERVED_SLUGS = {"index"}
 
 
 class ContentError(ValueError):
@@ -37,6 +40,9 @@ def validate(title: str, slug: str, body: str) -> tuple[str, str, str]:
     if not _SLUG_PATTERN.fullmatch(slug):
         raise ContentError("Slugs use lowercase letters, digits, and single "
                            "hyphens, e.g. fall-enrollment.")
+    if slug in _RESERVED_SLUGS:
+        raise ContentError(f"The slug {slug} is reserved for the list page; "
+                           "choose another.")
     if not body.strip():
         raise ContentError("Enter a body.")
     return title, slug, body
@@ -119,6 +125,11 @@ class ContentTable:
 
     def list_published(self, order: str) -> list[sqlite3.Row]:
         return self._select("c.status = 'published'", order)
+
+    def get_published(self, slug: str) -> sqlite3.Row | None:
+        """The published item with this slug; None for a draft or no such item."""
+        rows = self._select("c.status = 'published' AND c.slug = ?", "c.id", (slug,))
+        return rows[0] if rows else None
 
     def set_status(self, item_id: int, status: str) -> bool:
         """Publish or unpublish. False if there is no such item."""

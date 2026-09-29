@@ -4,8 +4,8 @@ Any Analyst or Director may create, edit, publish, and unpublish any Data Bite
 (shift continuity, ADR-003); only a Director may delete one, which the routes
 enforce. Editing never changes the author or created_at.
 
-Public-facing code reads Data Bites only through `list_published`, so a draft
-cannot leak through it.
+Public-facing code reads Data Bites only through `list_published` and
+`get_published`, so a draft cannot leak through it.
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ list_all = _TABLE.list_all
 count_by_status = _TABLE.count_by_status
 set_status = _TABLE.set_status
 delete = _TABLE.delete
+get_published = _TABLE.get_published
 
 
 def update(bite_id: int, title: str, slug: str, body: str) -> bool:

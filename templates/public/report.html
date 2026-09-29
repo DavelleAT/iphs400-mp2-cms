@@ -1,0 +1,11 @@
+{% extends "public/layout.html" %}
+{% block content %}
+  <article>
+    <h1>{{ report.title }}</h1>
+    {% if has_file %}
+      <p class="report-download"><a href="{{ root }}{{ report_file_path(report.slug) }}" download="{{ report.file_name }}">Download {{ report.file_name }}</a> (PDF)</p>
+    {% endif %}
+    {{ report.body | markdown }}
+  </article>
+  <p><a href="{{ root }}reports/index.html">All Reports</a></p>
+{% endblock %}

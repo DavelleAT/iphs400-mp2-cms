@@ -1,0 +1,19 @@
+{# Pieces the public pages share. Import them "with context": they use the
+   page's `root` and *_path functions. #}
+{% macro created_date(item) %}<time datetime="{{ item.created_at[:10] }}">{{ item.created_at[:10] }}</time>{% endmacro %}
+
+{% macro data_bite_list(bites) %}
+  <ul class="list-data-bites">
+    {% for bite in bites %}
+      <li><a href="{{ root }}{{ data_bite_path(bite.slug) }}">{{ bite.title }}</a> <small>{{ created_date(bite) }}</small></li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+
+{% macro report_list(reports) %}
+  <ul class="list-reports">
+    {% for report in reports %}
+      <li><a href="{{ root }}{{ report_path(report.slug) }}">{{ report.title }}</a></li>
+    {% endfor %}
+  </ul>
+{% endmacro %}

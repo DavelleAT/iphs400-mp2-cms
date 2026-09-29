@@ -1,12 +1,10 @@
 {% extends "public/layout.html" %}
 {% from "public/_lists.html" import data_bite_list with context %}
 {% block content %}
-  <h1>{{ title }}</h1>
-  <h2>Latest Data Bites</h2>
+  <h1>Data Bites</h1>
   {% if data_bites %}
     {{ data_bite_list(data_bites) }}
   {% else %}
-    <p>Nothing published yet.</p>
+    <p>No Data Bites published yet.</p>
   {% endif %}
-  <p><a href="{{ root }}data-bites/index.html">All Data Bites</a> · <a href="{{ root }}reports/index.html">All Reports</a></p>
 {% endblock %}
