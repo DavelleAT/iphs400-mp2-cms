@@ -8,7 +8,7 @@
     <tbody>
     {% for b in bites %}
       <tr id="data-bite-{{ b.id }}">
-        <td><a href="/admin/data-bites/{{ b.id }}">{{ b.title }}</a></td>
+        <td><a href="{{ path_for('edit_bite_form', bite_id=b.id) }}">{{ b.title }}</a></td>
         <td><code>{{ b.slug }}</code></td>
         <td>{{ status_labels[b.status] }}</td>
         <td>{{ b.author_name }}</td>

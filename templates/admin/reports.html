@@ -11,7 +11,7 @@
     <tbody>
     {% for r in reports %}
       <tr id="report-{{ r.id }}">
-        <td><a href="/admin/reports/{{ r.id }}">{{ r.title }}</a></td>
+        <td><a href="{{ path_for('edit_report_form', report_id=r.id) }}">{{ r.title }}</a></td>
         <td><code>{{ r.slug }}</code></td>
         <td>{{ status_labels[r.status] }}</td>
         <td>{{ r.author_name }}</td>

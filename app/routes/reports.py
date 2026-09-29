@@ -94,7 +94,7 @@ def _editable_or_403(report_id: int, user: sqlite3.Row) -> sqlite3.Row:
 
 
 @router.get("/{report_id}")
-def edit_form(request: Request, report_id: int, user=Depends(current_user)):
+def edit_report_form(request: Request, report_id: int, user=Depends(current_user)):
     return _edit_page(request, user, _get_or_404(report_id))
 
 

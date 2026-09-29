@@ -12,17 +12,17 @@
       <tr>
         <th scope="row"><a href="{{ ctype.list_path }}">{{ ctype.plural }}</a></th>
         {% for status in status_labels %}
-        <td id="count-{{ ctype.key }}-{{ status }}"><a href="/admin/content?type={{ ctype.key }}&amp;status={{ status }}">{{ by_status[status] }}</a></td>
+        <td id="count-{{ ctype.key }}-{{ status }}"><a href="{{ path_for('content_list') }}?type={{ ctype.key }}&amp;status={{ status }}">{{ by_status[status] }}</a></td>
         {% endfor %}
         <td id="count-{{ ctype.key }}-total">{{ by_status.values() | sum }}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  <p><a href="/admin/content">All content</a></p>
+  <p><a href="{{ path_for('content_list') }}">All content</a></p>
 
   {% if user.role == "admin" %}
-    <p><a href="/admin/users">Manage users</a></p>
+    <p><a href="{{ path_for('list_users') }}">Manage users</a></p>
   {% endif %}
   <form method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">

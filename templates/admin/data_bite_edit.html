@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-  <p><a href="/admin/data-bites">All Data Bites</a></p>
+  <p><a href="{{ path_for('list_bites') }}">All Data Bites</a></p>
   <h1>Edit Data Bite</h1>
   <p>{{ status_labels[bite.status] }}. Created {{ bite.created_at }} by {{ bite.author_name }}.
      Last updated {{ bite.updated_at }}.</p>

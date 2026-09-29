@@ -77,7 +77,7 @@ def _get_or_404(bite_id: int) -> sqlite3.Row:
 
 
 @router.get("/{bite_id}")
-def edit_form(request: Request, bite_id: int, user=Depends(current_user)):
+def edit_bite_form(request: Request, bite_id: int, user=Depends(current_user)):
     return _edit_page(request, user, _get_or_404(bite_id))
 
 
