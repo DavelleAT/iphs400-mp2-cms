@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, Response
 
-from app import public_site
+from app import chart_images, public_site
 from app.public_site import Page
 
 router = APIRouter()
@@ -37,6 +37,14 @@ def data_bite_list():
 @router.get("/data-bites/{slug}.html")
 def data_bite(slug: str):
     return _html(public_site.data_bite(slug))
+
+
+@router.get("/images/data-bites/{slug}/{name}")
+def data_bite_image(slug: str, name: str):
+    path = public_site.data_bite_image(slug, name)
+    if path is None:
+        raise HTTPException(status_code=404)
+    return chart_images.response(path)
 
 
 @router.get("/reports/")

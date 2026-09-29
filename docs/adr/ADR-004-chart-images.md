@@ -35,3 +35,9 @@ depth and the published HTML stays relative. An unknown name renders nothing.
 published, and it follows that item's permissions (ADR-003 unchanged): any
 Analyst may manage a Data Bite's images or a draft Report's, and only the
 Director a published Report's. Deleting the item deletes its images.
+
+One consequence, accepted: an image is public for as long as its item is
+published, whether or not the body places it. An image uploaded to a
+published Data Bite is served, and exported by `cms publish`, at once, even
+before the body references it. A chart that isn't ready to be seen goes on a
+draft, not on a published item.

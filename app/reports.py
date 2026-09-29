@@ -16,14 +16,12 @@ Public-facing code reads Reports only through `list_published` and
 """
 from __future__ import annotations
 
-import os
 import sqlite3
-import tempfile
 from pathlib import Path
 
 from app import db, settings
 from app.content import AlsoWrite, ContentError, ContentTable
-from app.uploads import Pdf
+from app.uploads import Pdf, write_atomically
 from app.users import is_director
 
 _TABLE = ContentTable("reports", "Report")
@@ -50,19 +48,6 @@ def file_path(report_id: int) -> Path:
     return settings.UPLOADS / "reports" / f"{int(report_id)}.pdf"
 
 
-def _write_atomically(path: Path, data: bytes) -> None:
-    """Replace `path` in one step, so a failed write never leaves half a file."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".part")
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(data)
-        os.replace(tmp, path)
-    except BaseException:
-        Path(tmp).unlink(missing_ok=True)
-        raise
-
-
 def _attaching(pdf: Pdf | None) -> AlsoWrite | None:
     """Attach `pdf` in the same transaction as the Report's row, so the body
     and the file are saved together or not at all."""
@@ -71,7 +56,7 @@ def _attaching(pdf: Pdf | None) -> AlsoWrite | None:
 
     def attach(conn: sqlite3.Connection, report_id: int) -> None:
         conn.execute("UPDATE reports SET file_name = ? WHERE id = ?", (pdf.name, report_id))
-        _write_atomically(file_path(report_id), pdf.data)
+        write_atomically(file_path(report_id), pdf.data)
 
     return attach
 

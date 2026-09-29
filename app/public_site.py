@@ -30,6 +30,8 @@ main { margin-block: 2rem; }
    sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
    the page; on a phone, rather than squeezing its text to a word a line. */
 .content-body .content-table-scroll { margin-block: 1rem; overflow-x: auto; }
+/* Chart images (app.chart_images) shrink to the column, keeping their shape. */
+.content-body img { height: auto; max-width: 100%; }
 .content-body table { border-collapse: collapse; }
 .content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
 .content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
@@ -40,6 +42,10 @@ RECENT_DATA_BITES = 5  # on the home page; the rest are on the Data Bites list
 
 def data_bite_path(slug: str) -> str:
     return f"data-bites/{slug}.html"
+
+
+def data_bite_image_path(slug: str, name: str) -> str:
+    return f"images/data-bites/{slug}/{name}"
 
 
 def report_path(slug: str) -> str:
@@ -56,10 +62,18 @@ class Page:
     path: str      # where the page sits in the site, relative to its root
     template: str
     context: dict = field(default_factory=dict)
+    # The chart images its body may show, {name: path in the site}.
+    images: dict[str, str] = field(default_factory=dict)
 
     def render(self) -> str:
         root = "../" * self.path.count("/")
+
+        def image_src(name: str) -> str | None:
+            path = self.images.get(name)
+            return None if path is None else f"{root}{path}"
+
         return templates.env.get_template(self.template).render(
+            image_src=image_src,
             title=settings.SITE_TITLE, root=root, css_path=f"{root}style.css",
             home_path=f"{root}index.html", nav_reports=reports.list_published(),
             data_bite_path=data_bite_path, report_path=report_path,
@@ -84,7 +98,17 @@ def data_bite(slug: str) -> Page | None:
 
 def _data_bite_page(bite: sqlite3.Row) -> Page:
     return Page(data_bite_path(bite["slug"]), "public/data_bite.html",
-                {"page_title": bite["title"], "bite": bite})
+                {"page_title": bite["title"], "bite": bite},
+                images={name: data_bite_image_path(bite["slug"], name)
+                        for name in data_bites.images(bite["id"])})
+
+
+def data_bite_image(slug: str, name: str) -> Path | None:
+    """Where a published Data Bite's chart image, at
+    data_bite_image_path(slug, name) in the site, is stored. None for a
+    draft, no such image, or no such Data Bite."""
+    bite = data_bites.get_published(slug)
+    return None if bite is None else data_bites.images(bite["id"]).get(name)
 
 
 def report_list() -> Page:
@@ -131,6 +155,10 @@ def pages() -> list[Page]:
 
 def files() -> dict[str, Path]:
     """Every file the site's pages link to besides the stylesheet, as
-    {path in the site: where it is stored}: the published Reports' files."""
+    {path in the site: where it is stored}: the published Data Bites' chart
+    images and the published Reports' files."""
+    images = {data_bite_image_path(bite["slug"], name): path
+              for bite in data_bites.list_published()
+              for name, path in data_bites.images(bite["id"]).items()}
     stored = {found["slug"]: _stored_file(found) for found in reports.list_published()}
-    return {report_file_path(slug): path for slug, path in stored.items() if path}
+    return {**images, **{report_file_path(slug): path for slug, path in stored.items() if path}}

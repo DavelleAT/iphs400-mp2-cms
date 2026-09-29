@@ -11,22 +11,52 @@ Two additions to nh3's allowlist, both for Markdown tables:
     so a column's alignment (`|---:|`) survives and nothing else does.
   - the class TABLE_SCROLL on a <div>: each Markdown table is wrapped in one, so
     a wide table can scroll sideways without restyling the <table> itself.
+
+And one addition to Markdown, for chart images (ADR-004): an image whose URL
+is `image:<name>` gets its URL from the `image_src` the caller passes, which
+knows the item's images and where the page being rendered finds them. A name
+it doesn't know, or no `image_src`, renders nothing. Any other image URL is
+left to the sanitizer.
 """
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 
 import nh3
 from markdown_it import MarkdownIt
 from markupsafe import Markup
 
 TABLE_SCROLL = "content-table-scroll"
+IMAGE_REFERENCE = "image:"
+# A chart image's name -> its URL from the page being rendered; None if the
+# item has no image of that name.
+ImageSrc = Callable[[str], "str | None"]
 
 _MARKDOWN = MarkdownIt("commonmark").enable("table")
 _MARKDOWN.add_render_rule("table_open", lambda self, tokens, idx, options, env: (
     f'<div class="{TABLE_SCROLL}">\n' + self.renderToken(tokens, idx, options, env)))
 _MARKDOWN.add_render_rule("table_close", lambda self, tokens, idx, options, env: (
     self.renderToken(tokens, idx, options, env) + "</div>\n"))
+
+
+def _chart_image_name(token) -> str | None:
+    """The name in an `image:<name>` image token; None for any other image."""
+    src = token.attrGet("src")
+    return src.removeprefix(IMAGE_REFERENCE) if str(src).startswith(IMAGE_REFERENCE) else None
+
+
+def _render_image(self, tokens, idx, options, env):
+    name = _chart_image_name(tokens[idx])
+    if name is not None:
+        url = env["image_src"](name) if env.get("image_src") else None
+        if url is None:
+            return ""
+        tokens[idx].attrSet("src", url)
+    return self.image(tokens, idx, options, env)
+
+
+_MARKDOWN.add_render_rule("image", _render_image)
 
 _TABLE_CELLS = ("th", "td")
 _ALLOWED_ATTRIBUTES = {**nh3.ALLOWED_ATTRIBUTES,
@@ -48,8 +78,19 @@ def _cell_alignment(tag: str, attribute: str, value: str) -> str | None:
     return None
 
 
-def render_markdown(text: str) -> Markup:
-    return Markup(nh3.clean(_MARKDOWN.render(text or ""),
+def render_markdown(text: str, image_src: ImageSrc | None = None) -> Markup:
+    """`text` as sanitized HTML, its `image:<name>` references resolved by
+    `image_src`."""
+    return Markup(nh3.clean(_MARKDOWN.render(text or "", {"image_src": image_src}),
                             attributes=_ALLOWED_ATTRIBUTES,
                             attribute_filter=_cell_alignment,
                             allowed_classes={"div": {TABLE_SCROLL}}))
+
+
+def images_without_description(text: str) -> list[str]:
+    """The names in `text`'s `image:<name>` references that have no
+    description (alt text), in order, for the edit page to warn of: a screen
+    reader skips an image with an empty alt."""
+    return [name for block in _MARKDOWN.parse(text or "") for token in block.children or []
+            if token.type == "image" and not token.content.strip()
+            and (name := _chart_image_name(token)) is not None]

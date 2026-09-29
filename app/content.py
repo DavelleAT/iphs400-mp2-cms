@@ -106,6 +106,19 @@ class ContentTable:
         except sqlite3.IntegrityError as exc:
             raise self._duplicate_slug_error(exc, slug) from None
 
+    def touch(self, item_id: int, *, also: AlsoWrite | None = None) -> bool:
+        """Mark the item as changed now, for a change outside its row (e.g.
+        its images), made by `also` in the same transaction. False if there is
+        no such item."""
+        with db.connect() as conn:
+            changed = conn.execute(
+                f"UPDATE {self.table} SET updated_at = datetime('now') WHERE id = ?",
+                (item_id,),
+            ).rowcount == 1
+            if changed and also:
+                also(conn, item_id)
+            return changed
+
     def get(self, item_id: int) -> sqlite3.Row | None:
         rows = self._select("c.id = ?", "c.id", (item_id,))
         return rows[0] if rows else None

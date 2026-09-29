@@ -7,7 +7,7 @@
     <p><label>Body (Markdown)<br><textarea name="body" rows="10" cols="60" required>{{ form.body }}</textarea></label></p>
     <p><strong>Preview</strong> <small>(as it will render; unsafe HTML is removed)</small>
       <small class="content-preview-status" role="status"></small></p>
-    <div class="content-preview">{{ form.body | markdown }}</div><!-- /content-preview -->
+    <div class="content-preview">{{ form.body | markdown(image_src | default(none)) }}</div><!-- /content-preview -->
     <script>
       // Re-render the preview on the server as the body is typed, so it goes
       // through the same sanitizer as the published page.
@@ -25,7 +25,7 @@
             data.append("body", form.elements.body.value);
             let html = null;
             try {
-              const response = await fetch("/admin/preview", {method: "POST", body: data});
+              const response = await fetch({{ preview_path | default("/admin/preview") | tojson }}, {method: "POST", body: data});
               // A redirect means the session ended; don't show the login page here.
               if (response.ok && !response.redirected) html = await response.text();
             } catch {}
