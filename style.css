@@ -1,0 +1,16 @@
+/* The public site's one stylesheet, at style.css in the site's root. */
+:root { color-scheme: light dark; }
+body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; }
+.header-home { font-weight: 700; text-decoration: none; }
+.nav-site ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
+main { margin-block: 2rem; }
+/* Markdown tables, in a Data Bite's or Report's body. A wide one scrolls
+   sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
+   the page; on a phone, rather than squeezing its text to a word a line. */
+.content-body .content-table-scroll { margin-block: 1rem; overflow-x: auto; }
+/* Chart images (app.chart_images) shrink to the column, keeping their shape. */
+.content-body img { height: auto; max-width: 100%; }
+.content-body table { border-collapse: collapse; }
+.content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
+.content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
+@media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
