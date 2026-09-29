@@ -175,8 +175,14 @@ def crawl(client: TestClient) -> dict[str, bytes]:
     return seen
 
 
-def test_no_draft_is_reachable_anywhere_on_the_public_site(client_as, client):
-    director, analyst = client_as("admin"), client_as("editor")
+# What a_site_with_drafts puts in its drafts, and nowhere else.
+DRAFT_LEAKS = (b"Unreleased enrollment", b"unreleased-bite", b"Draft CDS",
+               b"draft-cds", b"unreleased-cds", b"DRAFT-MARKER")
+
+
+def a_site_with_drafts(director: TestClient, analyst: TestClient) -> None:
+    """Setup: a published Data Bite and a published Report with its file,
+    beside a draft Data Bite and a draft Report with its own file."""
     published_bite(analyst)
     create_bite(analyst, slug="unreleased-bite", title="Unreleased enrollment count")
     rid = published_report(director)
@@ -186,13 +192,16 @@ def test_no_draft_is_reachable_anywhere_on_the_public_site(client_as, client):
                           pdf("unreleased-cds.pdf", PDF + b"% DRAFT-MARKER\n%%EOF\n")
                           ).status_code == 303
 
+
+def test_no_draft_is_reachable_anywhere_on_the_public_site(client_as, client):
+    a_site_with_drafts(client_as("admin"), client_as("editor"))
+
     site = crawl(client)
     assert {"/data-bites/fall-enrollment.html", "/reports/factbook.html",
             "/reports/files/factbook.pdf", "/data-bites/index.html",
             "/reports/index.html", "/style.css"} <= set(site)
     for path, content in site.items():
-        for leak in (b"Unreleased enrollment", b"unreleased-bite", b"Draft CDS",
-                     b"draft-cds", b"unreleased-cds", b"DRAFT-MARKER"):
+        for leak in DRAFT_LEAKS:
             assert leak not in content, (path, leak)
 
 

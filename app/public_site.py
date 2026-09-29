@@ -2,7 +2,7 @@
 it has in the exported site (e.g. "data-bites/fall-enrollment.html").
 
 The app serves these pages at those same paths (app.routes.public), and
-`cms publish` is to write them there, so the two render one set of pages
+`cms publish` writes them there (app.publish), so the two render one set of pages
 rather than two. Pages link to each other relatively, through `root` ("" at
 the top of the site, "../" one folder down), so the same HTML works served
 from / and exported to a GitHub Pages subfolder. Where each kind of page or
@@ -39,6 +39,7 @@ def report_path(slug: str) -> str:
 
 
 def report_file_path(slug: str) -> str:
+    # .pdf, not the upload's own extension: a Report's file is always a PDF (T05).
     return f"reports/files/{slug}.pdf"
 
 
@@ -70,9 +71,11 @@ def data_bite_list() -> Page:
 def data_bite(slug: str) -> Page | None:
     """A published Data Bite's page; None for a draft or no such Data Bite."""
     bite = data_bites.get_published(slug)
-    if bite is None:
-        return None
-    return Page(data_bite_path(slug), "public/data_bite.html",
+    return None if bite is None else _data_bite_page(bite)
+
+
+def _data_bite_page(bite: sqlite3.Row) -> Page:
+    return Page(data_bite_path(bite["slug"]), "public/data_bite.html",
                 {"page_title": bite["title"], "bite": bite})
 
 
@@ -93,9 +96,11 @@ def report(slug: str) -> Page | None:
     """A published Report's page, linking its file only if that can be
     downloaded; None for a draft or no such Report."""
     found = reports.get_published(slug)
-    if found is None:
-        return None
-    return Page(report_path(slug), "public/report.html",
+    return None if found is None else _report_page(found)
+
+
+def _report_page(found: sqlite3.Row) -> Page:
+    return Page(report_path(found["slug"]), "public/report.html",
                 {"page_title": found["title"], "report": found,
                  "has_file": _stored_file(found) is not None})
 
@@ -107,3 +112,17 @@ def report_file(slug: str) -> tuple[Path, str] | None:
     found = reports.get_published(slug)
     stored = found and _stored_file(found)
     return (stored, found["file_name"]) if stored else None
+
+
+def pages() -> list[Page]:
+    """Every page of the site: what `cms publish` writes."""
+    return [home(), data_bite_list(), report_list(),
+            *map(_data_bite_page, data_bites.list_published()),
+            *map(_report_page, reports.list_published())]
+
+
+def files() -> dict[str, Path]:
+    """Every file the site's pages link to besides the stylesheet, as
+    {path in the site: where it is stored}: the published Reports' files."""
+    stored = {found["slug"]: _stored_file(found) for found in reports.list_published()}
+    return {report_file_path(slug): path for slug, path in stored.items() if path}
