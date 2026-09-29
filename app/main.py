@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import db, settings
@@ -38,6 +39,8 @@ def create_app() -> FastAPI:
         SessionMiddleware, secret_key=settings.SECRET_KEY,
         session_cookie="cms_session", max_age=SESSION_MAX_AGE, same_site="lax",
     )
+
+    app.add_exception_handler(StarletteHTTPException, admin.refused_page)
 
     @app.exception_handler(LoginRequired)
     def redirect_to_login(request: Request, exc: LoginRequired):

@@ -8,7 +8,9 @@ from types import ModuleType
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import data_bites, reports
 from app.auth import current_user, require_csrf
@@ -17,6 +19,19 @@ from app.rendering import render_markdown
 from app.templating import templates
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(current_user)])
+
+
+async def refused_page(request: Request, exc: StarletteHTTPException):
+    """A 403 (e.g. an Analyst on a Director-only page) as a page with a way
+    back, not FastAPI's JSON. Any other HTTP error is handled as FastAPI would."""
+    if exc.status_code != 403:
+        return await http_exception_handler(request, exc)
+    return templates.TemplateResponse(
+        request, "admin/forbidden.html",
+        {"title": "Not allowed", "home_path": request.app.url_path_for("admin_home"),
+         "reason": exc.detail},
+        status_code=403,
+    )
 
 
 @dataclass(frozen=True)
