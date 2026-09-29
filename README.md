@@ -3,6 +3,11 @@
 Click **Use this template** → name your repo **`iphs400-mp2-cms`** → make it **Public**.
 Do not fork: a fork arrives without an Issues tab, and your tickets live in Issues.
 
+## Live URL
+
+https://davelleat.github.io/iphs400-mp2-cms/ — the public site, rebuilt with
+`uv run cms publish && uv run cms deploy`.
+
 ## Start here
 
 1. `docs/manual_iphs400_mp2-web-cms_20260922.md` — the manual. Read Part 0 and Part 1 first.
