@@ -42,6 +42,13 @@ Content visible on the public site. The one-way gate: a Report only crosses
 it with Director action.
 _Avoid_: Live, public
 
+**Chart image**:
+A PNG, JPEG, or WebP picture (usually a graph made in Excel, R, or Tableau)
+that a Data Bite or Report shows inline, placed in its Markdown body as
+`image:<name>`. It belongs to its item and is published with it (ADR-004).
+Not a Report's **attached file**, which is a PDF offered for download.
+_Avoid_: figure, graphic, media, attachment
+
 **Factbook**:
 A specific Report: the office's running reference document of admissions,
 enrollment, diversity, and academic program statistics.
