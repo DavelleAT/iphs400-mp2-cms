@@ -52,6 +52,19 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-content-fields textarea { box-sizing: border-box; width: 100%; }
 .admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
 .admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
+/* Admin only: the Editor (static/editor.js), its toolbar, and the parts of a
+   body it can't edit, shown read-only. */
+.admin-editor-label { font-weight: 600; margin: 0 0 0.25rem; }
+.admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
+.admin-editor-toolbar [aria-pressed="true"] { background: color-mix(in srgb, currentColor 18%, transparent); }
+.admin-editor-link { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; margin-block: 0.25rem; }
+.admin-editor-link[hidden] { display: none; }
+.admin-editor-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
+.admin-editor-message:empty { display: none; }
+.admin-editor-area { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); min-height: 16rem; overflow-wrap: anywhere; padding: 0.25rem 0.75rem; }
+.admin-editor-locked { background: color-mix(in srgb, currentColor 5%, transparent); border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); margin-block: 0.75rem; padding: 0 0.75rem; }
+.admin-editor-locked-note { font-size: 0.875rem; font-style: italic; margin: 0.4rem 0; }
+.admin-editor-locked pre { overflow-x: auto; }
 @media (min-width: 64rem) {
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }

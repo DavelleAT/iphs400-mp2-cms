@@ -36,12 +36,17 @@
       const status = section.querySelector(".admin-site-preview-status");
       let timer, latest = 0;
       form.addEventListener("input", (event) => {
-        if (!["title", "body"].includes(event.target.name)) return;
+        // The title, the body's textarea, or the Editor (static/editor.js).
+        if (!["title", "body"].includes(event.target.name)
+            && !event.target.closest(".admin-editor-area")) return;
         clearTimeout(timer);
         timer = setTimeout(async () => {
           const request = ++latest;
           const data = new FormData();
-          for (const name of ["csrf_token", "title", "body"]) data.append(name, form.elements[name].value);
+          for (const name of ["csrf_token", "title", "body", "body_html", "body_dirty"]) {
+            const field = form.elements[name];
+            if (field && !field.disabled) data.append(name, field.value);
+          }
           let html = null;
           try {
             const response = await fetch(path, {method: "POST", body: data});
