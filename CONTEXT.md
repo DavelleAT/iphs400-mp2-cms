@@ -65,6 +65,14 @@ The body is still stored as Markdown (spec #14,
 can't represent is a **locked block**: shown read-only, kept byte for byte.
 _Avoid_: WYSIWYG, rich text, rich-text editor
 
+**Site link**:
+A link in a Data Bite's or Report's body to another Data Bite or Report,
+picked from a list in the Editor and stored by the target's immutable
+reference (`report:<ref>`, `data-bite:<ref>`), never its title, slug, or id.
+It is a link on the site only while its target is Published; otherwise it
+shows as plain text (spec #14, T14).
+_Avoid_: internal link, cross-reference
+
 **Site preview**:
 A Draft (or unsaved edits) rendered as its public page would look, with the
 site's nav and stylesheet and a "Draft preview, not published" banner. Saves

@@ -156,9 +156,16 @@ def test_navigation_on_every_page_lists_only_published_reports(client_as, client
         assert BITE["title"] not in links, path
 
 
+# An explicit external link, which the rule lets be absolute (T14): an <a>'s
+# https: or mailto: href. It leaves the site, so it is not followed.
+EXTERNAL = re.compile(r"(?:https:|mailto:)", re.I)
+
+
 def crawl(client: TestClient) -> dict[str, bytes]:
     """Every public page and file a visitor can reach from the home page by
-    following links, by path. Fails on a root-absolute or broken link."""
+    following links, by path. Fails on a broken link, and on any link but an
+    <a>'s https: or mailto: that isn't relative: root-absolute, any other
+    scheme, or any absolute src."""
     seen, queue = {}, ["/index.html"]
     while queue:
         path = queue.pop()
@@ -169,8 +176,12 @@ def crawl(client: TestClient) -> dict[str, bytes]:
         seen[path] = response.content
         if not path.endswith(".html"):
             continue
-        for link in re.findall(r'(?:href|src)="([^"]+)"', response.text):
-            assert not link.startswith("/") and "://" not in link, (path, link)
+        for tag, attribute, link in re.findall(r'<(\w+)\b[^>]*?\b(href|src)="([^"]+)"',
+                                               response.text):
+            if tag == "a" and attribute == "href" and EXTERNAL.match(link):
+                continue
+            assert not link.startswith("/") and not re.match(r"[a-z][a-z0-9+.-]*:", link, re.I), (
+                path, link)
             queue.append(normpath(join(dirname(path), link)))
     return seen
 

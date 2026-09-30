@@ -202,3 +202,45 @@ def test_the_site_preview_resolves_site_links_as_the_site_will(client_as):
                                 body=body).text)
     assert anchors(html) == ["../reports/cds.html"]
     assert "draft" in html
+
+
+# The crawler (T07, T08), under the restated rule
+
+class Site:
+    """Pages a crawl reads, by path, in place of the app."""
+
+    def __init__(self, home: str, **pages: str) -> None:
+        self.pages = {"/index.html": home, **{f"/{p.replace('_', '/', 1)}.html": html
+                                              for p, html in pages.items()}}
+
+    def get(self, path: str):
+        class Response:
+            status_code = 200 if path in self.pages else 404
+            text = self.pages.get(path, "")
+            content = text.encode()
+        return Response()
+
+
+def test_the_crawler_skips_external_links_but_follows_internal_ones():
+    site = Site('<a href="https://www.kenyon.edu/">K</a> <a href="mailto:ir@kenyon.edu">M</a>'
+                ' <a href="reports/cds.html">CDS</a>', reports_cds='<a href="../index.html">Home</a>')
+    assert set(crawl(site)) == {"/index.html", "/reports/cds.html"}
+
+
+@pytest.mark.parametrize("bad", ['<a href="/reports/cds.html">x</a>',
+                                 '<a href="http://example.test/">x</a>',
+                                 '<a href="ftp://example.test/">x</a>',
+                                 '<a href="javascript:alert(1)">x</a>',
+                                 '<img src="https://example.test/logo.png">',
+                                 '<img src="/logo.png">',
+                                 '<link rel="stylesheet" href="https://example.test/x.css">',
+                                 '<script src="//example.test/x.js"></script>',
+                                 '<a href="reports/missing.html">x</a>'])
+def test_the_crawler_fails_on_a_bad_url(bad):
+    with pytest.raises(AssertionError):
+        crawl(Site(f"<p>{bad}</p>"))
+
+
+def test_an_external_link_in_a_body_passes_the_crawl(client_as, client):
+    linking_bite(client_as("editor"), "https://www.kenyon.edu/ir")
+    assert BITE_PAGE in crawl(client)

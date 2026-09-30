@@ -25,6 +25,15 @@ is deployed to GitHub Pages on the `gh-pages` branch.
   which is a behaviour worth documenting for your client.
 - Relative paths become mandatory, because Pages serves the site from a subfolder.
 
+**Note (2026-09-30, T14, spec #14):** the rule is restated as "every
+*site-owned* link and asset uses a relative path". An explicit external link
+(an `<a href>`) may be absolute, but only as `https:` or `mailto:`. A link to
+another Report or Data Bite is stored as `report:<ref>` or `data-bite:<ref>`
+and resolved to a page-relative path when the site is rendered, so it
+survives slug changes and the site moving. The render pipeline enforces this
+for every body (anything else renders as its link text), and the T07/T08
+crawler skips only `https:`/`mailto:` `<a href>`s.
+
 ## Why this is an ADR
 
 It is hard to reverse (it shapes every route, template, and deploy step) and it

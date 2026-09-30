@@ -13,7 +13,7 @@ admin console never goes on the public internet.
 
 ## Hard constraints
 
-- Published HTML uses **relative** paths only. Never `href="/..."` or `src="/..."`.
+- Site-owned links and assets use **relative** paths only. Never `href="/..."` or `src="/..."`. Explicit external links may use `https:` or `mailto:`.
 - Never commit `.env`, `*.db`, keys, or tokens. Read secrets from the environment.
 - Passwords are hashed with argon2. Never store or log a plain password.
 - Every state-changing form carries a CSRF token.
