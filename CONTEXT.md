@@ -60,7 +60,9 @@ _Avoid_: graph, plot, visualization
 **Editor**:
 The visual body editor on a Data Bite's or Report's edit page: a toolbar,
 tables edited in place, Charts, and Chart images, with no Markdown in sight.
-The body is still stored as Markdown (spec #14).
+The body is still stored as Markdown (spec #14,
+[ADR-005](docs/adr/ADR-005-editor-stores-markdown.md)). A part of a body it
+can't represent is a **locked block**: shown read-only, kept byte for byte.
 _Avoid_: WYSIWYG, rich text, rich-text editor
 
 **Site preview**:

@@ -11,10 +11,11 @@
 
   const LINK = /^(https:\/\/|mailto:)/i;
   const LINK_REFUSED = "Links must start with https:// or mailto:.";
+  // T18's "Insert image" will place an uploaded chart image in the body.
   const PICTURE_REFUSED = "Pictures can't be pasted or dropped into the body. " +
-    'Upload the picture under "Chart images", then use "Insert image".';
+    'Upload the picture under "Chart images" instead.';
   const PICTURE_DROPPED = "The pasted text had pictures, which were left out. " +
-    'Upload a picture under "Chart images", then use "Insert image".';
+    'Upload a picture under "Chart images" instead.';
   const LOCKED = "[data-locked]";
   // The Editor's blocks, and the headings pasted ones become: the title is
   // the page's only H1, and there is nothing below a Subsection.
