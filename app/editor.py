@@ -230,7 +230,8 @@ _POSTED_TAGS = {"p", "br", "strong", "b", "em", "i", "a", "img", "ul", "ol", "li
                 "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead",
                 "tbody", "tfoot", "tr", "th", "td", "div", "span"}
 _POSTED_ATTRIBUTES = {"a": {"href"}, "img": {"src", "alt"}, "ol": {"start"},
-                      "th": {"style"}, "td": {"style"}, "div": {"data-locked"}}
+                      "th": {"style", "colspan", "rowspan"},
+                      "td": {"style", "colspan", "rowspan"}, "div": {"data-locked"}}
 
 
 # A posted link's schemes, site links' included; app.markdown_form keeps

@@ -204,6 +204,45 @@ def _rows(table: _Element) -> list[_Element]:
     return rows
 
 
+# The most columns one cell may cover, as in HTML.
+_MOST_COLUMNS = 1000
+
+
+def _span(cell: _Element, attribute: str) -> int:
+    value = cell.attrs.get(attribute, "").strip()
+    return min(int(value), _MOST_COLUMNS) if value.isdigit() and int(value) else 1
+
+
+def _grid(rows: list[list[_Element]]) -> list[list[_Element | None]]:
+    """A table's cells laid out with its merges undone (spec #14, T15): a
+    merged cell is its value in the first cell it covers, and None in each
+    other."""
+    grid: list[list[_Element | None]] = []
+    # Column -> how many more rows a merged cell above still covers.
+    covered: dict[int, int] = {}
+
+    def cover_or_pad(written: list[_Element | None]) -> None:
+        if covered.get(len(written)):
+            covered[len(written)] -= 1
+        written.append(None)
+
+    for row in rows:
+        written: list[_Element | None] = []
+        for cell in row:
+            while covered.get(len(written)):
+                cover_or_pad(written)
+            down = _span(cell, "rowspan")
+            for offset in range(_span(cell, "colspan")):
+                if down > 1:
+                    covered[len(written)] = down - 1
+                written.append(None if offset else cell)
+        while any(covered.get(column)
+                  for column in range(len(written), max(covered, default=-1) + 1)):
+            cover_or_pad(written)
+        grid.append(written)
+    return grid
+
+
 def _text(node: _Element | str) -> str:
     """A node's text, as it reads: its whitespace collapsed and trimmed."""
     if isinstance(node, str):
@@ -391,14 +430,14 @@ class _Converter:
     def table(self, table: _Element) -> str | None:
         """A table as a Markdown table. Its first row is the header, and each
         column is aligned by what its other rows hold."""
-        rows = [[cell for cell in row.children if isinstance(cell, _Element)
-                 and cell.tag in _CELLS] for row in _rows(table)]
-        width = max(map(len, rows), default=0)
+        grid = _grid([[cell for cell in row.children if isinstance(cell, _Element)
+                        and cell.tag in _CELLS] for row in _rows(table)])
+        width = max(map(len, grid), default=0)
         if not width:
             return None
-        text = [[self.cell(cell) for cell in row] + [""] * (width - len(row)) for row in rows]
-        cells = [row + [None] * (width - len(row)) for row in rows[1:]]
-        alignment = [_alignment([row[column] for row in cells]) for column in range(width)]
+        grid = [row + [None] * (width - len(row)) for row in grid]
+        text = [[self.cell(cell) if cell is not None else "" for cell in row] for row in grid]
+        alignment = [_alignment([row[column] for row in grid[1:]]) for column in range(width)]
         return "\n".join(f"| {' | '.join(row)} |" for row in [text[0], alignment, *text[1:]])
 
 
