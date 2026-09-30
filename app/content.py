@@ -15,7 +15,7 @@ import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app import db
+from app import db, site_links
 
 STATUS_LABELS = {"draft": "Draft", "published": "Published"}
 # Runs inside the transaction that wrote an item's row, given the connection and
@@ -70,6 +70,7 @@ class ContentTable:
     codebase, never user input."""
     table: str  # e.g. "reports"
     noun: str   # e.g. "Report", for messages
+    kind: str   # e.g. "report", its site links' scheme (app.site_links)
 
     def _select(self, where: str, order: str, params: tuple = ()) -> list[sqlite3.Row]:
         with db.connect() as conn:
@@ -87,14 +88,16 @@ class ContentTable:
 
     def create(self, title: str, slug: str, body: str, author_id: int, *,
                also: AlsoWrite | None = None) -> int:
-        """Create a draft."""
+        """Create a draft, with a new ref."""
         title, slug, body = validate(title, slug, body)
         try:
             with db.connect() as conn:
+                # Held from choosing the ref to storing it (site_links.new_ref).
+                conn.execute("BEGIN IMMEDIATE")
                 item_id = conn.execute(
-                    f"INSERT INTO {self.table} (title, slug, body, author_id)"
-                    " VALUES (?, ?, ?, ?)",
-                    (title, slug, body, author_id),
+                    f"INSERT INTO {self.table} (title, slug, body, author_id, ref)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (title, slug, body, author_id, site_links.new_ref(conn)),
                 ).lastrowid
                 if also:
                     also(conn, item_id)
@@ -183,7 +186,9 @@ class ContentTable:
             ).rowcount == 1
 
     def delete(self, item_id: int) -> bool:
-        """False if there is no such item."""
+        """Delete the item, leaving its ref's tombstone. False if there is no
+        such item."""
         with db.connect() as conn:
+            site_links.tombstone(conn, self.kind, item_id)
             return conn.execute(
                 f"DELETE FROM {self.table} WHERE id = ?", (item_id,)).rowcount == 1

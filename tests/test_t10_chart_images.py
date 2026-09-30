@@ -341,12 +341,15 @@ def test_an_unknown_name_renders_nothing(client_as, client):
     assert "<img" not in post_form(analyst, "/admin/data-bites/preview", {**BITE, "body": CHART}).text
 
 
-def test_other_image_urls_are_left_to_the_sanitizer(client_as, client):
-    body = '![Logo](https://example.test/logo.png) ![x](javascript:alert(1))'
+def test_other_image_urls_render_nothing(client_as, client):
+    """Only a chart image renders an <img> (T14): a hot-linked one would sit
+    outside the draft gate this ADR exists for."""
+    body = 'A ![Logo](https://example.test/logo.png) ![x](javascript:alert(1)) B'
     published_bite(client_as("editor"), body=body)
     html = content_body(client.get("/data-bites/fall-enrollment.html").text)
-    assert img_attributes(html) == [{"src": "https://example.test/logo.png", "alt": "Logo"}]
-    assert 'src="javascript' not in html
+    assert img_attributes(html) == []
+    # markdown-it never takes javascript: for an image: it stays inert text.
+    assert "example.test" not in html and 'src="javascript' not in html and "A" in html
 
 
 @pytest.mark.parametrize("alt", ['<script>alert(1)</script>', 'x" onerror="alert(1)',

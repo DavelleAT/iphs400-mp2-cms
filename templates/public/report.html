@@ -5,7 +5,7 @@
     {% if has_file %}
       <p class="report-download"><a href="{{ root }}{{ report_file_path(report.slug) }}" download="{{ report.file_name }}">Download {{ report.file_name }}</a> (PDF)</p>
     {% endif %}
-    <div class="content-body">{{ report.body | markdown(image_src) }}</div><!-- /content-body -->
+    <div class="content-body">{{ report.body | markdown(image_src, link_href) }}</div><!-- /content-body -->
   </article>
   <p><a href="{{ root }}reports/index.html">All Reports</a></p>
 {% endblock %}

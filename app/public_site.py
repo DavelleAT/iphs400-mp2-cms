@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 
-from app import data_bites, reports, settings
+from app import data_bites, reports, settings, site_links
 from app.templating import templates
 
 CSS = """/* The public site's one stylesheet, at style.css in the site's root. */
@@ -105,6 +105,9 @@ class Page:
     images: dict[str, str] = field(default_factory=dict)
     # The Reports in its navigation; None for the published ones.
     nav_reports: list[Mapping] | None = None
+    # Where each site link its body may have leads, {site reference: path in
+    # the site}; None for the published items' (published_links).
+    links: Mapping[str, str] | None = None
 
     def render(self) -> str:
         return self._render(preview_base=None)
@@ -124,13 +127,38 @@ class Page:
             path = self.images.get(name)
             return None if path is None else f"{root}{path}"
 
+        links = published_links() if self.links is None else self.links
+
+        def link_href(reference: str) -> str | None:
+            path = links.get(reference)
+            return None if path is None else f"{root}{path}"
+
         nav_reports = reports.list_published() if self.nav_reports is None else self.nav_reports
         return templates.env.get_template(self.template).render(
-            image_src=image_src,
+            image_src=image_src, link_href=link_href,
             title=settings.SITE_TITLE, root=root, css_path=f"{root}style.css",
             home_path=f"{root}index.html", nav_reports=nav_reports,
             data_bite_path=data_bite_path, report_path=report_path,
             report_file_path=report_file_path, preview_base=preview_base, **self.context)
+
+
+def published_links() -> dict[str, str]:
+    """Where a site link to each published item leads, {site reference: path
+    in the site}. A draft, deleted, or unknown one is not here, so a link to
+    it is its text."""
+    return {**{site_links.reference("data-bite", bite["ref"]): data_bite_path(bite["slug"])
+               for bite in data_bites.list_published()},
+            **{site_links.reference("report", found["ref"]): report_path(found["slug"])
+               for found in reports.list_published()}}
+
+
+def _linked_as_published(page: Page, kind: str, item: Mapping) -> Page:
+    """A Site preview's page, whose item's own site links resolve as if it
+    were published; a new item has no ref yet."""
+    links = published_links()
+    if item.get("ref"):
+        links[site_links.reference(kind, item["ref"])] = page.path
+    return replace(page, links=links)
 
 
 def home() -> Page:
@@ -277,7 +305,8 @@ def _as_if_published(form: Mapping[str, str], saved: sqlite3.Row | None) -> dict
 def data_bite_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
     """The Site preview of `form`'s edits to the Data Bite `saved` (None on
     the create page). Render it with Page.render_preview."""
-    return _data_bite_page(_as_if_published(form, saved))
+    bite = _as_if_published(form, saved)
+    return _linked_as_published(_data_bite_page(bite), "data-bite", bite)
 
 
 def report_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
@@ -288,4 +317,5 @@ def report_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
     # The order reports.list_published gives (title, then id), the new one last.
     nav = sorted([*others, report],
                  key=lambda found: (found["title"], found["id"] is None, found["id"] or 0))
-    return replace(_report_page(report), nav_reports=nav)
+    return _linked_as_published(replace(_report_page(report), nav_reports=nav),
+                                "report", report)

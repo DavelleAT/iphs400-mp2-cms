@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS data_bites (
     status     TEXT    NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
     author_id  INTEGER NOT NULL REFERENCES users (id),
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    ref        TEXT    -- what a site link names it by (app.site_links); never changes
 );
 
 CREATE TABLE IF NOT EXISTS reports (
@@ -38,7 +39,16 @@ CREATE TABLE IF NOT EXISTS reports (
     author_id  INTEGER NOT NULL REFERENCES users (id),
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    file_name  TEXT    -- the attached PDF's sanitized name for display; NULL if none
+    file_name  TEXT,   -- the attached PDF's sanitized name for display; NULL if none
+    ref        TEXT    -- what a site link names it by (app.site_links); never changes
+);
+
+-- The ref of each deleted Data Bite and Report (kind: "data-bite" or
+-- "report"), so a link to one reads as deleted, and no new item reuses it.
+CREATE TABLE IF NOT EXISTS deleted_refs (
+    ref        TEXT PRIMARY KEY,
+    kind       TEXT NOT NULL,
+    deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 """
 
@@ -47,7 +57,19 @@ CREATE TABLE IF NOT EXISTS reports (
 # any of these an older database is missing.
 ADDED_COLUMNS = [
     ("reports", "file_name", "TEXT"),
+    ("data_bites", "ref", "TEXT"),
+    ("reports", "ref", "TEXT"),
 ]
+# The tables whose rows have a ref. Built after ADDED_COLUMNS, which may add
+# the column: a unique index, and a trigger that keeps a ref from changing
+# once set.
+_REF_TABLES = ("data_bites", "reports")
+_REF_RULES = """
+CREATE UNIQUE INDEX IF NOT EXISTS {table}_ref ON {table} (ref);
+CREATE TRIGGER IF NOT EXISTS {table}_ref_fixed BEFORE UPDATE OF ref ON {table}
+    WHEN OLD.ref IS NOT NULL AND NEW.ref IS NOT OLD.ref
+    BEGIN SELECT RAISE(ABORT, 'a ref never changes'); END;
+"""
 
 
 @contextmanager
@@ -65,9 +87,19 @@ def connect() -> Iterator[sqlite3.Connection]:
 
 
 def init_db() -> None:
+    # Imported here: app.site_links reads the database through this module.
+    from app import site_links
+
     with connect() as conn:
         conn.executescript(SCHEMA)
         for table, column, definition in ADDED_COLUMNS:
             existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
             if column not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        for table in _REF_TABLES:
+            conn.executescript(_REF_RULES.format(table=table))
+            # Rows made before refs existed get one now.
+            for (row_id,) in conn.execute(
+                    f"SELECT id FROM {table} WHERE ref IS NULL").fetchall():
+                conn.execute(f"UPDATE {table} SET ref = ? WHERE id = ?",
+                             (site_links.new_ref(conn), row_id))

@@ -29,7 +29,7 @@ from app.content import AlsoWrite, ContentError, ContentTable
 from app.uploads import Pdf, write_atomically
 from app.users import is_director
 
-_TABLE = ContentTable("reports", "Report")
+_TABLE = ContentTable("reports", "Report", "report")
 _IMAGES = "reports"  # the chart_images kind
 LOCKED = "Only the Director can change a published Report."
 

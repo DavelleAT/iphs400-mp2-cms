@@ -199,7 +199,9 @@ def assert_inert(preview: str) -> None:
     assert "<script" not in preview and "owned" not in preview
     assert "onerror" not in preview
     assert 'href="javascript' not in preview
-    assert '<img src="chart.png">' in preview  # sanitized, not thrown away
+    # Only a chart image, image:<name>, renders an <img>, and only an https:,
+    # mailto:, or site link an <a> (T14): the raw link is its text.
+    assert "<img" not in preview and "<a" not in preview and "raw link" in preview
     assert "<strong>92%</strong>" in preview   # and the Markdown still renders
 
 

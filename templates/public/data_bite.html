@@ -4,7 +4,7 @@
   <article>
     <h1>{{ bite.title }}</h1>
     <p class="data-bite-meta"><small>{{ created_date(bite) }}</small></p>
-    <div class="content-body">{{ bite.body | markdown(image_src) }}</div><!-- /content-body -->
+    <div class="content-body">{{ bite.body | markdown(image_src, link_href) }}</div><!-- /content-body -->
   </article>
   <p><a href="{{ root }}data-bites/index.html">All Data Bites</a></p>
 {% endblock %}

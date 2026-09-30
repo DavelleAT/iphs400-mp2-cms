@@ -16,7 +16,7 @@ from pathlib import Path
 from app import chart_images
 from app.content import ContentTable
 
-_TABLE = ContentTable("data_bites", "Data Bite")
+_TABLE = ContentTable("data_bites", "Data Bite", "data-bite")
 _IMAGES = "data-bites"  # the chart_images kind
 
 get = _TABLE.get
