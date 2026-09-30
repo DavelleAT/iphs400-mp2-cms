@@ -13,6 +13,7 @@ from app import chart_images, settings
 from app.publish import render_site
 from tests.conftest import csrf_from, post_form, second_analyst
 from tests.test_t03_data_bites import BITE, create_bite
+from tests.test_t06_admin_console import body_of, preview_of
 from tests.test_t07_public_site import crawl, published_bite
 from tests.test_t08_publish import exported
 from tests.test_t09_tables import content_body
@@ -289,23 +290,21 @@ def img_attributes(html: str) -> list[dict[str, str | None]]:
     return found
 
 
-def preview_div(page: str) -> str:
-    match = re.search(r'<div class="content-preview">(.*?)</div><!-- /content-preview -->', page, re.S)
-    assert match, "no preview on the page"
-    return match.group(1)
-
-
-def test_the_preview_shows_the_image_from_the_admin_console(client_as):
+def test_the_preview_shows_the_draft_image_from_its_preview_site(client_as, client):
     analyst = client_as("editor")
     bid = create_bite(analyst, body=CHART)
     upload(analyst, bid, png())
 
-    expected = f'<img src="/admin/data-bites/{bid}/images/fall-by-class.png" alt="Fall enrollment by class">'
-    preview = post_form(analyst, f"/admin/data-bites/{bid}/preview", {"body": CHART})
-    assert preview.status_code == 200 and img_tags(preview.text) == [expected]
+    # As the published page will (T12): relative, under the preview's <base>.
+    expected = '<img src="../images/data-bites/fall-enrollment/fall-by-class.png" alt="Fall enrollment by class">'
+    preview = post_form(analyst, f"/admin/data-bites/{bid}/preview", {**BITE, "body": CHART})
+    assert preview.status_code == 200 and img_tags(body_of(preview.text)) == [expected]
+    served = analyst.get(f"/admin/data-bites/{bid}/preview/images/data-bites/fall-enrollment/fall-by-class.png")
+    assert served.status_code == 200 and served.content == PNG
+    assert client.get("/images/data-bites/fall-enrollment/fall-by-class.png").status_code == 404
     # The edit page's first render, and its live preview posts to the item's own preview.
     page = analyst.get(f"/admin/data-bites/{bid}").text
-    assert expected in page
+    assert img_tags(preview_of(page)) == [expected]
     assert f'"/admin/data-bites/{bid}/preview"' in page
 
 
@@ -332,13 +331,14 @@ def test_an_unknown_name_renders_nothing(client_as, client):
     bid = published_bite(analyst, body=body)
     upload(analyst, bid, png())
 
-    for html in (post_form(analyst, f"/admin/data-bites/{bid}/preview", {"body": body}).text,
-                 preview_div(analyst.get(f"/admin/data-bites/{bid}").text),
+    for html in (body_of(post_form(analyst, f"/admin/data-bites/{bid}/preview",
+                                   {**BITE, "body": body}).text),
+                 preview_of(analyst.get(f"/admin/data-bites/{bid}").text),
                  content_body(client.get("/data-bites/fall-enrollment.html").text)):
         assert "<img" not in html and "no-such" not in html and "Missing chart" not in html, html
         assert "Before" in html and "after" in html
-    # The general preview (the create form) knows no item, so no image: resolves.
-    assert "<img" not in post_form(analyst, "/admin/preview", {"body": CHART}).text
+    # The create form's preview knows no item, so no image: resolves.
+    assert "<img" not in post_form(analyst, "/admin/data-bites/preview", {**BITE, "body": CHART}).text
 
 
 def test_other_image_urls_are_left_to_the_sanitizer(client_as, client):

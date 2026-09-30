@@ -7,15 +7,13 @@ from dataclasses import dataclass
 from types import ModuleType
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import data_bites, reports
-from app.auth import current_user, require_csrf
+from app.auth import current_user
 from app.content import STATUS_LABELS
-from app.rendering import render_markdown
 from app.templating import templates
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(current_user)])
@@ -79,10 +77,3 @@ def content_list(request: Request, user=Depends(current_user),
          "status_labels": STATUS_LABELS,
          "chosen": {"type": content_type, "status": status}},
     )
-
-
-@router.post("/preview", dependencies=[Depends(require_csrf)])
-def preview(body: str = Form("")):
-    """The sanitized HTML for a Markdown body, for the edit forms' live
-    preview. Saves nothing."""
-    return HTMLResponse(render_markdown(body))

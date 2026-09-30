@@ -1,5 +1,5 @@
 """Markdown to safe HTML: the one pipeline every rendering of user-written
-Markdown goes through, the admin preview now and the public export later.
+Markdown goes through: the public site, its export, and the Site preview.
 
 markdown-it-py renders (raw HTML in the Markdown is let through to it), then
 nh3 sanitizes, dropping <script>, event-handler attributes, javascript: URLs,

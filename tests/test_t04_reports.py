@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.conftest import backdate, post_form, second_analyst
+from tests.test_t06_admin_console import preview_of
 
 REPORT = {"title": "Factbook 2026", "slug": "factbook",
           "body": "Admissions, enrollment, and **program** statistics."}
@@ -116,8 +117,9 @@ def test_analyst_sees_a_published_report_read_only(client_as):
     rid = published_report(director, analyst)
     page = analyst.get(f"/admin/reports/{rid}")
     assert page.status_code == 200
-    # Shown rendered (T06), not as raw Markdown.
-    assert "<p>Admissions, enrollment, and <strong>program</strong> statistics.</p>" in page.text
+    # Shown rendered, in its Site preview (T06, T12), not as raw Markdown.
+    assert "<p>Admissions, enrollment, and <strong>program</strong> statistics.</p>" in \
+        preview_of(page.text)
     assert f'action="/admin/reports/{rid}"' not in page.text
     assert "Only the Director" in page.text
 

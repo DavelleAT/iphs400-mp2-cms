@@ -10,11 +10,16 @@ file sits is decided here, by the *_path functions, and nowhere else.
 
 Content is read only through the published-only queries (`list_published`,
 `get_published`), so a draft cannot reach a page, a link, or the navigation.
+The one exception is a Site preview (`data_bite_preview`, `report_preview`),
+which the admin console renders for one item, as if it were published, and
+which is never written to the site.
 """
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app import data_bites, reports, settings
@@ -38,8 +43,22 @@ main { margin-block: 2rem; }
 .content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
 .content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
 @media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
+/* A Site preview's banner (Page.render_preview); never on a published page. */
+.site-preview-banner { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; font-weight: 600; margin: 0 0 1rem; padding: 0.5rem 0.9rem; }
+/* Admin only: an edit form's fields beside its Site preview, stacked below
+   them on a narrow screen. */
+body:has(.admin-site-preview) { max-width: 90rem; }
+.admin-content-fields textarea { box-sizing: border-box; width: 100%; }
+.admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
+.admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
+@media (min-width: 64rem) {
+  .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }
+}
 """
 RECENT_DATA_BITES = 5  # on the home page; the rest are on the Data Bites list
+# A new item's slug in its Site preview, which only its paths use.
+_UNSAVED_SLUG = "untitled"
 
 
 def data_bite_path(slug: str) -> str:
@@ -70,20 +89,34 @@ class Page:
     context: dict = field(default_factory=dict)
     # The chart images its body may show, {name: path in the site}.
     images: dict[str, str] = field(default_factory=dict)
+    # The Reports in its navigation; None for the published ones.
+    nav_reports: list[Mapping] | None = None
 
     def render(self) -> str:
+        return self._render()
+
+    def render_preview(self, at: str) -> str:
+        """The page as a Site preview, served from `at`: the root of the
+        preview's own copy of the site, an admin path ending in "/". Its links
+        stay relative, as in the export, and a <base> puts the page at its
+        path under `at`, where they reach the preview's stylesheet and files.
+        It shows the "Draft preview, not published" banner."""
+        return self._render(preview_base=f"{at}{self.path}")
+
+    def _render(self, **preview) -> str:
         root = "../" * self.path.count("/")
 
         def image_src(name: str) -> str | None:
             path = self.images.get(name)
             return None if path is None else f"{root}{path}"
 
+        nav_reports = reports.list_published() if self.nav_reports is None else self.nav_reports
         return templates.env.get_template(self.template).render(
             image_src=image_src,
             title=settings.SITE_TITLE, root=root, css_path=f"{root}style.css",
-            home_path=f"{root}index.html", nav_reports=reports.list_published(),
+            home_path=f"{root}index.html", nav_reports=nav_reports,
             data_bite_path=data_bite_path, report_path=report_path,
-            report_file_path=report_file_path, **self.context)
+            report_file_path=report_file_path, **self.context, **preview)
 
 
 def home() -> Page:
@@ -102,11 +135,24 @@ def data_bite(slug: str) -> Page | None:
     return None if bite is None else _data_bite_page(bite)
 
 
-def _data_bite_page(bite: sqlite3.Row) -> Page:
+def _data_bite_page(bite: Mapping) -> Page:
     return Page(data_bite_path(bite["slug"]), "public/data_bite.html",
                 {"page_title": bite["title"], "bite": bite},
                 images={name: data_bite_image_path(bite["slug"], name)
-                        for name in data_bites.images(bite["id"])})
+                        for name in _stored_images(data_bites, bite)})
+
+
+def _stored_images(module, item: Mapping) -> dict[str, Path]:
+    """A Data Bite's or Report's chart images (`module` is its type's),
+    {name: where it is stored}; none for one not yet saved."""
+    return {} if item["id"] is None else module.images(item["id"])
+
+
+def data_bite_files(bite: Mapping) -> dict[str, Path]:
+    """The files a Data Bite's page links to, its chart images, as {path in
+    the site: where it is stored}."""
+    return {data_bite_image_path(bite["slug"], name): path
+            for name, path in _stored_images(data_bites, bite).items()}
 
 
 def data_bite_image(slug: str, name: str) -> Path | None:
@@ -122,7 +168,7 @@ def report_list() -> Page:
                 {"page_title": "Reports", "reports": reports.list_published()})
 
 
-def _stored_file(report: sqlite3.Row) -> Path | None:
+def _stored_file(report: Mapping) -> Path | None:
     """Where the Report's file is stored, if it has one and it is there."""
     if report["file_name"] is None:
         return None
@@ -137,12 +183,21 @@ def report(slug: str) -> Page | None:
     return None if found is None else _report_page(found)
 
 
-def _report_page(found: sqlite3.Row) -> Page:
+def _report_page(found: Mapping) -> Page:
     return Page(report_path(found["slug"]), "public/report.html",
                 {"page_title": found["title"], "report": found,
                  "has_file": _stored_file(found) is not None},
                 images={name: report_image_path(found["slug"], name)
-                        for name in reports.images(found["id"])})
+                        for name in _stored_images(reports, found)})
+
+
+def report_files(found: Mapping) -> dict[str, Path]:
+    """The files a Report's page links to, its chart images and its file if
+    that can be downloaded, as {path in the site: where it is stored}."""
+    stored = _stored_file(found)
+    return {**{report_image_path(found["slug"], name): path
+               for name, path in _stored_images(reports, found).items()},
+            **({report_file_path(found["slug"]): stored} if stored else {})}
 
 
 def report_file(slug: str) -> tuple[Path, str] | None:
@@ -173,13 +228,39 @@ def files() -> dict[str, Path]:
     """Every file the site's pages link to besides the stylesheet, as
     {path in the site: where it is stored}: the published Data Bites' and
     Reports' chart images, and the published Reports' files."""
-    bite_images = {data_bite_image_path(bite["slug"], name): path
-                   for bite in data_bites.list_published()
-                   for name, path in data_bites.images(bite["id"]).items()}
-    published_reports = reports.list_published()
-    report_images = {report_image_path(found["slug"], name): path
-                     for found in published_reports
-                     for name, path in reports.images(found["id"]).items()}
-    stored = {found["slug"]: _stored_file(found) for found in published_reports}
-    return {**bite_images, **report_images,
-            **{report_file_path(slug): path for slug, path in stored.items() if path}}
+    found: dict[str, Path] = {}
+    for bite in data_bites.list_published():
+        found.update(data_bite_files(bite))
+    for report in reports.list_published():
+        found.update(report_files(report))
+    return found
+
+
+# Site previews: one item's page, as if it were published, with unsaved edits.
+
+def _as_if_published(form: Mapping[str, str], saved: sqlite3.Row | None) -> dict:
+    """The item a Site preview shows: `saved` (None for a new item, dated now)
+    with `form`'s unsaved title and body, published. It keeps the saved slug:
+    an unsaved slug would change only paths, which no reader sees, and with
+    the saved one the preview finds the item's files where it puts them."""
+    item = dict(saved) if saved is not None else {
+        "id": None, "slug": _UNSAVED_SLUG, "file_name": None,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}
+    return {**item, "title": form["title"].strip(), "body": form["body"],
+            "status": "published"}
+
+
+def data_bite_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
+    """The Site preview of `form`'s edits to the Data Bite `saved` (None on
+    the create page). Render it with Page.render_preview."""
+    return _data_bite_page(_as_if_published(form, saved))
+
+
+def report_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
+    """As data_bite_preview, for a Report. The Report is in the navigation,
+    in title order, as if published; every other draft is not."""
+    report = _as_if_published(form, saved)
+    others = [found for found in reports.list_published() if found["id"] != report["id"]]
+    nav = sorted([*others, report],
+                 key=lambda found: (found["title"], found["id"] is None, found["id"] or 0))
+    return replace(_report_page(report), nav_reports=nav)

@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {%- block head %}{% endblock %}
   <title>{% block title %}{{ title }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ css_path or path_for('stylesheet') }}">
 </head>
 <body>
+  {%- block banner %}{% endblock %}
   <header><a class="header-home" href="{{ home_path | default('index.html') }}">{{ title }}</a>{% block nav %}{% endblock %}</header>
   <main>
     {%- if user is defined and user %}{% set message = confirmation() %}

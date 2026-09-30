@@ -1,14 +1,23 @@
 """The public site, served at the same paths `cms publish` exports it to. No
-login: everything here is published content only (app.public_site)."""
+login: everything here is published content only (app.public_site).
+
+Also `preview_site_file`, which the admin routes use to serve a Site
+preview's own copy of the site, behind their login."""
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 
 from app import chart_images, public_site
 from app.public_site import Page
 
 router = APIRouter()
+# A path in the site, as the *_path functions of app.public_site make them:
+# never starting with "/" or a backslash, so a redirect to "/" + it stays on this site.
+_SITE_PATH = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", re.ASCII)
 
 
 def _html(page: Page | None) -> HTMLResponse:
@@ -74,3 +83,21 @@ def report_file(slug: str):
     path, name = found
     return FileResponse(path, media_type="application/pdf", filename=name,
                         headers={"X-Content-Type-Options": "nosniff"})
+
+
+def preview_site_file(path: str, files: dict[str, Path]):
+    """What a Site preview's link to `path` in the site gets
+    (app.public_site.Page.render_preview): the stylesheet, or one of `files`,
+    the previewed item's own, which the public site would not serve for a
+    draft. Any other page sends the browser to the published one."""
+    if path == "style.css":
+        return stylesheet()
+    stored = files.get(path)
+    if stored is None:
+        if not _SITE_PATH.fullmatch(path):
+            raise HTTPException(status_code=404)
+        return RedirectResponse("/" + path, status_code=303)
+    if stored.suffix == ".pdf":  # a Report's file (reports.file_path)
+        return FileResponse(stored, media_type="application/pdf",
+                            headers={"X-Content-Type-Options": "nosniff"})
+    return chart_images.response(stored)

@@ -23,6 +23,6 @@
   {% else %}
   <p>Only the Director can edit, unpublish, or delete a published Report.</p>
   <p>Slug: <code>{{ report.slug }}</code></p>
-  <div class="content-preview">{{ report.body | markdown(image_src) }}</div><!-- /content-preview -->
+  {% with preview_path = none %}{% include "admin/_site_preview.html" %}{% endwith %}
   {% endif %}
 {% endblock %}

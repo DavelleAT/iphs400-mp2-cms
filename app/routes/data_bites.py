@@ -1,30 +1,44 @@
 """Data Bites in the admin console. Any signed-in user may do everything here,
-chart images included, except delete, which is Director only."""
+chart images and Site previews included, except delete, which is Director
+only."""
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app import chart_images, data_bites
+from app import chart_images, data_bites, public_site
 from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
-from app.rendering import ImageSrc, images_without_description, render_markdown
+from app.rendering import images_without_description
+from app.routes.public import preview_site_file
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/data-bites", dependencies=[Depends(current_user)])
 _MAX_IMAGE_MB = chart_images.MAX_BYTES // chart_images.MIB
 
 
+def _site_preview(request: Request, form: Mapping[str, str], bite: sqlite3.Row | None) -> str:
+    """The Site preview of `form`'s edits to `bite` (None for a new Data
+    Bite), as HTML, served from the preview's copy of the site."""
+    at = (request.app.url_path_for("bite_preview_site", bite_id=bite["id"], path="")
+          if bite is not None else request.app.url_path_for("new_bite_preview_site", path=""))
+    return public_site.data_bite_preview(form, bite).render_preview(str(at))
+
+
 def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
                form: dict | None = None, status_code: int = 200):
+    form = form or {"title": "", "slug": "", "body": ""}
     return templates.TemplateResponse(
         request, "admin/data_bites.html",
         {"title": "Data Bites", "home_path": "/admin", "user": user,
          "bites": data_bites.list_all(), "status_labels": STATUS_LABELS,
-         "error": error, "form": form or {}},
+         "error": error, "form": form,
+         "site_preview": _site_preview(request, form, None),
+         "preview_path": request.app.url_path_for("preview_new_bite")},
         status_code=status_code,
     )
 
@@ -46,10 +60,19 @@ def create_bite(request: Request, user=Depends(current_user), title: str = Form(
     return RedirectResponse("/admin/data-bites", status_code=303)
 
 
-def _image_src(bite_id: int) -> ImageSrc:
-    """The Data Bite's `image:<name>` references, resolved to its images here."""
-    names = data_bites.images(bite_id)
-    return lambda name: f"/admin/data-bites/{bite_id}/images/{name}" if name in names else None
+# A new Data Bite's Site preview. Before the /{bite_id} routes, which would
+# otherwise take "preview" for an id.
+
+@router.post("/preview", dependencies=[Depends(require_csrf)])
+def preview_new_bite(request: Request, title: str = Form(""), body: str = Form("")):
+    """The create form's Site preview, for its frame and "Preview on site".
+    Saves nothing."""
+    return HTMLResponse(_site_preview(request, {"title": title, "body": body}, None))
+
+
+@router.get("/preview/{path:path}")
+def new_bite_preview_site(path: str):
+    return preview_site_file(path, {})
 
 
 def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
@@ -62,8 +85,8 @@ def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
          "bite": bite, "status_labels": STATUS_LABELS,
          "error": error, "form": form,
          "images": list(data_bites.images(bite["id"])),
-         "image_src": _image_src(bite["id"]),
-         "preview_path": f"/admin/data-bites/{bite['id']}/preview",
+         "site_preview": _site_preview(request, form, bite),
+         "preview_path": request.app.url_path_for("preview_bite", bite_id=bite["id"]),
          "undescribed_images": images_without_description(form["body"]),
          "max_image_mb": _MAX_IMAGE_MB,
          "max_images": chart_images.MAX_PER_ITEM},
@@ -97,10 +120,18 @@ def edit_bite(request: Request, bite_id: int, user=Depends(current_user),
 
 
 @router.post("/{bite_id}/preview", dependencies=[Depends(require_csrf)])
-def preview(bite_id: int, body: str = Form("")):
-    """As /admin/preview, with the Data Bite's chart images shown. Saves nothing."""
-    _get_or_404(bite_id)
-    return HTMLResponse(render_markdown(body, _image_src(bite_id)))
+def preview_bite(request: Request, bite_id: int, title: str = Form(""), body: str = Form("")):
+    """The edit form's Site preview, of its unsaved title and body, for its
+    frame and "Preview on site". Saves nothing."""
+    bite = _get_or_404(bite_id)
+    return HTMLResponse(_site_preview(request, {"title": title, "body": body}, bite))
+
+
+@router.get("/{bite_id}/preview/{path:path}")
+def bite_preview_site(bite_id: int, path: str):
+    """The Site preview's copy of the site: its stylesheet and the Data
+    Bite's chart images, draft or not (app.routes.public.preview_site_file)."""
+    return preview_site_file(path, public_site.data_bite_files(_get_or_404(bite_id)))
 
 
 @router.get("/{bite_id}/images/{name}")

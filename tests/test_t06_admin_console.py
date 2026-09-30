@@ -1,8 +1,10 @@
 """T06: Admin console — dashboard, filterable content list, Markdown preview
-(issue #7)."""
+(issue #7). The preview is now the Site preview (T12, issue #15); these check
+that it still renders and sanitizes the Markdown as it did."""
 from __future__ import annotations
 
 import re
+from html import unescape
 
 from fastapi.testclient import TestClient
 
@@ -174,12 +176,23 @@ PAYLOAD = ('<script>alert("owned")</script>\n\n'
            'Retention is **92%**.')
 
 
-def preview_of(html: str) -> str:
-    """The inside of the page's preview area."""
-    match = re.search(r'<div class="content-preview"[^>]*>(.*?)</div><!-- /content-preview -->',
-                      html, re.S)
-    assert match, "no preview on the page"
+def site_preview_page(html: str) -> str:
+    """The Site preview an admin page embeds, as its frame shows it."""
+    match = re.search(r'<iframe class="admin-site-preview-frame"[^>]*srcdoc="([^"]*)"', html)
+    assert match, "no Site preview on the page"
+    return unescape(match.group(1))
+
+
+def body_of(page: str) -> str:
+    """A public page's (or Site preview's) rendered Markdown body."""
+    match = re.search(r'<div class="content-body">(.*?)</div><!-- /content-body -->', page, re.S)
+    assert match, "no content-body on the page"
     return match.group(1)
+
+
+def preview_of(html: str) -> str:
+    """The body of the Site preview an admin page embeds."""
+    return body_of(site_preview_page(html))
 
 
 def assert_inert(preview: str) -> None:
@@ -191,7 +204,9 @@ def assert_inert(preview: str) -> None:
 
 
 def preview(c: TestClient, body: str, *, with_csrf: bool = True):
-    return post_form(c, "/admin/preview", {"body": body}, with_csrf=with_csrf)
+    """The create form's Site preview, as it is typed."""
+    return post_form(c, "/admin/data-bites/preview", {"title": "T", "body": body},
+                     with_csrf=with_csrf)
 
 
 def test_editing_a_data_bite_shows_its_rendered_markdown(client_as):
@@ -218,7 +233,7 @@ def test_the_new_item_forms_have_a_preview_too(client_as):
 def test_the_preview_follows_the_text_as_it_is_typed(client_as):
     response = preview(client_as("editor"), "Draft *two*")
     assert response.status_code == 200
-    assert response.text.strip() == "<p>Draft <em>two</em></p>"
+    assert body_of(response.text).strip() == "<p>Draft <em>two</em></p>"
     # Nothing was saved: previewing is not creating.
     assert client_as("editor").get("/admin/content").text.count("content-row") == 0
 
@@ -244,7 +259,7 @@ def test_a_script_payload_is_inert_in_the_report_preview(client_as):
 
 
 def test_a_script_payload_is_inert_in_the_live_preview(client_as):
-    assert_inert(preview(client_as("editor"), PAYLOAD).text)
+    assert_inert(body_of(preview(client_as("editor"), PAYLOAD).text))
 
 
 def test_the_body_is_stored_raw(client_as):
@@ -276,5 +291,5 @@ def test_anonymous_visitors_are_sent_to_login(client):
                  "/admin/data-bites", "/admin/data-bites/1", "/admin/reports", "/admin/reports/1"):
         response = client.get(path, follow_redirects=False)
         assert (response.status_code, response.headers["location"]) == (303, "/login"), path
-    response = client.post("/admin/preview", data={"body": "hi"}, follow_redirects=False)
+    response = client.post("/admin/data-bites/preview", data={"body": "hi"}, follow_redirects=False)
     assert (response.status_code, response.headers["location"]) == (303, "/login")

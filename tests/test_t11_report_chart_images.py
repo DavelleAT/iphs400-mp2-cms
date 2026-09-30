@@ -19,8 +19,8 @@ from tests.test_t05_report_files import PDF, pdf, post_with_file, reports_file
 from tests.test_t07_public_site import crawl, published_bite, published_report
 from tests.test_t08_publish import exported
 from tests.test_t09_tables import content_body
-from tests.test_t10_chart_images import (CHART, WEBP, img_attributes, img_tags, png, png_bytes,
-                                         preview_div)
+from tests.test_t06_admin_console import body_of, preview_of
+from tests.test_t10_chart_images import CHART, WEBP, img_attributes, img_tags, png, png_bytes
 
 PNG = png()[1]
 
@@ -132,8 +132,8 @@ def test_a_locked_report_shows_its_images_but_no_image_forms(client_as):
     publish(director, rid)
 
     page = analyst.get(f"/admin/reports/{rid}").text
-    assert img_tags(preview_div(page)) == [
-        f'<img src="/admin/reports/{rid}/images/fall-by-class.png" alt="Fall enrollment by class">']
+    assert img_tags(preview_of(page)) == [
+        '<img src="../images/reports/factbook/fall-by-class.png" alt="Fall enrollment by class">']
     assert f'action="/admin/reports/{rid}/images' not in page
     assert f'action="/admin/reports/{rid}/images' in director.get(f"/admin/reports/{rid}").text
 
@@ -259,16 +259,19 @@ def test_report_image_forms_carry_csrf_and_a_stripped_post_is_rejected(client_as
 
 # The image: reference, as for a Data Bite
 
-def test_the_preview_shows_the_image_from_the_admin_console(client_as):
+def test_the_preview_shows_the_draft_image_from_its_preview_site(client_as, client):
     analyst = client_as("editor")
     rid = create_report(analyst, body=CHART)
     upload(analyst, rid, png())
 
-    expected = f'<img src="/admin/reports/{rid}/images/fall-by-class.png" alt="Fall enrollment by class">'
-    preview = post_form(analyst, f"/admin/reports/{rid}/preview", {"body": CHART})
-    assert preview.status_code == 200 and img_tags(preview.text) == [expected]
+    expected = '<img src="../images/reports/factbook/fall-by-class.png" alt="Fall enrollment by class">'
+    preview = post_form(analyst, f"/admin/reports/{rid}/preview", {**REPORT, "body": CHART})
+    assert preview.status_code == 200 and img_tags(body_of(preview.text)) == [expected]
+    served = analyst.get(f"/admin/reports/{rid}/preview/images/reports/factbook/fall-by-class.png")
+    assert served.status_code == 200 and served.content == PNG
+    assert client.get("/images/reports/factbook/fall-by-class.png").status_code == 404
     page = analyst.get(f"/admin/reports/{rid}").text
-    assert img_tags(preview_div(page)) == [expected]
+    assert img_tags(preview_of(page)) == [expected]
     assert f'"/admin/reports/{rid}/preview"' in page
 
 
@@ -295,8 +298,9 @@ def test_an_unknown_name_renders_nothing(client_as, client):
     rid = published_report(director, body=body)
     upload(director, rid, png())
 
-    for html in (post_form(director, f"/admin/reports/{rid}/preview", {"body": body}).text,
-                 preview_div(director.get(f"/admin/reports/{rid}").text),
+    for html in (body_of(post_form(director, f"/admin/reports/{rid}/preview",
+                                   {**REPORT, "body": body}).text),
+                 preview_of(director.get(f"/admin/reports/{rid}").text),
                  content_body(client.get("/reports/factbook.html").text)):
         assert "<img" not in html and "Missing chart" not in html, html
         assert "Before" in html and "after" in html

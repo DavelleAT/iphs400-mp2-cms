@@ -1,8 +1,14 @@
 {# Every public page. Links are relative to the site's root via `root`,
-   never root-absolute, so the pages work exported to a Pages subfolder. #}
+   never root-absolute, so the pages work exported to a Pages subfolder. A
+   Site preview (`preview_base`, app.public_site.Page.render_preview) adds a
+   <base> and its banner, and nothing else. #}
 {% extends "base.html" %}
 {% from "public/_lists.html" import report_list with context %}
+{% block head %}{% if preview_base %}
+  <base href="{{ preview_base }}">{% endif %}{% endblock %}
 {% block title %}{% if page_title %}{{ page_title }} · {% endif %}{{ title }}{% endblock %}
+{% block banner %}{% if preview_base %}
+  <p class="site-preview-banner" role="note">Draft preview, not published</p>{% endif %}{% endblock %}
 {% block nav %}
   {% if nav_reports %}
     <nav class="nav-site" aria-label="Reports">{{ report_list(nav_reports) }}</nav>

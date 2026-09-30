@@ -1,0 +1,64 @@
+{# The Site preview (T12): the item as its public page, in a frame. Needs
+   `site_preview`, that page's HTML. With `preview_path` and inside the item's
+   form, the frame follows the title and body as they are typed, and "Preview
+   on site" posts the unsaved form there in a new tab. Without, it shows the
+   item as saved. #}
+  <section class="admin-site-preview" aria-labelledby="admin-site-preview-heading">
+    <h2 id="admin-site-preview-heading">Site preview</h2>
+    <p class="admin-site-preview-controls">
+      <button type="button" data-width="desktop" aria-pressed="true">Desktop</button>
+      <button type="button" data-width="phone" aria-pressed="false">Phone</button>
+      {%- if preview_path %}
+      <button type="submit" formaction="{{ preview_path }}" formtarget="_blank" formnovalidate>Preview on site</button>
+      {%- endif %}
+      <small class="admin-site-preview-status" role="status"></small></p>
+    {#- Sandboxed: no script runs in it. Same-origin, so the page can keep its
+        scroll position across updates. #}
+    <iframe class="admin-site-preview-frame" title="Site preview" sandbox="allow-same-origin allow-downloads" srcdoc="{{ site_preview }}"></iframe>
+  </section>
+  <script>
+    (() => {
+      const section = document.currentScript.previousElementSibling;
+      const frame = section.querySelector(".admin-site-preview-frame");
+      const widths = section.querySelectorAll("[data-width]");
+      for (const button of widths) {
+        button.addEventListener("click", () => {
+          frame.dataset.width = button.dataset.width;
+          for (const other of widths) other.setAttribute("aria-pressed", other === button);
+        });
+      }
+
+      // Re-render the preview on the server as the form is typed, so it goes
+      // through the same templates and sanitizer as the published page.
+      const form = section.closest("form");
+      const path = {{ preview_path | default(none) | tojson }};
+      if (!form || !path) return;
+      const status = section.querySelector(".admin-site-preview-status");
+      let timer, latest = 0;
+      form.addEventListener("input", (event) => {
+        if (!["title", "body"].includes(event.target.name)) return;
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          const request = ++latest;
+          const data = new FormData();
+          for (const name of ["csrf_token", "title", "body"]) data.append(name, form.elements[name].value);
+          let html = null;
+          try {
+            const response = await fetch(path, {method: "POST", body: data});
+            // A redirect means the session ended; don't show the login page here.
+            if (response.ok && !response.redirected) html = await response.text();
+          } catch {}
+          if (request !== latest) return;
+          if (html === null) {
+            status.textContent = "Preview is not updating. Reload the page (you may need to log in again).";
+            return;
+          }
+          // A new srcdoc reloads the frame at the top; keep the reader's place.
+          const y = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+          frame.addEventListener("load", () => frame.contentWindow.scrollTo(0, y), {once: true});
+          frame.srcdoc = html;
+          status.textContent = "";
+        }, 250);
+      });
+    })();
+  </script>
