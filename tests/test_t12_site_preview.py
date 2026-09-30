@@ -153,7 +153,9 @@ def test_every_link_in_the_preview_is_relative_and_reaches_the_preview_site(
             assert response.status_code == 200, url
             assert director.get(public).status_code == 404, public
         elif public == f"/{kind}/{item['slug']}.html":
-            continue  # the draft's own page, in a draft Report's nav: not public
+            # A draft Report's own page, in its nav: its Site preview, as saved.
+            assert response.status_code == 200 and BANNER in response.text, url
+            assert director.get(public).status_code == 404, public
         else:
             assert (response.status_code, response.headers["location"]) == (303, public), url
             assert director.get(public).status_code == 200, public

@@ -21,6 +21,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
+from types import ModuleType
 
 from app import data_bites, reports, settings
 from app.templating import templates
@@ -93,7 +94,7 @@ class Page:
     nav_reports: list[Mapping] | None = None
 
     def render(self) -> str:
-        return self._render()
+        return self._render(preview_base=None)
 
     def render_preview(self, at: str) -> str:
         """The page as a Site preview, served from `at`: the root of the
@@ -103,7 +104,7 @@ class Page:
         It shows the "Draft preview, not published" banner."""
         return self._render(preview_base=f"{at}{self.path}")
 
-    def _render(self, **preview) -> str:
+    def _render(self, *, preview_base: str | None) -> str:
         root = "../" * self.path.count("/")
 
         def image_src(name: str) -> str | None:
@@ -116,7 +117,7 @@ class Page:
             title=settings.SITE_TITLE, root=root, css_path=f"{root}style.css",
             home_path=f"{root}index.html", nav_reports=nav_reports,
             data_bite_path=data_bite_path, report_path=report_path,
-            report_file_path=report_file_path, **self.context, **preview)
+            report_file_path=report_file_path, preview_base=preview_base, **self.context)
 
 
 def home() -> Page:
@@ -142,7 +143,7 @@ def _data_bite_page(bite: Mapping) -> Page:
                         for name in _stored_images(data_bites, bite)})
 
 
-def _stored_images(module, item: Mapping) -> dict[str, Path]:
+def _stored_images(module: ModuleType, item: Mapping) -> dict[str, Path]:
     """A Data Bite's or Report's chart images (`module` is its type's),
     {name: where it is stored}; none for one not yet saved."""
     return {} if item["id"] is None else module.images(item["id"])
@@ -191,13 +192,23 @@ def _report_page(found: Mapping) -> Page:
                         for name in _stored_images(reports, found)})
 
 
-def report_files(found: Mapping) -> dict[str, Path]:
-    """The files a Report's page links to, its chart images and its file if
-    that can be downloaded, as {path in the site: where it is stored}."""
+def report_image_files(found: Mapping) -> dict[str, Path]:
+    """A Report's chart images, as {path in the site: where it is stored}."""
+    return {report_image_path(found["slug"], name): path
+            for name, path in _stored_images(reports, found).items()}
+
+
+def report_pdf_file(found: Mapping) -> dict[str, Path]:
+    """A Report's file, if its page links to it (it can be downloaded), as
+    {path in the site: where it is stored}; empty if not."""
     stored = _stored_file(found)
-    return {**{report_image_path(found["slug"], name): path
-               for name, path in _stored_images(reports, found).items()},
-            **({report_file_path(found["slug"]): stored} if stored else {})}
+    return {report_file_path(found["slug"]): stored} if stored else {}
+
+
+def report_files(found: Mapping) -> dict[str, Path]:
+    """Every file a Report's page links to, as {path in the site: where it is
+    stored}."""
+    return {**report_image_files(found), **report_pdf_file(found)}
 
 
 def report_file(slug: str) -> tuple[Path, str] | None:
@@ -261,6 +272,7 @@ def report_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:
     in title order, as if published; every other draft is not."""
     report = _as_if_published(form, saved)
     others = [found for found in reports.list_published() if found["id"] != report["id"]]
+    # The order reports.list_published gives (title, then id), the new one last.
     nav = sorted([*others, report],
                  key=lambda found: (found["title"], found["id"] is None, found["id"] or 0))
     return replace(_report_page(report), nav_reports=nav)

@@ -14,7 +14,7 @@ from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.rendering import images_without_description
-from app.routes.public import preview_site_file
+from app.routes.site_preview import site_file
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/data-bites", dependencies=[Depends(current_user)])
@@ -72,7 +72,9 @@ def preview_new_bite(request: Request, title: str = Form(""), body: str = Form("
 
 @router.get("/preview/{path:path}")
 def new_bite_preview_site(path: str):
-    return preview_site_file(path, {})
+    """The create form's Site preview's copy of the site: only its stylesheet,
+    as a new Data Bite has no chart images (app.routes.site_preview)."""
+    return site_file(path, images={})
 
 
 def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
@@ -130,8 +132,8 @@ def preview_bite(request: Request, bite_id: int, title: str = Form(""), body: st
 @router.get("/{bite_id}/preview/{path:path}")
 def bite_preview_site(bite_id: int, path: str):
     """The Site preview's copy of the site: its stylesheet and the Data
-    Bite's chart images, draft or not (app.routes.public.preview_site_file)."""
-    return preview_site_file(path, public_site.data_bite_files(_get_or_404(bite_id)))
+    Bite's chart images, draft or not (app.routes.site_preview)."""
+    return site_file(path, images=public_site.data_bite_files(_get_or_404(bite_id)))
 
 
 @router.get("/{bite_id}/images/{name}")

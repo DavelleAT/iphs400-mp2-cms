@@ -17,7 +17,7 @@ from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.rendering import images_without_description
-from app.routes.public import preview_site_file
+from app.routes.site_preview import site_file
 from app.templating import templates
 
 router = APIRouter(prefix="/admin/reports", dependencies=[Depends(current_user)])
@@ -79,7 +79,9 @@ def preview_new_report(request: Request, title: str = Form(""), body: str = Form
 
 @router.get("/preview/{path:path}")
 def new_report_preview_site(path: str):
-    return preview_site_file(path, {})
+    """The create form's Site preview's copy of the site: only its stylesheet,
+    as a new Report has no chart images or file (app.routes.site_preview)."""
+    return site_file(path, images={})
 
 
 def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
@@ -177,11 +179,16 @@ def preview_report(request: Request, report_id: int, user=Depends(current_user),
 
 
 @router.get("/{report_id}/preview/{path:path}")
-def report_preview_site(report_id: int, path: str):
+def report_preview_site(request: Request, report_id: int, path: str):
     """The Site preview's copy of the site: its stylesheet and the Report's
     chart images and file, draft or not, which any signed-in user may already
-    download here (app.routes.public.preview_site_file)."""
-    return preview_site_file(path, public_site.report_files(_get_or_404(report_id)))
+    download here (app.routes.site_preview). Its own page, which a draft's
+    Site preview links from the nav, is its Site preview as saved."""
+    report = _get_or_404(report_id)
+    if path == public_site.report_path(report["slug"]):
+        return HTMLResponse(_site_preview(request, report, report))
+    return site_file(path, images=public_site.report_image_files(report),
+                     pdfs=public_site.report_pdf_file(report))
 
 
 @router.get("/{report_id}/images/{name}")
