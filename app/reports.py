@@ -92,12 +92,13 @@ def create(title: str, slug: str, body: str, author_id: int, *,
 
 
 def update(report_id: int, title: str, slug: str, body: str, *,
-           user: sqlite3.Row, pdf: Pdf | None = None) -> bool:
+           user: sqlite3.Row, pdf: Pdf | None = None, base: str | None = None) -> bool:
     """Edit title, slug, and body on behalf of `user`, and attach or replace
     the file if one is given. False if there is no such Report; ReportLocked if
-    it is published and `user` is not a Director."""
+    it is published and `user` is not a Director; StaleItem if it has changed
+    since `base` (ContentTable.update)."""
     if _TABLE.update(report_id, title, slug, body, drafts_only=not is_director(user),
-                     also=_attaching(pdf)):
+                     also=_attaching(pdf), base=base):
         return True
     return _missing_or_locked(report_id)
 

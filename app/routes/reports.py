@@ -12,11 +12,12 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app import chart_images, public_site, reports, uploads
+from app import chart_images, editor, public_site, reports, uploads
 from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
-from app.content import STATUS_LABELS, ContentError
+from app.content import STATUS_LABELS, ContentError, StaleItem
 from app.rendering import images_without_description
+from app.routes.editing import posted, previewed
 from app.routes.site_preview import site_file
 from app.templating import templates
 
@@ -33,6 +34,13 @@ def _site_preview(request: Request, form: Mapping[str, str], report: sqlite3.Row
     return public_site.report_preview(form, report).render_preview(str(at))
 
 
+def _images(request: Request, report_id: int) -> editor.ImageLinks:
+    """How the Editor shows the Report's chart images: from the admin
+    console, draft or not."""
+    image = str(request.app.url_path_for("serve_image", report_id=report_id, name="x"))
+    return editor.image_links(image.removesuffix("x"))
+
+
 def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
                form: dict | None = None, status_code: int = 200):
     form = form or {"title": "", "slug": "", "body": ""}
@@ -41,7 +49,9 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
         {"title": "Reports", "home_path": "/admin", "user": user,
          "reports": reports.list_all(), "status_labels": STATUS_LABELS,
          "error": error, "form": form, "max_file_mb": _MAX_FILE_MB,
-         "site_preview": _site_preview(request, form, None),
+         "editor_html": editor.editor_html(form["body"], "", None),
+         "site_preview": _site_preview(
+             request, {**form, "body": editor.full_body(form["body"], "")}, None),
          "preview_path": request.app.url_path_for("preview_new_report")},
         status_code=status_code,
     )
@@ -55,13 +65,15 @@ def list_reports(request: Request, user=Depends(current_user)):
 @router.post("", dependencies=[Depends(require_csrf)])
 def create_report(request: Request, user=Depends(current_user), title: str = Form(""),
                   slug: str = Form(""), body: str = Form(""),
+                  body_html: str | None = Form(None), body_dirty: str = Form("0"),
                   file: UploadFile | None = File(None)):
+    sent = posted(body, body_html, body_dirty)
     try:
         pdf = uploads.read_pdf(file)
-        reports.create(title, slug, body, user["id"], pdf=pdf)
+        reports.create(title, slug, editor.saved_body(sent, None, None), user["id"], pdf=pdf)
     except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
-                          form={"title": title, "slug": slug, "body": body})
+                          form=editor.form_after(sent, title, slug, "", None, None))
     confirm(request, "Report created as a Draft, with its attached file." if pdf
             else "Report created as a Draft.")
     return RedirectResponse("/admin/reports", status_code=303)
@@ -71,9 +83,11 @@ def create_report(request: Request, user=Depends(current_user), title: str = For
 # otherwise take "preview" for an id.
 
 @router.post("/preview", dependencies=[Depends(require_csrf)])
-def preview_new_report(request: Request, title: str = Form(""), body: str = Form("")):
+def preview_new_report(request: Request, title: str = Form(""), body: str = Form(""),
+                       body_html: str | None = Form(None), body_dirty: str = Form("0")):
     """The create form's Site preview, for its frame and "Preview on site".
     Saves nothing; a file chosen in the form is not read."""
+    body = previewed(posted(body, body_html, body_dirty), None, None)
     return HTMLResponse(_site_preview(request, {"title": title, "body": body}, None))
 
 
@@ -87,17 +101,21 @@ def new_report_preview_site(path: str):
 def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
                error: str | None = None, form: dict | None = None,
                status_code: int = 200):
-    form = form or report
+    form = form or editor.form_for(report)
+    # The body with its locked blocks, which only the server sees.
+    body = editor.full_body(form["body"], report["body"])
     return templates.TemplateResponse(
         request, "admin/report_edit.html",
         {"title": "Edit Report", "home_path": "/admin", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
          "status_labels": STATUS_LABELS, "error": error, "form": form,
          "max_file_mb": _MAX_FILE_MB,
+         "editor_html": editor.editor_html(form["body"], report["body"],
+                                           _images(request, report["id"]).src),
          "images": list(reports.images(report["id"])),
-         "site_preview": _site_preview(request, form, report),
+         "site_preview": _site_preview(request, {**form, "body": body}, report),
          "preview_path": request.app.url_path_for("preview_report", report_id=report["id"]),
-         "undescribed_images": images_without_description(form["body"]),
+         "undescribed_images": images_without_description(body),
          "max_image_mb": _MAX_IMAGE_MB,
          "max_images": chart_images.MAX_PER_ITEM},
         status_code=status_code,
@@ -130,17 +148,26 @@ def edit_report_form(request: Request, report_id: int, user=Depends(current_user
 @router.post("/{report_id}", dependencies=[Depends(require_csrf)])
 def edit_report(request: Request, report_id: int, user=Depends(current_user),
                 title: str = Form(""), slug: str = Form(""), body: str = Form(""),
-                file: UploadFile | None = File(None)):
+                body_html: str | None = Form(None), body_dirty: str = Form("0"),
+                item_base: str = Form(""), file: UploadFile | None = File(None)):
     report = _editable_or_403(report_id, user)
+    sent = posted(body, body_html, body_dirty)
+    image_name = _images(request, report_id).name
     try:
         pdf = uploads.read_pdf(file)
-        if not reports.update(report_id, title, slug, body, user=user, pdf=pdf):
+        if not reports.update(report_id, title, slug,
+                              editor.saved_edit(sent, report, item_base, image_name),
+                              user=user, pdf=pdf, base=item_base or None):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
-        return _edit_page(request, user, report, error=str(exc), status_code=400,
-                          form={"title": title, "slug": slug, "body": body})
+        # Shown over the Report as stored now, which a stale form missed.
+        now = _get_or_404(report_id)
+        return _edit_page(request, user, now, error=str(exc),
+                          status_code=409 if isinstance(exc, StaleItem) else 400,
+                          form=editor.form_after(sent, title, slug, item_base,
+                                                 now["body"], image_name))
     confirm(request, "Report saved, with its new attached file." if pdf
             else "Report saved.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
@@ -170,11 +197,14 @@ def remove_file(request: Request, report_id: int, user=Depends(current_user)):
 
 @router.post("/{report_id}/preview", dependencies=[Depends(require_csrf)])
 def preview_report(request: Request, report_id: int, user=Depends(current_user),
-                   title: str = Form(""), body: str = Form("")):
+                   title: str = Form(""), body: str = Form(""),
+                   body_html: str | None = Form(None), body_dirty: str = Form("0")):
     """The edit form's Site preview, of its unsaved title and body, for its
     frame and "Preview on site". Only for a user who may make those edits
     (the lockdown). Saves nothing; a file chosen in the form is not read."""
     report = _editable_or_403(report_id, user)
+    body = previewed(posted(body, body_html, body_dirty), report["body"],
+                      _images(request, report_id).name)
     return HTMLResponse(_site_preview(request, {"title": title, "body": body}, report))
 
 

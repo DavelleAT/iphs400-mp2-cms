@@ -23,6 +23,7 @@ def _load_dotenv(path: Path) -> None:
 _load_dotenv(ROOT / ".env")
 
 TEMPLATES = ROOT / "templates"
+STATIC = ROOT / "static"  # the admin console's scripts, served under its login
 SITE = ROOT / "site"
 
 SECRET_KEY = os.environ.get("CMS_SECRET_KEY", "dev-only-not-for-production")

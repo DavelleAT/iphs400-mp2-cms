@@ -13,7 +13,7 @@ import pytest
 import test_t09_tables
 import test_t10_chart_images
 from app import editor
-from app.content import ContentError
+from app.content import ContentError, item_base
 from app.rendering import render_markdown
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -295,8 +295,8 @@ def test_hostile_editor_html_never_survives_to_a_render():
 # The base version.
 
 def test_the_item_base_covers_title_slug_and_body():
-    base = editor.item_base("Title", "slug", "Body")
-    assert base == editor.item_base("Title", "slug", "Body") and len(base) == 64
-    changed = {editor.item_base("Title!", "slug", "Body"), editor.item_base("Title", "slug-2", "Body"),
-               editor.item_base("Title", "slug", "Body "), editor.item_base("Titles", "lug", "Body")}
+    base = item_base("Title", "slug", "Body")
+    assert base == item_base("Title", "slug", "Body") and len(base) == 64
+    changed = {item_base("Title!", "slug", "Body"), item_base("Title", "slug-2", "Body"),
+               item_base("Title", "slug", "Body "), item_base("Titles", "lug", "Body")}
     assert base not in changed and len(changed) == 4

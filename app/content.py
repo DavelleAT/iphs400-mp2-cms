@@ -8,6 +8,8 @@ module and routes, not here.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sqlite3
 from collections.abc import Callable
@@ -31,6 +33,20 @@ class ContentError(ValueError):
 
 class DuplicateSlug(ContentError):
     pass
+
+
+STALE = "This item changed since you opened it. Reload to see the latest version."
+
+
+class StaleItem(ContentError):
+    """Saved from an edit form opened on an older version of the item."""
+
+
+def item_base(title: str, slug: str, body: str) -> str:
+    """The version of an item an edit form was opened on: a hash of its
+    stored title, slug, and body, all three of which the form saves. A hash
+    of the body alone would let a stale form overwrite a newer title or slug."""
+    return hashlib.sha256(json.dumps([title, slug, body]).encode()).hexdigest()
 
 
 def validate(title: str, slug: str, body: str) -> tuple[str, str, str]:
@@ -87,13 +103,23 @@ class ContentTable:
         return item_id
 
     def update(self, item_id: int, title: str, slug: str, body: str, *,
-               drafts_only: bool = False, also: AlsoWrite | None = None) -> bool:
+               drafts_only: bool = False, also: AlsoWrite | None = None,
+               base: str | None = None) -> bool:
         """Edit title, slug, and body. The author, created_at, and status are
-        kept. With drafts_only, a published item is left alone. False if
-        nothing was changed."""
+        kept. With drafts_only, a published item is left alone. With `base`,
+        the item_base the edit form was opened on, StaleItem if the item has
+        changed since, and nothing is written. False if nothing was changed."""
         title, slug, body = validate(title, slug, body)
         try:
             with db.connect() as conn:
+                if base is not None:
+                    # Held from the check to the write, so no other save
+                    # lands between them.
+                    conn.execute("BEGIN IMMEDIATE")
+                    row = conn.execute(f"SELECT title, slug, body FROM {self.table}"
+                                       " WHERE id = ?", (item_id,)).fetchone()
+                    if row is not None and item_base(*row) != base:
+                        raise StaleItem(STALE)
                 changed = conn.execute(
                     f"UPDATE {self.table} SET title = ?, slug = ?, body = ?,"
                     " updated_at = datetime('now')"

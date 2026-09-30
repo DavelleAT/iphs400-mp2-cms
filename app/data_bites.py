@@ -33,9 +33,10 @@ def create(title: str, slug: str, body: str, author_id: int) -> int:
                          also=lambda conn, bite_id: chart_images.remove_all(_IMAGES, bite_id))
 
 
-def update(bite_id: int, title: str, slug: str, body: str) -> bool:
-    """Edit title, slug, and body. False if there is no such Data Bite."""
-    return _TABLE.update(bite_id, title, slug, body)
+def update(bite_id: int, title: str, slug: str, body: str, *, base: str | None = None) -> bool:
+    """Edit title, slug, and body. False if there is no such Data Bite;
+    StaleItem if it has changed since `base` (ContentTable.update)."""
+    return _TABLE.update(bite_id, title, slug, body, base=base)
 
 
 def list_published() -> list[sqlite3.Row]:

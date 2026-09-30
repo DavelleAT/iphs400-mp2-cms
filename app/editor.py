@@ -18,13 +18,15 @@ import hashlib
 import json
 import re
 import secrets
+from collections.abc import Mapping
 from dataclasses import dataclass
+from urllib.parse import quote, unquote
 
 import nh3
 from markdown_it.token import Token
 from markupsafe import Markup, escape
 
-from app.content import ContentError
+from app.content import STALE, ContentError, StaleItem, item_base
 from app.markdown_form import LOCKED_TOKEN, ImageName, to_markdown
 from app.rendering import (IMAGE_REFERENCE, ImageSrc, parse, render_markdown,
                            table_cell_alignment)
@@ -262,7 +264,68 @@ def saved_body(posted: Posted, stored: str | None, image_name: ImageName | None)
     return restore(posted.markdown(image_name), stored or "")
 
 
-def item_base(title: str, slug: str, body: str) -> str:
-    """The version of an item an edit form was opened on: a hash of the
-    stored title, slug, and body, which the form saves all of."""
-    return hashlib.sha256(json.dumps([title, slug, body]).encode()).hexdigest()
+
+# The edit and create forms.
+
+NEEDS_BASE = "This page is out of date. Reload it to see the latest version."
+
+
+@dataclass(frozen=True)
+class ImageLinks:
+    """How the Editor shows an item's chart images, and reads them back."""
+    src: ImageSrc
+    name: ImageName
+
+
+def image_links(prefix: str) -> ImageLinks:
+    """For an item whose chart images the admin console serves at
+    `prefix`<name> (e.g. /admin/data-bites/3/images/)."""
+    def name(src: str) -> str | None:
+        rest = src.removeprefix(prefix)
+        return unquote(rest) if src.startswith(prefix) and rest and "/" not in rest else None
+
+    return ImageLinks(src=lambda image: prefix + quote(image, safe=""), name=name)
+
+
+def form_for(item: Mapping) -> dict:
+    """The edit form for a stored item, as the page opens: its body
+    tokenized, and its base version."""
+    return {"title": item["title"], "slug": item["slug"],
+            "body": tokenize(item["body"]).markdown,
+            "item_base": item_base(item["title"], item["slug"], item["body"]),
+            "body_dirty": False}
+
+
+def form_after(posted: Posted, title: str, slug: str, base: str, stored: str | None,
+               image_name: ImageName | None) -> dict:
+    """The form again after a refused save of `posted`, with what the writer
+    had, and the same base version, so a stale form stays refused."""
+    if stored is not None and posted.untouched(stored):
+        return {**form_for({"title": title, "slug": slug, "body": stored}),
+                "item_base": base}
+    try:
+        body = posted.markdown(image_name)
+    except ContentError:
+        body = posted.body
+    return {"title": title, "slug": slug, "body": body, "item_base": base, "body_dirty": True}
+
+
+def full_body(markdown: str, stored: str) -> str:
+    """A form's tokenized body with its locked blocks back, for the Site
+    preview; as it is if it can't be."""
+    try:
+        return restore(markdown, stored)
+    except ContentError:
+        return markdown
+
+
+def saved_edit(posted: Posted, item: Mapping, base: str, image_name: ImageName | None) -> str:
+    """The body to save for an edit of the stored `item` from a form opened
+    on `base`. StaleItem if the item has changed since; ContentError if the
+    Editor posted without a base version, or as saved_body. Old forms and
+    scripts that post no base, and no Editor HTML, are not checked."""
+    if base and base != item_base(item["title"], item["slug"], item["body"]):
+        raise StaleItem(STALE)
+    if posted.body_html is not None and not base:
+        raise ContentError(NEEDS_BASE)
+    return saved_body(posted, item["body"], image_name)

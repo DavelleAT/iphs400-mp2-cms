@@ -9,9 +9,10 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import data_bites, reports
+from app import data_bites, reports, settings
 from app.auth import current_user
 from app.content import STATUS_LABELS
 from app.templating import templates
@@ -77,3 +78,9 @@ def content_list(request: Request, user=Depends(current_user),
          "status_labels": STATUS_LABELS,
          "chosen": {"type": content_type, "status": status}},
     )
+
+
+@router.get("/editor.js")
+def editor_script():
+    """The Editor's script (app.editor), for the edit and create pages only."""
+    return FileResponse(settings.STATIC / "editor.js", media_type="text/javascript")

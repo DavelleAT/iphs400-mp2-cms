@@ -1,11 +1,21 @@
   <form class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    {%- if form.item_base %}
+    <input type="hidden" name="item_base" value="{{ form.item_base }}">
+    {%- endif %}
     <div class="admin-content-fields">
     <p><label>Title <input type="text" name="title" value="{{ form.title }}" required></label></p>
     <p><label>Slug <input type="text" name="slug" value="{{ form.slug }}" required
       pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint"></label>
       <small id="slug-hint">Lowercase letters, digits, and hyphens.</small></p>
+    {#- The Editor (app.editor, static/editor.js) takes over the textarea, and
+        shows the body from the template below, which a browser never renders
+        itself. If its script doesn't run, the textarea posts Markdown, each
+        part the Editor can't edit standing as its locked-<n> line. #}
+    <div class="admin-editor" data-body-dirty="{{ 1 if form.body_dirty else 0 }}">
     <p><label>Body (Markdown)<br><textarea name="body" rows="16" cols="60" required>{{ form.body }}</textarea></label></p>
+    <template class="admin-editor-content">{{ editor_html }}</template>
+    </div>
     {% if file_label %}
     <p><label>{{ file_label }}
       <input type="file" name="file" accept="application/pdf,.pdf"></label></p>
@@ -16,3 +26,4 @@
         first submit button is the one Enter presses. #}
     {% include "admin/_site_preview.html" %}
   </form>
+  <script src="{{ path_for('editor_script') }}" defer></script>
