@@ -25,7 +25,7 @@ DEMO_ACCOUNTS = [
     ("editor@example.test", "CMS_EDITOR_PASSWORD", "editor", "Demo Analyst"),
 ]
 
-_DEMO_NOTE = "*Demo content from `scripts/seed_demo.py`; the figures are made up.*"
+_DEMO_NOTE = "*Demo content from scripts/seed_demo.py; the figures are made up.*"
 
 # (module, title, slug, body, author's email, published?)
 DEMO_CONTENT = [

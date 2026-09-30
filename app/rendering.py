@@ -25,6 +25,7 @@ from collections.abc import Callable
 
 import nh3
 from markdown_it import MarkdownIt
+from markdown_it.token import Token
 from markupsafe import Markup
 
 TABLE_SCROLL = "content-table-scroll"
@@ -65,7 +66,7 @@ _ALLOWED_ATTRIBUTES = {**nh3.ALLOWED_ATTRIBUTES,
 _TEXT_ALIGN = re.compile(r"\s*text-align\s*:\s*(left|right|center)\s*", re.I)
 
 
-def _cell_alignment(tag: str, attribute: str, value: str) -> str | None:
+def table_cell_alignment(tag: str, attribute: str, value: str) -> str | None:
     """Keep a table cell's `style` only as its text-align, and only if that is
     one of the three a Markdown table writes; drop every other declaration."""
     if attribute != "style":
@@ -83,14 +84,19 @@ def render_markdown(text: str, image_src: ImageSrc | None = None) -> Markup:
     `image_src`."""
     return Markup(nh3.clean(_MARKDOWN.render(text or "", {"image_src": image_src}),
                             attributes=_ALLOWED_ATTRIBUTES,
-                            attribute_filter=_cell_alignment,
+                            attribute_filter=table_cell_alignment,
                             allowed_classes={"div": {TABLE_SCROLL}}))
+
+
+def parse(text: str) -> list[Token]:
+    """`text`'s block tokens, parsed as render_markdown parses it."""
+    return _MARKDOWN.parse(text or "")
 
 
 def images_without_description(text: str) -> list[str]:
     """The names in `text`'s `image:<name>` references that have no
     description (alt text), in order, for the edit page to warn of: a screen
     reader skips an image with an empty alt."""
-    return [name for block in _MARKDOWN.parse(text or "") for token in block.children or []
+    return [name for block in parse(text) for token in block.children or []
             if token.type == "image" and not token.content.strip()
             and (name := _chart_image_name(token)) is not None]
