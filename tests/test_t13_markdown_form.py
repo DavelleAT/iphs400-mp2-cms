@@ -103,14 +103,14 @@ def test_a_chart_image_is_written_as_its_image_reference():
     assert to_markdown(html) == ""
 
 
-def test_a_table_keeps_its_header_and_alignment():
+def test_a_table_keeps_its_header_and_is_aligned_by_its_columns():
     html = ('<div class="content-table-scroll"><table><thead><tr>'
             '<th style="text-align:left">Class</th><th style="text-align:right">Enrolled</th>'
             '<th style="text-align:center">Change</th><th>Note</th></tr></thead>'
             '<tbody><tr><td>First | year</td><td>482</td><td>+3%</td><td></td></tr>'
             '</tbody></table></div>')
     assert to_markdown(html) == ("| Class | Enrolled | Change | Note |\n"
-                                 "| :-- | --: | :-: | --- |\n"
+                                 "| :-- | --: | :-- | :-- |\n"
                                  "| First \\| year | 482 | +3% |  |\n")
 
 
@@ -118,7 +118,7 @@ def test_a_pasted_table_takes_its_first_row_as_the_header():
     html = ("<table><tbody><tr><td>Class</td><td>Enrolled</td></tr>"
             "<tr><td>First-year<br>(new)</td></tr><tr><td>Senior</td><td>431</td><td>x</td></tr>"
             "</tbody></table>")
-    assert to_markdown(html) == ("| Class | Enrolled |  |\n| --- | --- | --- |\n"
+    assert to_markdown(html) == ("| Class | Enrolled |  |\n| :-- | --: | :-- |\n"
                                  "| First-year (new) |  |  |\n| Senior | 431 | x |\n")
 
 

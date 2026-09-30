@@ -163,6 +163,13 @@ def rendered(body: str) -> list[tuple]:
     return canonical(str(render_markdown(body, site_image_src)))
 
 
+def unaligned(found: list[tuple]) -> list[tuple]:
+    """`rendered`, less each table cell's alignment: the standard form sets a
+    column's alignment from what it holds (T15), whatever it was stored as."""
+    return [("start", item[1], [a for a in item[2] if a[0] != "style"])
+            if item[0] == "start" and item[1] in ("th", "td") else item for item in found]
+
+
 FIXTURES = {
     **{f"seed:{slug}": body for _, _, slug, body, _, _ in seed_demo.DEMO_CONTENT},
     "t09:table": test_t09_tables.TABLE,
@@ -194,7 +201,7 @@ def test_an_untouched_body_is_kept_byte_for_byte(body):
 @pytest.mark.parametrize("body", FIXTURES.values(), ids=FIXTURES.keys())
 def test_a_no_change_round_trip_renders_the_same(body):
     saved = save(body, html=edited(body))
-    assert rendered(saved) == rendered(body), saved
+    assert unaligned(rendered(saved)) == unaligned(rendered(body)), saved
     # The standard form is stable: saving it again changes nothing.
     assert save(saved, html=edited(saved)) == saved
 
@@ -202,7 +209,7 @@ def test_a_no_change_round_trip_renders_the_same(body):
 def test_editing_one_block_changes_only_that_block():
     body = seed_demo.DEMO_CONTENT[0][3]
     html = edited(body).replace("Headcount by class", "Headcount by class and year")
-    before, after = rendered(body), rendered(save(body, html=html))
+    before, after = unaligned(rendered(body)), unaligned(rendered(save(body, html=html)))
     changed = [i for i, (old, new) in enumerate(zip(before, after)) if old != new]
     assert len(before) == len(after) and len(changed) == 1
     assert after[changed[0]] == ("text", "Headcount by class and year on the census date.")

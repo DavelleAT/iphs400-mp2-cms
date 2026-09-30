@@ -124,8 +124,11 @@ _BLOCK_TAGS = {"p", "blockquote", "table", "hr", "pre", "li", "tr", "caption",
                "div", "section", "article", "header", "footer", "main", "aside", "nav",
                "figure", "figcaption", "address", "details", "summary", "dl", "dt", "dd",
                "center"}
-_ALIGNMENTS = {"text-align:left": ":--", "text-align:right": "--:",
-               "text-align:center": ":-:"}
+# A column is right-aligned when every body cell in it that isn't missing is
+# a number (spec #14, "Tables"), and left-aligned otherwise.
+_MISSING = {"", "—", "n/a"}
+_DIGITS = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+_NUMBER = re.compile(rf"-?\$?{_DIGITS}%?|\(\$?{_DIGITS}%?\)")
 
 
 def is_link(href: str) -> bool:
@@ -199,6 +202,19 @@ def _rows(table: _Element) -> list[_Element]:
             rows.extend(row for row in child.children
                         if isinstance(row, _Element) and row.tag == "tr")
     return rows
+
+
+def _text(node: _Element | str) -> str:
+    """A node's text, as it reads: its whitespace collapsed and trimmed."""
+    if isinstance(node, str):
+        return _WHITESPACE.sub(" ", node).strip()
+    return _WHITESPACE.sub(" ", " ".join(map(_text, node.children))).strip()
+
+
+def _alignment(column: list[_Element | None]) -> str:
+    texts = [text for cell in column
+             if cell is not None and (text := _text(cell)).lower() not in _MISSING]
+    return "--:" if texts and all(_NUMBER.fullmatch(text) for text in texts) else ":--"
 
 
 def _without_breaks(node: _Element | str) -> _Element | str:
@@ -374,16 +390,15 @@ class _Converter:
 
     def table(self, table: _Element) -> str | None:
         """A table as a Markdown table. Its first row is the header, and each
-        column is aligned as its header cell is."""
+        column is aligned by what its other rows hold."""
         rows = [[cell for cell in row.children if isinstance(cell, _Element)
                  and cell.tag in _CELLS] for row in _rows(table)]
         width = max(map(len, rows), default=0)
         if not width:
             return None
         text = [[self.cell(cell) for cell in row] + [""] * (width - len(row)) for row in rows]
-        header = rows[0] + [None] * (width - len(rows[0]))
-        alignment = [_ALIGNMENTS.get(cell.attrs.get("style", "") if cell else "", "---")
-                     for cell in header]
+        cells = [row + [None] * (width - len(row)) for row in rows[1:]]
+        alignment = [_alignment([row[column] for row in cells]) for column in range(width)]
         return "\n".join(f"| {' | '.join(row)} |" for row in [text[0], alignment, *text[1:]])
 
 
