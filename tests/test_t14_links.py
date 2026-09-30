@@ -8,7 +8,9 @@ its text. Only `image:<name>` renders an <img>.
 """
 from __future__ import annotations
 
+import json
 import re
+from html import unescape
 
 import pytest
 from fastapi.testclient import TestClient
@@ -125,13 +127,16 @@ def test_a_link_to_a_deleted_report_never_reaches_a_new_one_with_its_id(client_a
     director = client_as("admin")
     rid = published_report(director, slug="cds", title="Common Data Set")
     link = report_link(rid)
-    linking_bite(director, link)
+    bid = linking_bite(director, link)
     assert post_form(director, f"/admin/reports/{rid}/delete", {}).status_code == 303
 
     # SQLite may give the new Report the deleted one's id.
     new = published_report(director, slug="cds", title="A different Report")
     assert new == rid
     assert_plain_text(public_body(client))
+    # And the Editor marks it "Item deleted" (static/editor.js, from this state).
+    [states] = re.findall(r"data-link-states='([^']*)'", director.get(f"/admin/data-bites/{bid}").text)
+    assert json.loads(unescape(states)) == {link: "deleted"}
 
 
 @pytest.mark.parametrize("target", ["report:" + "f" * 32, "data-bite:" + "0" * 32,
@@ -191,15 +196,18 @@ def test_only_a_chart_image_renders_an_img(client_as, client, body):
 
 # The Site preview
 
-def test_the_site_preview_resolves_site_links_as_the_site_will(client_as):
+@pytest.mark.parametrize("kind, create", [("data-bites", create_bite),
+                                          ("reports", create_report)])
+def test_the_site_preview_resolves_site_links_as_the_site_will(client_as, kind, create):
     director = client_as("admin")
     published = published_report(director, slug="cds", title="Common Data Set")
     draft = create_report(director, slug="draft-cds", title="Draft CDS")
-    bid = create_bite(director)
+    item = create(director, slug="linking")
     body = f"[Published]({report_link(published)}) and [draft]({report_link(draft)})."
 
-    html = content_body(preview(director, "data-bites", bid, title="T", slug="fall-enrollment",
+    html = content_body(preview(director, kind, item, title="T", slug="linking",
                                 body=body).text)
+    # Both item pages sit one folder down, as in the export.
     assert anchors(html) == ["../reports/cds.html"]
     assert "draft" in html
 

@@ -68,7 +68,8 @@ _Avoid_: WYSIWYG, rich text, rich-text editor
 **Site link**:
 A link in a Data Bite's or Report's body to another Data Bite or Report,
 picked from a list in the Editor and stored by the target's immutable
-reference (`report:<ref>`, `data-bite:<ref>`), never its title, slug, or id.
+reference, its *site reference* (`report:<ref>`, `data-bite:<ref>`), never
+its title, slug, or id.
 It is a link on the site only while its target is Published; otherwise it
 shows as plain text (spec #14, T14).
 _Avoid_: internal link, cross-reference

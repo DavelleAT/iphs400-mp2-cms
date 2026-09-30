@@ -6,8 +6,7 @@ Markdown, written one standard way, with stdlib `html.parser`. It writes only
 what the Editor supports: paragraphs, Sections (H2) and Subsections (H3),
 bulleted and numbered lists, block quotes, tables, and bold, italic, line
 breaks, `https:`/`mailto:` and site links (app.site_links), and chart images
-inline. Any other element
-is let through as its text. Everything the writer typed is escaped, so it
+inline. Any other element is let through as its text. Everything the writer typed is escaped, so it
 renders as the text it is and never as Markdown syntax.
 """
 from __future__ import annotations

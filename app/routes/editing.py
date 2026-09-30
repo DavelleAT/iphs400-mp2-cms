@@ -2,11 +2,14 @@
 edit and create forms, with or without the Editor (app.editor)."""
 from __future__ import annotations
 
+import sqlite3
+
 from fastapi import Form, HTTPException, Request
 
 from app import editor, site_links
 from app.content import ContentError, StaleItem
 from app.markdown_form import ImageName
+from app.templating import templates
 
 
 def posted(body: str = Form(""), body_html: str | None = Form(None),
@@ -44,3 +47,16 @@ def site_links_for(body: str) -> dict:
     body is `body`: every item it may link to, and the state of each site
     link in the body that won't be a link on the site."""
     return {"site_items": site_links.choices(), "link_states": site_links.unresolved(body)}
+
+
+def confirm_delete(request: Request, user: sqlite3.Row, item: sqlite3.Row, kind: str, *,
+                   back: str):
+    """The page before a delete (Director only), which posts to its own
+    path: the items whose bodies link to `item`, a `kind` of item, and whose
+    links will be their text once it is gone. The delete isn't blocked."""
+    noun = site_links.NOUNS[kind]
+    return templates.TemplateResponse(
+        request, "admin/confirm_delete.html",
+        {"title": f"Delete {noun}", "home_path": "/admin", "user": user, "noun": noun,
+         "item": item, "action": request.url.path, "back": back,
+         "linked_from": site_links.linked_from(site_links.reference(kind, item["ref"]))})

@@ -36,7 +36,8 @@ plain JavaScript (`static/editor.js`), with no dependency.
   the same transaction as the write. Nothing is merged.
 - **Locked blocks.** A top-level block the Editor can't represent (a code
   block, raw HTML, an H1 or H4, a rule, an inline code span, a link that isn't
-  `https:` or `mailto:`, ...) is cut out and replaced by a `locked-<n>` token.
+  `https:`, `mailto:`, or a site link (`report:<ref>`, `data-bite:<ref>`, added
+  by T14), ...) is cut out and replaced by a `locked-<n>` token.
   The Editor shows its rendered, sanitized HTML, read-only, with a Remove
   button; its Markdown never reaches the browser. On save each token is
   replaced by that block's bytes from the **stored** body, never from the post.

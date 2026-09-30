@@ -23,7 +23,7 @@ from app import db
 
 # kind -> its table. The kind is also the site reference's scheme.
 TABLES = {"data-bite": "data_bites", "report": "reports"}
-REFERENCE = re.compile(r"(?<![\w:-])(data-bite|report):([0-9a-f]{32})(?![\w-])")
+REFERENCE = re.compile(rf"(?<![\w:-])({'|'.join(TABLES)}):([0-9a-f]{{32}})(?![\w-])")
 # How many fresh refs to try before giving up.
 _ATTEMPTS = 3
 
@@ -103,7 +103,7 @@ def in_body(body: str) -> set[str]:
 
 # The Editor's link dialog.
 
-_NOUNS = {"report": "Report", "data-bite": "Data Bite"}
+NOUNS = {"report": "Report", "data-bite": "Data Bite"}
 
 
 def choices() -> list[dict]:
@@ -113,7 +113,7 @@ def choices() -> list[dict]:
     with db.connect() as conn:
         for kind in ("report", "data-bite"):
             found += [{"href": reference(kind, row["ref"]), "title": row["title"],
-                       "kind": _NOUNS[kind], "draft": row["status"] != "published"}
+                       "kind": NOUNS[kind], "draft": row["status"] != "published"}
                       for row in conn.execute(f"SELECT ref, title, status FROM {TABLES[kind]}"
                                               " ORDER BY title, id")]
     return found
@@ -128,12 +128,12 @@ def unresolved(body: str) -> dict[str, str]:
 
 def linked_from(link: str) -> list[dict]:
     """Every other Report and Data Bite whose body names the site reference
-    `link`, for the Director to see before deleting its target: {kind: its
+    `link`, for the Director to see before deleting its target: {kind,
     noun, id, title}, Reports first, each by title."""
     found = []
     with db.connect() as conn:
         for kind in ("report", "data-bite"):
-            found += [{"kind": _NOUNS[kind], "id": row["id"], "title": row["title"]}
+            found += [{"kind": kind, "noun": NOUNS[kind], "id": row["id"], "title": row["title"]}
                       for row in conn.execute(
                           f"SELECT id, title, body, ref FROM {TABLES[kind]}"
                           " WHERE instr(body, ?) ORDER BY title, id", (link,))

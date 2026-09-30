@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app import chart_images, data_bites, editor, public_site, site_links
+from app import chart_images, data_bites, editor, public_site
 from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
@@ -37,15 +37,15 @@ def _images(request: Request, bite_id: int) -> editor.ImageLinks:
 def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
                form: dict | None = None, status_code: int = 200):
     form = form or {"title": "", "slug": "", "body": ""}
+    body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/data_bites.html",
         {"title": "Data Bites", "home_path": "/admin", "user": user,
          "bites": data_bites.list_all(), "status_labels": STATUS_LABELS,
          "error": error, "form": form,
          "editor_html": editor.editor_html(form["body"], "", None),
-         **editing.site_links_for(editor.full_body(form["body"], "")),
-         "site_preview": _site_preview(
-             request, {**form, "body": editor.full_body(form["body"], "")}, None),
+         **editing.site_links_for(body),
+         "site_preview": _site_preview(request, {**form, "body": body}, None),
          "preview_path": request.app.url_path_for("preview_new_bite")},
         status_code=status_code,
     )
@@ -210,15 +210,8 @@ def unpublish(request: Request, bite_id: int):
 
 @router.get("/{bite_id}/delete", dependencies=[Depends(require_director)])
 def confirm_delete_bite(request: Request, bite_id: int, user=Depends(current_user)):
-    """Before a delete: which items link to this one, whose links will be
-    their text once it is gone. The delete isn't blocked."""
-    item = _get_or_404(bite_id)
-    return templates.TemplateResponse(
-        request, "admin/confirm_delete.html",
-        {"title": "Delete Data Bite", "home_path": "/admin", "user": user, "noun": "Data Bite",
-         "item": item, "action": f"/admin/data-bites/{bite_id}/delete",
-         "back": request.app.url_path_for("list_bites"),
-         "linked_from": site_links.linked_from(site_links.reference("data-bite", item["ref"]))})
+    return editing.confirm_delete(request, user, _get_or_404(bite_id), "data-bite",
+                                  back=request.app.url_path_for("list_bites"))
 
 
 @router.post("/{bite_id}/delete",

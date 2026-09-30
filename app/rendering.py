@@ -38,6 +38,8 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 from markupsafe import Markup
 
+from app.site_links import TABLES as SITE_LINK_SCHEMES
+
 TABLE_SCROLL = "content-table-scroll"
 IMAGE_REFERENCE = "image:"
 # The only absolute links a body may have (spec #14, "Links").
@@ -49,7 +51,7 @@ ImageSrc = Callable[[str], "str | None"]
 # being rendered links by; None if it is not a site link that resolves.
 LinkHref = Callable[[str], "str | None"]
 # Every scheme the link rule decides on; nh3 drops any other before it can.
-_URL_SCHEMES = {"https", "mailto", "image", "report", "data-bite"}
+_URL_SCHEMES = {"https", "mailto", "image", *SITE_LINK_SCHEMES}
 
 _MARKDOWN = MarkdownIt("commonmark").enable("table")
 _MARKDOWN.add_render_rule("table_open", lambda self, tokens, idx, options, env: (
