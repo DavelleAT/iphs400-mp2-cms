@@ -164,6 +164,9 @@ def test_an_unknown_duplicated_or_forged_token_refuses_the_save(director, html):
     response = save(director, "data-bites", item_id, page, title="Changed",
                     body_html="<p>Intro.</p>" + html, body_dirty="1")
     assert response.status_code == 400
+    # The Editor opens on the writer's edit, or if the Editor didn't make
+    # it, on the stored body again: never on nothing.
+    assert "<p>Intro" in editor_content(response.text)
     assert dict(stored(data_bites, item_id))["title"] == BITE["title"]
     assert stored(data_bites, item_id)["body"] == LOCKED_BODY
 

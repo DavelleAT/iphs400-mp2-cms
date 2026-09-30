@@ -14,8 +14,6 @@ anything posted.
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import re
 import secrets
 from collections.abc import Mapping
@@ -27,7 +25,7 @@ from markdown_it.token import Token
 from markupsafe import Markup, escape
 
 from app.content import STALE, ContentError, StaleItem, item_base
-from app.markdown_form import LOCKED_TOKEN, ImageName, to_markdown
+from app.markdown_form import LINK_SCHEMES, LOCKED_TOKEN, ImageName, to_markdown
 from app.rendering import (IMAGE_REFERENCE, ImageSrc, parse, render_markdown,
                            table_cell_alignment)
 
@@ -42,7 +40,6 @@ _SUPPORTED_BLOCKS = {
 _SUPPORTED_HEADINGS = {"h2", "h3"}
 _SUPPORTED_INLINE = {"text", "softbreak", "hardbreak", "strong_open", "strong_close",
                      "em_open", "em_close", "link_open", "link_close", "image"}
-_LINK_SCHEMES = ("https:", "mailto:")
 _NEWLINE = re.compile(r"\r\n?|\n")
 _LAST_ENDING = re.compile(r"(?:\r\n?|\n)\Z")
 
@@ -59,7 +56,7 @@ def _supported_inline(token: Token) -> bool:
     if token.type not in _SUPPORTED_INLINE:
         return False
     if token.type == "link_open":
-        return (str(token.attrGet("href")).lower().startswith(_LINK_SCHEMES)
+        return (str(token.attrGet("href")).lower().startswith(LINK_SCHEMES)
                 and token.attrGet("title") is None)
     if token.type == "image":
         return (str(token.attrGet("src")).startswith(IMAGE_REFERENCE)
@@ -68,11 +65,19 @@ def _supported_inline(token: Token) -> bool:
     return True
 
 
+def _token_number(block: list[Token]) -> int | None:
+    """The number of the token a top-level block is, if it is a paragraph
+    holding nothing but one."""
+    if [token.type for token in block] != ["paragraph_open", "inline", "paragraph_close"]:
+        return None
+    match = LOCKED_TOKEN.fullmatch(block[1].content)
+    return int(match[1]) if match else None
+
+
 def _supported(block: list[Token]) -> bool:
     """Whether the Editor can represent a top-level block, given as its
     tokens: it and everything in it."""
-    if [token.type for token in block] == ["paragraph_open", "inline", "paragraph_close"] \
-            and LOCKED_TOKEN.fullmatch(block[1].content):
+    if _token_number(block) is not None:
         # Text that reads as a token; locked, so it is never taken for one.
         return False
     for token in block:
@@ -151,10 +156,9 @@ def tokenize(body: str) -> Tokenized:
 def _token_paragraphs(markdown: str) -> list[tuple[int, int, int]]:
     """Where `markdown` holds a locked block's token: (first line, line after
     the last, token number) of each top-level paragraph that is one."""
-    return [(block[0].map[0], block[0].map[1], int(match[1]))
+    return [(block[0].map[0], block[0].map[1], number)
             for block in _top_level_blocks(parse(markdown))
-            if [token.type for token in block] == ["paragraph_open", "inline", "paragraph_close"]
-            and (match := LOCKED_TOKEN.fullmatch(block[1].content))]
+            if (number := _token_number(block)) is not None]
 
 
 UNKNOWN_TOKEN = ("A part of the body that can't be edited here is not in the saved "
@@ -227,7 +231,7 @@ def _sanitized(html: str) -> str:
                      attribute_filter=table_cell_alignment, link_rel=None)
 
 
-def _normalized(text: str) -> str:
+def _with_lf(text: str) -> str:
     return _NEWLINE.sub("\n", text)
 
 
@@ -244,7 +248,7 @@ class Posted:
     def untouched(self, stored: str) -> bool:
         if self.body_html is not None:
             return not self.body_dirty
-        return _normalized(self.body) == _normalized(tokenize(stored).markdown)
+        return _with_lf(self.body) == _with_lf(tokenize(stored).markdown)
 
     def markdown(self, image_name: ImageName | None) -> str:
         """The body the writer wants, tokenized. ContentError if the Editor's
@@ -262,7 +266,6 @@ def saved_body(posted: Posted, stored: str | None, image_name: ImageName | None)
     if stored is not None and posted.untouched(stored):
         return stored
     return restore(posted.markdown(image_name), stored or "")
-
 
 
 # The edit and create forms.
@@ -306,7 +309,8 @@ def form_after(posted: Posted, title: str, slug: str, base: str, stored: str | N
     try:
         body = posted.markdown(image_name)
     except ContentError:
-        body = posted.body
+        # Editor HTML it didn't make: the Editor opens on the stored body again.
+        body = tokenize(stored or "").markdown
     return {"title": title, "slug": slug, "body": body, "item_base": base, "body_dirty": True}
 
 

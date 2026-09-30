@@ -14,7 +14,7 @@ Storing the Editor's HTML was considered and rejected. Every body already
 stored, the sanitizer, `cms publish`, and every test assume Markdown; HTML
 from a browser's `contenteditable` differs by browser and would change
 whenever the same body is opened and saved; and the site would have to trust
-stored HTML rather than render it. A Markdown or rich-text editor library was
+stored HTML rather than render it. A Markdown or visual editor library was
 rejected too: `pyproject.toml` is fixed, and ADR-002 has no build step.
 
 ## Decision

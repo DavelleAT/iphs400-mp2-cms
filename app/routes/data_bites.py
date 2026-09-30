@@ -12,9 +12,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app import chart_images, data_bites, editor, public_site
 from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
-from app.content import STATUS_LABELS, ContentError, StaleItem
+from app.content import STATUS_LABELS, ContentError
 from app.rendering import images_without_description
-from app.routes.editing import posted, previewed
+from app.routes import editing
 from app.routes.site_preview import site_file
 from app.templating import templates
 
@@ -31,10 +31,7 @@ def _site_preview(request: Request, form: Mapping[str, str], bite: sqlite3.Row |
 
 
 def _images(request: Request, bite_id: int) -> editor.ImageLinks:
-    """How the Editor shows the Data Bite's chart images: from the admin
-    console, draft or not."""
-    image = str(request.app.url_path_for("serve_image", bite_id=bite_id, name="x"))
-    return editor.image_links(image.removesuffix("x"))
+    return editing.image_links(request, "serve_image", bite_id=bite_id)
 
 
 def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
@@ -60,14 +57,12 @@ def list_bites(request: Request, user=Depends(current_user)):
 
 @router.post("", dependencies=[Depends(require_csrf)])
 def create_bite(request: Request, user=Depends(current_user), title: str = Form(""),
-                slug: str = Form(""), body: str = Form(""),
-                body_html: str | None = Form(None), body_dirty: str = Form("0")):
-    sent = posted(body, body_html, body_dirty)
+                slug: str = Form(""), posted: editor.Posted = Depends(editing.posted)):
     try:
-        data_bites.create(title, slug, editor.saved_body(sent, None, None), user["id"])
+        data_bites.create(title, slug, editor.saved_body(posted, None, None), user["id"])
     except ContentError as exc:
         return _list_page(request, user, error=str(exc), status_code=400,
-                          form=editor.form_after(sent, title, slug, "", None, None))
+                          form=editor.form_after(posted, title, slug, "", None, None))
     confirm(request, "Data Bite created as a Draft.")
     return RedirectResponse("/admin/data-bites", status_code=303)
 
@@ -76,13 +71,12 @@ def create_bite(request: Request, user=Depends(current_user), title: str = Form(
 # otherwise take "preview" for an id.
 
 @router.post("/preview", dependencies=[Depends(require_csrf)])
-def preview_new_bite(request: Request, title: str = Form(""), body: str = Form(""),
-                     body_html: str | None = Form(None), body_dirty: str = Form("0")):
+def preview_new_bite(request: Request, title: str = Form(""),
+                     posted: editor.Posted = Depends(editing.posted)):
     """The create form's Site preview, for its frame and "Preview on site".
     Saves nothing."""
-    body = previewed(posted(body, body_html, body_dirty), None, None)
-    return HTMLResponse(_site_preview(request, {"title": title, "body": body}, None))
-
+    shown = editing.previewed(posted, None, None)
+    return HTMLResponse(_site_preview(request, {"title": title, "body": shown}, None))
 
 
 @router.get("/preview/{path:path}")
@@ -129,36 +123,34 @@ def edit_bite_form(request: Request, bite_id: int, user=Depends(current_user)):
 
 @router.post("/{bite_id}", dependencies=[Depends(require_csrf)])
 def edit_bite(request: Request, bite_id: int, user=Depends(current_user),
-              title: str = Form(""), slug: str = Form(""), body: str = Form(""),
-              body_html: str | None = Form(None), body_dirty: str = Form("0"),
-              item_base: str = Form("")):
+              title: str = Form(""), slug: str = Form(""),
+              posted: editor.Posted = Depends(editing.posted), item_base: str = Form("")):
     bite = _get_or_404(bite_id)
-    sent = posted(body, body_html, body_dirty)
     image_name = _images(request, bite_id).name
     try:
         data_bites.update(bite_id, title, slug,
-                          editor.saved_edit(sent, bite, item_base, image_name),
+                          editor.saved_edit(posted, bite, item_base, image_name),
                           base=item_base or None)
     except ContentError as exc:
         # Shown over the item as stored now, which a stale form missed.
-        now = _get_or_404(bite_id)
-        return _edit_page(request, user, now, error=str(exc),
-                          status_code=409 if isinstance(exc, StaleItem) else 400,
-                          form=editor.form_after(sent, title, slug, item_base,
-                                                 now["body"], image_name))
+        current = _get_or_404(bite_id)
+        return _edit_page(request, user, current, error=str(exc),
+                          status_code=editing.refused_status(exc),
+                          form=editor.form_after(posted, title, slug, item_base,
+                                                 current["body"], image_name))
     confirm(request, "Data Bite saved.")
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)
 
 
 @router.post("/{bite_id}/preview", dependencies=[Depends(require_csrf)])
-def preview_bite(request: Request, bite_id: int, title: str = Form(""), body: str = Form(""),
-                 body_html: str | None = Form(None), body_dirty: str = Form("0")):
+def preview_bite(request: Request, bite_id: int, title: str = Form(""),
+                 posted: editor.Posted = Depends(editing.posted)):
     """The edit form's Site preview, of its unsaved title and body, for its
     frame and "Preview on site". Saves nothing."""
     bite = _get_or_404(bite_id)
-    body = previewed(posted(body, body_html, body_dirty), bite["body"],
+    shown = editing.previewed(posted, bite["body"],
                       _images(request, bite_id).name)
-    return HTMLResponse(_site_preview(request, {"title": title, "body": body}, bite))
+    return HTMLResponse(_site_preview(request, {"title": title, "body": shown}, bite))
 
 
 @router.get("/{bite_id}/preview/{path:path}")

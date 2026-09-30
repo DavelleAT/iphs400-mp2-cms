@@ -102,7 +102,7 @@ _LINE_START = re.compile(r"^(?:([-+=])|(\d+)([.)]))")
 _DESTINATION_ENCODED = re.compile(r"[\x00-\x20\x7f<>]")
 _DESTINATION_ESCAPED = re.compile(r"([\\()&])")
 # The only links the Editor keeps (spec #14, "Links"); a site link is T14's.
-_LINK_SCHEMES = ("https:", "mailto:")
+LINK_SCHEMES = ("https:", "mailto:")
 
 # A line break, in inline Markdown before it is split into lines. Writer text
 # never holds one: _escape turns every newline into a space.
@@ -248,7 +248,7 @@ class _Converter:
     def link(self, node: _Element, marks: frozenset[str]) -> str:
         text = self.content(node, marks | {"link"})
         href = node.attrs.get("href", "").strip()
-        if "link" in marks or not text.strip() or not href.lower().startswith(_LINK_SCHEMES):
+        if "link" in marks or not text.strip() or not href.lower().startswith(LINK_SCHEMES):
             return text
         return f"[{text}]({_destination(href)})"
 
