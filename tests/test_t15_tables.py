@@ -158,3 +158,18 @@ STANDARD = ("Retention by cohort:\n\n"
 
 def test_a_stored_table_in_standard_form_survives_the_editor_unchanged():
     assert save(STANDARD, html=edited(STANDARD)) == STANDARD
+
+
+def test_a_table_inside_a_cell_is_written_as_its_text():
+    # A paste from a web page can nest one; a Markdown table can't.
+    html = ("<table><tr><td>Class</td><td>Detail</td></tr>"
+            "<tr><td>First-year</td><td><table><tr><td>x</td><td>y</td></tr>"
+            "<tr><td>1</td><td>2</td></tr></table></td></tr></table>")
+    assert saved(html) == ("| Class | Detail |\n| :-- | :-- |\n"
+                           "| First-year | x y 1 2 |\n")
+
+
+@pytest.mark.parametrize("cell", ["<b>1</b>,234", '<a href="https://example.test/n">12</a>%',
+                                  "<em>$</em>1,200", "(<strong>3.2</strong>)"])
+def test_a_number_with_formatting_inside_it_is_still_a_number(cell):
+    assert alignment(cell, "10") == "| --: |"

@@ -244,10 +244,17 @@ def _grid(rows: list[list[_Element]]) -> list[list[_Element | None]]:
 
 
 def _text(node: _Element | str) -> str:
-    """A node's text, as it reads: its whitespace collapsed and trimmed."""
-    if isinstance(node, str):
-        return _WHITESPACE.sub(" ", node).strip()
-    return _WHITESPACE.sub(" ", " ".join(map(_text, node.children))).strip()
+    """A node's text, as it reads: inline parts run together, blocks and
+    line breaks apart, its whitespace collapsed and trimmed."""
+    def run(node: _Element | str) -> str:
+        if isinstance(node, str):
+            return node
+        if node.tag == "br":
+            return " "
+        text = "".join(map(run, node.children))
+        return f" {text} " if node.tag in _BLOCK_TAGS else text
+
+    return _WHITESPACE.sub(" ", run(node)).strip()
 
 
 def _alignment(column: list[_Element | None]) -> str:
@@ -256,14 +263,20 @@ def _alignment(column: list[_Element | None]) -> str:
     return "--:" if texts and all(_NUMBER.fullmatch(text) for text in texts) else ":--"
 
 
-def _without_breaks(node: _Element | str) -> _Element | str:
-    """A table cell's content with each line break as a space: a Markdown
-    table row is one line."""
+def _one_line(node: _Element | str) -> _Element | str:
+    """A table cell's content as one line, as a Markdown table row is: each
+    line break a space, and a table in it (a paste from a web page can nest
+    one) its cells' content, one after another."""
     if isinstance(node, str):
         return node
     if node.tag == "br":
         return " "
-    return _Element(node.tag, node.attrs, [_without_breaks(child) for child in node.children])
+    if node.tag == "table":
+        cells = [cell for row in _rows(node) for cell in row.children
+                 if isinstance(cell, _Element) and cell.tag in _CELLS]
+        return _Element("span", children=[part for cell in cells
+                                          for part in [" ", *map(_one_line, cell.children)]])
+    return _Element(node.tag, node.attrs, [_one_line(child) for child in node.children])
 
 
 @dataclass(frozen=True)
@@ -422,7 +435,7 @@ class _Converter:
                          for line in "\n\n".join(blocks).split("\n"))
 
     def cell(self, cell: _Element) -> str:
-        content = _Element(cell.tag, cell.attrs, [_without_breaks(node) for node in cell.children])
+        content = _Element(cell.tag, cell.attrs, [_one_line(node) for node in cell.children])
         blocks = replace(self, escape_line_starts=False).blocks(content)
         return " ".join(line.strip() for block in blocks for line in block.split("\n")
                         if line.strip())
