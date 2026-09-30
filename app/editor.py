@@ -25,9 +25,10 @@ from markdown_it.token import Token
 from markupsafe import Markup, escape
 
 from app.content import STALE, ContentError, StaleItem, item_base
-from app.markdown_form import LINK_SCHEMES, LOCKED_TOKEN, ImageName, to_markdown
+from app.markdown_form import LOCKED_TOKEN, ImageName, is_link, to_markdown
 from app.rendering import (IMAGE_REFERENCE, ImageSrc, parse, render_markdown,
                            table_cell_alignment)
+from app.site_links import REFERENCE, TABLES
 
 # Block tokens the Editor can represent, and the headings among them.
 _SUPPORTED_BLOCKS = {
@@ -56,8 +57,7 @@ def _supported_inline(token: Token) -> bool:
     if token.type not in _SUPPORTED_INLINE:
         return False
     if token.type == "link_open":
-        return (str(token.attrGet("href")).lower().startswith(LINK_SCHEMES)
-                and token.attrGet("title") is None)
+        return is_link(str(token.attrGet("href"))) and token.attrGet("title") is None
     if token.type == "image":
         return (str(token.attrGet("src")).startswith(IMAGE_REFERENCE)
                 and token.attrGet("title") is None
@@ -189,10 +189,17 @@ def restore(markdown: str, stored: str) -> str:
 LOCKED_NOTE = "This part can't be edited here."
 
 
+def _site_link(href: str) -> str | None:
+    """The Editor shows a site link as the site reference it is, resolved or
+    not, so that it posts it back as it is and marks one that won't resolve."""
+    return href if REFERENCE.fullmatch(href) else None
+
+
 def _locked_html(number: int, locked: tuple[str, ...], image_src: ImageSrc | None) -> str:
     """A locked block as the Editor shows it: its rendered, sanitized HTML,
     never its source. Its token is the only thing the Editor posts back."""
-    shown = render_markdown(locked[number], image_src) if number < len(locked) else ""
+    shown = (render_markdown(locked[number], image_src, _site_link)
+             if number < len(locked) else "")
     return (f'<div class="admin-editor-locked" data-locked="locked-{number}">'
             f'<p class="admin-editor-locked-note">{escape(LOCKED_NOTE)}</p>'
             f'<div class="admin-editor-locked-shown">{shown}</div></div>')
@@ -210,7 +217,7 @@ def editor_html(markdown: str, stored: str, image_src: ImageSrc | None) -> Marku
     lines = _lines(markdown)
     for start, end, number in _token_paragraphs(markdown):
         lines[start:end] = [f"locked-{nonce}-{number}{_ending(lines[end - 1])}"]
-    html = str(render_markdown("".join(lines), image_src))
+    html = str(render_markdown("".join(lines), image_src, _site_link))
     return Markup(re.sub(rf"<p>locked-{nonce}-(\d+)</p>",
                          lambda m: _locked_html(int(m[1]), locked, image_src), html))
 
@@ -226,9 +233,15 @@ _POSTED_ATTRIBUTES = {"a": {"href"}, "img": {"src", "alt"}, "ol": {"start"},
                       "th": {"style"}, "td": {"style"}, "div": {"data-locked"}}
 
 
+# A posted link's schemes, site links' included; app.markdown_form keeps
+# only the links the Editor may have (is_link).
+_POSTED_SCHEMES = {"https", "mailto", *TABLES}
+
+
 def _sanitized(html: str) -> str:
     return nh3.clean(html, tags=_POSTED_TAGS, attributes=_POSTED_ATTRIBUTES,
-                     attribute_filter=table_cell_alignment, link_rel=None)
+                     attribute_filter=table_cell_alignment, link_rel=None,
+                     url_schemes=_POSTED_SCHEMES)
 
 
 def _with_lf(text: str) -> str:

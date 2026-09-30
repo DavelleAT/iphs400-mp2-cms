@@ -10,7 +10,16 @@
   "use strict";
 
   const LINK = /^(https:\/\/|mailto:)/i;
-  const LINK_REFUSED = "Links must start with https:// or mailto:.";
+  const LINK_REFUSED = "A web address must start with https:// or mailto:. " +
+    'For a Report or Data Bite, choose "A page on this site".';
+  const PAGE_NOT_CHOSEN = "Choose a Report or Data Bite to link to.";
+  // A link to a Report or Data Bite (app.site_links): stored by reference
+  // and resolved when the site is published.
+  const SITE_LINK = /^(data-bite|report):[0-9a-f]{32}$/;
+  // How the body marks a site link that won't be a link on the site; the
+  // states are app.site_links'.
+  const LINK_MARKS = {draft: "Not published: will show as plain text",
+                      deleted: "Item deleted", unknown: "Unknown link"};
   // T18's "Insert image" will place an uploaded chart image in the body.
   const PICTURE_REFUSED = "Pictures can't be pasted or dropped into the body. " +
     'Upload the picture under "Chart images" instead.';
@@ -36,6 +45,11 @@
     const template = wrapper.querySelector("template.admin-editor-content");
     if (!form || !textarea || !template) return;
     const id = `admin-editor-${++editors}`;
+    // The Reports and Data Bites a link may lead to, and the state of each
+    // site link in the stored body that won't resolve.
+    const siteItems = parseJson(wrapper.dataset.siteItems, []);
+    const linkStates = parseJson(wrapper.dataset.linkStates, {});
+    const siteItemsByHref = new Map(siteItems.map((item) => [item.href, item]));
 
     // What the form posts instead of the textarea.
     const bodyHtml = hidden(form, "body_html");
@@ -58,26 +72,44 @@
         <button type="button" data-action="h3" aria-pressed="false">Subsection</button>
         <button type="button" data-action="quote" aria-pressed="false">Quote</button>
       </div>
-      <div class="admin-editor-link" hidden>
-        <label>Link address <input type="text" inputmode="url" autocomplete="off"
-          placeholder="https://" aria-describedby="${id}-link-hint"></label>
-        <button type="button" data-link="add">Add link</button>
-        <button type="button" data-link="remove">Remove link</button>
-        <button type="button" data-link="cancel">Cancel</button>
-        <small id="${id}-link-hint">A web address (https://) or an email address (mailto:).</small>
-      </div>
+      <fieldset class="admin-editor-link" hidden>
+        <legend>Link to</legend>
+        <p class="admin-editor-link-choice">
+          <label><input type="radio" name="${id}-link-to" value="site" checked> A page on this site</label>
+          <label><input type="radio" name="${id}-link-to" value="web"> A web address</label>
+        </p>
+        <p class="admin-editor-link-site">
+          <label>Report or Data Bite <select></select></label>
+          <small>A draft shows as plain text until it is published.</small>
+        </p>
+        <p class="admin-editor-link-web" hidden>
+          <label>Web address <input type="text" inputmode="url" autocomplete="off"
+            placeholder="https://" aria-describedby="${id}-link-hint"></label>
+          <small id="${id}-link-hint">A web address (https://) or an email address (mailto:).</small>
+        </p>
+        <p class="admin-editor-link-actions">
+          <button type="button" data-link="add">Add link</button>
+          <button type="button" data-link="remove">Remove link</button>
+          <button type="button" data-link="cancel">Cancel</button>
+        </p>
+      </fieldset>
       <p class="admin-editor-message" role="alert"></p>
       <div class="content-body admin-editor-area" id="${id}" contenteditable="true"
         role="textbox" aria-multiline="true" aria-labelledby="${id}-label"></div>`;
     const area = ui.querySelector(".admin-editor-area");
     const toolbar = ui.querySelector(".admin-editor-toolbar");
     const linkPanel = ui.querySelector(".admin-editor-link");
-    const linkInput = linkPanel.querySelector("input");
+    const linkInput = linkPanel.querySelector("input[type=text]");
+    const linkSelect = linkPanel.querySelector("select");
+    const linkSite = linkPanel.querySelector(".admin-editor-link-site");
+    const linkWeb = linkPanel.querySelector(".admin-editor-link-web");
+    fillPicker();
     const messageLine = ui.querySelector(".admin-editor-message");
 
     area.append(template.content.cloneNode(true));
     for (const block of area.querySelectorAll(LOCKED)) lock(block);
     ensureParagraph();
+    markLinks();
     // The item's own chart images, the only pictures the body may show.
     const ownImages = new Set(area.querySelectorAll("img"));
 
@@ -96,6 +128,7 @@
 
     area.addEventListener("input", (event) => {
       if (event.inputType === "insertFromDrop") tidyDropped();
+      markLinks();
       bodyDirty.value = "1";
       unsaved = true;
       sync();
@@ -104,7 +137,9 @@
       if (!linkPanel.contains(event.target)) unsaved = true;
       if (event.target !== area) message("");
     });
-    form.addEventListener("change", () => { unsaved = true; });
+    form.addEventListener("change", (event) => {
+      if (!linkPanel.contains(event.target)) unsaved = true;
+    });
     form.addEventListener("submit", (event) => {
       sync();
       // "Preview on site" opens a new tab and leaves this page as it is.
@@ -198,10 +233,63 @@
     function openLink() {
       linkRange = currentRange();
       const link = closest("a");
-      linkInput.value = link ? link.getAttribute("href") : "";
+      const href = link ? link.getAttribute("href") : "";
+      const site = !link || SITE_LINK.test(href);
+      linkSelect.value = site && siteItemsByHref.has(href) ? href : "";
+      linkInput.value = site ? "" : href;
       linkPanel.querySelector("[data-link=remove]").hidden = !link;
       linkPanel.hidden = false;
-      linkInput.focus();
+      chooseLinkTo(site ? "site" : "web");
+      (site ? linkSelect : linkInput).focus();
+    }
+
+    function chooseLinkTo(choice) {
+      for (const radio of linkPanel.querySelectorAll("input[type=radio]")) {
+        radio.checked = radio.value === choice;
+      }
+      linkSite.hidden = choice !== "site";
+      linkWeb.hidden = choice !== "web";
+      message("");
+    }
+
+    function linkTo() {
+      return linkPanel.querySelector("input[type=radio]:checked").value;
+    }
+
+    // The picker: Reports, then Data Bites, each by title, drafts marked.
+    function fillPicker() {
+      linkSelect.append(element("option", {value: ""}, ["Choose one…"]));
+      for (const kind of ["Report", "Data Bite"]) {
+        const items = siteItems.filter((item) => item.kind === kind);
+        if (!items.length) continue;
+        const group = element("optgroup", {label: `${kind}s`});
+        for (const item of items) {
+          group.append(element("option", {value: item.href},
+                               [item.draft ? `${item.title} (Draft)` : item.title]));
+        }
+        linkSelect.append(group);
+      }
+    }
+
+    // Marks each site link in the body that won't be a link on the site.
+    function markLinks() {
+      for (const link of area.querySelectorAll("a")) {
+        const mark = LINK_MARKS[linkState(link.getAttribute("href") || "")];
+        if (mark) {
+          link.dataset.linkMark = mark;
+          link.title = mark;
+        } else if (link.dataset.linkMark) {
+          delete link.dataset.linkMark;
+          link.removeAttribute("title");
+        }
+      }
+    }
+
+    function linkState(href) {
+      if (!SITE_LINK.test(href)) return null;
+      const item = siteItemsByHref.get(href);
+      if (item) return item.draft ? "draft" : null;
+      return linkStates[href] || "unknown";
     }
 
     function closeLink() {
@@ -219,12 +307,20 @@
     }
 
     function addLink() {
-      const href = linkInput.value.trim();
-      if (!LINK.test(href) || !validUrl(href)) {
+      const site = linkTo() === "site";
+      const href = site ? linkSelect.value : linkInput.value.trim();
+      if (site && !siteItemsByHref.has(href)) {
+        message(PAGE_NOT_CHOSEN);
+        linkSelect.focus();
+        return;
+      }
+      if (!site && (!LINK.test(href) || !validUrl(href))) {
         message(LINK_REFUSED);
         linkInput.focus();
         return;
       }
+      // With no text chosen, the link's text is the item's title or the address.
+      const text = site ? siteItemsByHref.get(href).title : href;
       linkPanel.hidden = true;
       message("");
       restoreRange();
@@ -233,11 +329,11 @@
         link.setAttribute("href", href);
         changedHere();
       } else if (!linkRange || linkRange.collapsed) {
-        // No text chosen: the address is the link's text.
-        command("insertHTML", `<a href="${escapeHtml(href)}">${escapeHtml(href)}</a>`);
+        command("insertHTML", `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>`);
       } else {
         command("createLink", href);
       }
+      markLinks();
     }
 
     function removeLink() {
@@ -252,15 +348,19 @@
       command("unlink");
     }
 
+    linkPanel.addEventListener("change", (event) => {
+      if (event.target.type === "radio") chooseLinkTo(event.target.value);
+    });
     linkPanel.addEventListener("click", (event) => {
       const action = event.target.closest("button")?.dataset.link;
       if (action === "add") addLink();
       else if (action === "remove") removeLink();
       else if (action === "cancel") closeLink();
     });
-    linkInput.addEventListener("keydown", (event) => {
-      // Enter adds the link rather than submitting the form.
-      if (event.key === "Enter") {
+    linkPanel.addEventListener("keydown", (event) => {
+      // Enter in a field adds the link rather than submitting the form; on
+      // a button, it presses that button.
+      if (event.key === "Enter" && event.target.tagName !== "BUTTON") {
         event.preventDefault();
         addLink();
       } else if (event.key === "Escape") {
@@ -353,6 +453,11 @@
         block.replaceChildren();
         block.removeAttribute("contenteditable");
       }
+      // Marks are for the writer; the server keeps only a link's href anyway.
+      for (const link of copy.querySelectorAll("a[data-link-mark]")) {
+        delete link.dataset.linkMark;
+        link.removeAttribute("title");
+      }
       return copy.innerHTML;
     }
 
@@ -415,7 +520,8 @@
     }
     if (tag === "A") {
       const href = (node.getAttribute("href") || "").trim();
-      return LINK.test(href) && validUrl(href) ? [element("a", {href}, inner())] : inner();
+      const kept = (LINK.test(href) && validUrl(href)) || SITE_LINK.test(href);
+      return kept ? [element("a", {href}, inner())] : inner();
     }
     if (tag === "DIV" || tag === "SECTION" || tag === "ARTICLE" || tag === "HEADER" || tag === "FOOTER") {
       // A wrapper: a paragraph if it holds only text, else its blocks.
@@ -477,6 +583,14 @@
       return true;
     } catch {
       return false;
+    }
+  }
+
+  function parseJson(text, fallback) {
+    try {
+      return text ? JSON.parse(text) : fallback;
+    } catch {
+      return fallback;
     }
   }
 

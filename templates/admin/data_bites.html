@@ -20,10 +20,7 @@
             <button type="submit">{{ action | capitalize }}</button>
           </form>
           {% if user.role == "admin" %}
-          <form method="post" action="/admin/data-bites/{{ b.id }}/delete">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-            <button type="submit">Delete</button>
-          </form>
+          <a href="{{ path_for('confirm_delete_bite', bite_id=b.id) }}">Delete</a>
           {% endif %}
         </td>
       </tr>

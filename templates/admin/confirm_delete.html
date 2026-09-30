@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="{{ back }}">All {{ noun }}s</a></p>
+  <h1>Delete {{ noun }}</h1>
+  <p>Delete <strong>{{ item.title }}</strong>? This can't be undone.</p>
+  {% if linked_from %}
+  <p>These link to it. Once it is deleted, each of those links shows as plain text:</p>
+  <ul class="admin-linked-from">
+    {% for found in linked_from %}
+    <li>{{ found.kind }}: <a href="{{ path_for('edit_bite_form', bite_id=found.id) if found.kind == 'Data Bite' else path_for('edit_report_form', report_id=found.id) }}">{{ found.title }}</a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No other Report or Data Bite links to it.</p>
+  {% endif %}
+  <form method="post" action="{{ action }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button type="submit">Delete {{ noun }}</button>
+    <a href="{{ back }}">Cancel</a>
+  </form>
+{% endblock %}

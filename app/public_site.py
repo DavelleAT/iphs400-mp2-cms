@@ -57,8 +57,11 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-editor-label { font-weight: 600; margin: 0 0 0.25rem; }
 .admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
 .admin-editor-toolbar [aria-pressed="true"] { background: color-mix(in srgb, currentColor 18%, transparent); }
-.admin-editor-link { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; margin-block: 0.25rem; }
-.admin-editor-link[hidden] { display: none; }
+.admin-editor-link { margin-block: 0.25rem; }
+.admin-editor-link p { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0.25rem 0; }
+.admin-editor-link[hidden], .admin-editor-link p[hidden] { display: none; }
+/* A site link that won't be a link on the site, marked for the writer. */
+.admin-editor-area a[data-link-mark]::after { background: #fff4ce; border-radius: 3px; color: #4d3800; content: attr(data-link-mark); display: inline-block; font-size: 0.75rem; font-style: normal; font-weight: 600; margin-left: 0.3em; padding: 0 0.35em; }
 .admin-editor-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
 .admin-editor-message:empty { display: none; }
 .admin-editor-area { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); min-height: 16rem; overflow-wrap: anywhere; padding: 0.25rem 0.75rem; }

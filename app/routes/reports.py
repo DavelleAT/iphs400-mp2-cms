@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app import chart_images, editor, public_site, reports, uploads
+from app import chart_images, editor, public_site, reports, site_links, uploads
 from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
@@ -47,6 +47,7 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
          "reports": reports.list_all(), "status_labels": STATUS_LABELS,
          "error": error, "form": form, "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], "", None),
+         **editing.site_links_for(editor.full_body(form["body"], "")),
          "site_preview": _site_preview(
              request, {**form, "body": editor.full_body(form["body"], "")}, None),
          "preview_path": request.app.url_path_for("preview_new_report")},
@@ -108,6 +109,7 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
          "editor_html": editor.editor_html(form["body"], report["body"],
                                            _images(request, report["id"]).src),
          "images": list(reports.images(report["id"])),
+         **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, report),
          "preview_path": request.app.url_path_for("preview_report", report_id=report["id"]),
          "undescribed_images": images_without_description(body),
@@ -267,6 +269,19 @@ def publish(request: Request, report_id: int):
              dependencies=[Depends(require_director), Depends(require_csrf)])
 def unpublish(request: Request, report_id: int):
     return _set_status(request, report_id, "draft", "Report moved back to Draft.")
+
+
+@router.get("/{report_id}/delete", dependencies=[Depends(require_director)])
+def confirm_delete_report(request: Request, report_id: int, user=Depends(current_user)):
+    """Before a delete: which items link to this one, whose links will be
+    their text once it is gone. The delete isn't blocked."""
+    item = _get_or_404(report_id)
+    return templates.TemplateResponse(
+        request, "admin/confirm_delete.html",
+        {"title": "Delete Report", "home_path": "/admin", "user": user, "noun": "Report",
+         "item": item, "action": f"/admin/reports/{report_id}/delete",
+         "back": request.app.url_path_for("list_reports"),
+         "linked_from": site_links.linked_from(site_links.reference("report", item["ref"]))})
 
 
 @router.post("/{report_id}/delete",

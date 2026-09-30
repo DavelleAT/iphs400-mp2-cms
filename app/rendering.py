@@ -48,6 +48,7 @@ ImageSrc = Callable[[str], "str | None"]
 # A link's href, if it is not `https:` or `mailto:` -> the href the page
 # being rendered links by; None if it is not a site link that resolves.
 LinkHref = Callable[[str], "str | None"]
+# Every scheme the link rule decides on; nh3 drops any other before it can.
 _URL_SCHEMES = {"https", "mailto", "image", "report", "data-bite"}
 
 _MARKDOWN = MarkdownIt("commonmark").enable("table")

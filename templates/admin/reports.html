@@ -23,10 +23,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
             <button type="submit">{{ action | capitalize }}</button>
           </form>
-          <form method="post" action="/admin/reports/{{ r.id }}/delete">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-            <button type="submit">Delete</button>
-          </form>
+          <a href="{{ path_for('confirm_delete_report', report_id=r.id) }}">Delete</a>
         </td>
         {% endif %}
       </tr>

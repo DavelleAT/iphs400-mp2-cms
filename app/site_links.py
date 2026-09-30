@@ -99,3 +99,43 @@ def state(link: str) -> str:
 def in_body(body: str) -> set[str]:
     """The site references a body names."""
     return {match[0] for match in REFERENCE.finditer(body or "")}
+
+
+# The Editor's link dialog.
+
+_NOUNS = {"report": "Report", "data-bite": "Data Bite"}
+
+
+def choices() -> list[dict]:
+    """Every Report, then every Data Bite, each by title, for the Editor's
+    picker: {href: its site reference, title, kind: its noun, draft}."""
+    found = []
+    with db.connect() as conn:
+        for kind in ("report", "data-bite"):
+            found += [{"href": reference(kind, row["ref"]), "title": row["title"],
+                       "kind": _NOUNS[kind], "draft": row["status"] != "published"}
+                      for row in conn.execute(f"SELECT ref, title, status FROM {TABLES[kind]}"
+                                              " ORDER BY title, id")]
+    return found
+
+
+def unresolved(body: str) -> dict[str, str]:
+    """The state of each site link in `body` that won't be a link on the
+    site: DRAFT, DELETED, or UNKNOWN, for the Editor to mark."""
+    return {link: found for link, found in states(in_body(body)).items()
+            if found != PUBLISHED}
+
+
+def linked_from(link: str) -> list[dict]:
+    """Every other Report and Data Bite whose body names the site reference
+    `link`, for the Director to see before deleting its target: {kind: its
+    noun, id, title}, Reports first, each by title."""
+    found = []
+    with db.connect() as conn:
+        for kind in ("report", "data-bite"):
+            found += [{"kind": _NOUNS[kind], "id": row["id"], "title": row["title"]}
+                      for row in conn.execute(
+                          f"SELECT id, title, body, ref FROM {TABLES[kind]}"
+                          " WHERE instr(body, ?) ORDER BY title, id", (link,))
+                      if reference(kind, row["ref"]) != link and link in in_body(row["body"])]
+    return found

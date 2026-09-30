@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import Form, HTTPException, Request
 
-from app import editor
+from app import editor, site_links
 from app.content import ContentError, StaleItem
 from app.markdown_form import ImageName
 
@@ -37,3 +37,10 @@ def previewed(body: editor.Posted, stored: str | None, image_name: ImageName | N
         return editor.saved_body(body, stored, image_name)
     except ContentError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from None
+
+
+def site_links_for(body: str) -> dict:
+    """What the Editor's link dialog and markers need, for a form whose full
+    body is `body`: every item it may link to, and the state of each site
+    link in the body that won't be a link on the site."""
+    return {"site_items": site_links.choices(), "link_states": site_links.unresolved(body)}

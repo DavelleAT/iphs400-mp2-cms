@@ -5,7 +5,8 @@ the posted HTML with nh3 first, and this module turns what is left into
 Markdown, written one standard way, with stdlib `html.parser`. It writes only
 what the Editor supports: paragraphs, Sections (H2) and Subsections (H3),
 bulleted and numbered lists, block quotes, tables, and bold, italic, line
-breaks, `https:`/`mailto:` links, and chart images inline. Any other element
+breaks, `https:`/`mailto:` and site links (app.site_links), and chart images
+inline. Any other element
 is let through as its text. Everything the writer typed is escaped, so it
 renders as the text it is and never as Markdown syntax.
 """
@@ -17,6 +18,8 @@ from dataclasses import dataclass, field, replace
 from html.parser import HTMLParser
 
 from app.content import ContentError
+from app.rendering import LINK_SCHEMES
+from app.site_links import REFERENCE
 
 # A locked block's token (app.editor): on its own, a top-level paragraph that
 # the stored block is put back in place of. The Editor shows the block as an
@@ -101,8 +104,6 @@ _LINE_START = re.compile(r"^(?:([-+=])|(\d+)([.)]))")
 # otherwise read as an escape or an entity.
 _DESTINATION_ENCODED = re.compile(r"[\x00-\x20\x7f<>]")
 _DESTINATION_ESCAPED = re.compile(r"([\\()&])")
-# The only links the Editor keeps (spec #14, "Links"); a site link is T14's.
-LINK_SCHEMES = ("https:", "mailto:")
 
 # A line break, in inline Markdown before it is split into lines. Writer text
 # never holds one: _escape turns every newline into a space.
@@ -126,6 +127,12 @@ _BLOCK_TAGS = {"p", "blockquote", "table", "hr", "pre", "li", "tr", "caption",
                "center"}
 _ALIGNMENTS = {"text-align:left": ":--", "text-align:right": "--:",
                "text-align:center": ":-:"}
+
+
+def is_link(href: str) -> bool:
+    """Whether the Editor keeps a link to `href` (spec #14, "Links"): an
+    `https:` or `mailto:` address, or a site link."""
+    return href.lower().startswith(LINK_SCHEMES) or REFERENCE.fullmatch(href) is not None
 
 
 def _escape(text: str) -> str:
@@ -248,7 +255,7 @@ class _Converter:
     def link(self, node: _Element, marks: frozenset[str]) -> str:
         text = self.content(node, marks | {"link"})
         href = node.attrs.get("href", "").strip()
-        if "link" in marks or not text.strip() or not href.lower().startswith(LINK_SCHEMES):
+        if "link" in marks or not text.strip() or not is_link(href):
             return text
         return f"[{text}]({_destination(href)})"
 
