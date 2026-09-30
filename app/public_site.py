@@ -56,6 +56,10 @@ body:has(.admin-site-preview) { max-width: 90rem; }
    body it can't edit, shown read-only. */
 .admin-editor-label { font-weight: 600; margin: 0 0 0.25rem; }
 .admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
+/* The table controls, shown while the cursor is in a table. Not named
+   "table": only .content-body's own rules may style tables (T09). */
+.admin-editor-cell-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
+.admin-editor-cell-tools[hidden] { display: none; }
 .admin-editor-toolbar [aria-pressed="true"] { background: color-mix(in srgb, currentColor 18%, transparent); }
 .admin-editor-link { margin-block: 0.25rem; }
 .admin-editor-link p { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0.25rem 0; }

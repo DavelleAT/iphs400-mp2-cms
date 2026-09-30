@@ -26,6 +26,10 @@
   const PICTURE_DROPPED = "The pasted text had pictures, which were left out. " +
     'Upload a picture under "Chart images" instead.';
   const LOCKED = "[data-locked]";
+  // The wrapper each table sits in (app.rendering), so a wide one scrolls.
+  const TABLE_SCROLL = "content-table-scroll";
+  // A new table's size: its header row and two more, three columns across.
+  const NEW_TABLE = {rows: 3, columns: 3};
   // The Editor's blocks, and the headings pasted ones become: the title is
   // the page's only H1, and there is nothing below a Subsection.
   const HEADINGS = {H1: "h2", H2: "h2", H3: "h3", H4: "h3", H5: "h3", H6: "h3"};
@@ -71,6 +75,16 @@
         <button type="button" data-action="h2" aria-pressed="false">Section</button>
         <button type="button" data-action="h3" aria-pressed="false">Subsection</button>
         <button type="button" data-action="quote" aria-pressed="false">Quote</button>
+        <button type="button" data-action="table">Insert table</button>
+      </div>
+      <div class="admin-editor-cell-tools" role="toolbar" aria-label="Table" aria-controls="${id}" hidden>
+        <button type="button" data-table="row-above">Row above</button>
+        <button type="button" data-table="row-below">Row below</button>
+        <button type="button" data-table="column-left">Column left</button>
+        <button type="button" data-table="column-right">Column right</button>
+        <button type="button" data-table="remove-row">Remove row</button>
+        <button type="button" data-table="remove-column">Remove column</button>
+        <button type="button" data-table="remove-table">Remove table</button>
       </div>
       <fieldset class="admin-editor-link" hidden>
         <legend>Link to</legend>
@@ -98,6 +112,8 @@
         role="textbox" aria-multiline="true" aria-labelledby="${id}-label"></div>`;
     const area = ui.querySelector(".admin-editor-area");
     const toolbar = ui.querySelector(".admin-editor-toolbar");
+    const insertTableButton = toolbar.querySelector("[data-action=table]");
+    const tableTools = ui.querySelector(".admin-editor-cell-tools");
     const linkPanel = ui.querySelector(".admin-editor-link");
     const linkInput = linkPanel.querySelector("input[type=text]");
     const linkSelect = linkPanel.querySelector("select");
@@ -155,15 +171,18 @@
     // The toolbar.
 
     // Pressing a button keeps the selection in the body.
-    toolbar.addEventListener("mousedown", (event) => {
-      if (event.target.closest("button")) event.preventDefault();
-    });
+    for (const bar of [toolbar, tableTools]) {
+      bar.addEventListener("mousedown", (event) => {
+        if (event.target.closest("button")) event.preventDefault();
+      });
+    }
     toolbar.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) return;
       const action = button.dataset.action;
       if (action === "link") return openLink();
       area.focus();
+      if (action === "table") return insertTable();
       if (action === "bold" || action === "italic") command(action);
       else if (action === "bullets") command("insertUnorderedList");
       else if (action === "numbers") command("insertOrderedList");
@@ -221,9 +240,106 @@
         link: Boolean(closest("a")), h2: Boolean(closest("h2")), h3: Boolean(closest("h3")),
         quote: Boolean(closest("blockquote")),
       };
-      for (const button of toolbar.querySelectorAll("[data-action]")) {
+      for (const button of toolbar.querySelectorAll("[data-action][aria-pressed]")) {
         button.setAttribute("aria-pressed", String(pressed[button.dataset.action]));
       }
+      // A table can't hold another, and its controls show only inside one.
+      const inTable = Boolean(closest("table"));
+      insertTableButton.disabled = inTable;
+      tableTools.hidden = !inTable;
+    }
+
+    // Tables: edited in place, the first row always the header (spec #14,
+    // T15). Each change lays the table out again from its cells' contents.
+
+    function insertTable() {
+      if (closest("table")) return;
+      const rows = Array.from({length: NEW_TABLE.rows},
+                              () => Array.from({length: NEW_TABLE.columns}, () => []));
+      const table = buildTable(rows);
+      placeBlocks([tableWrapper(table)]);
+      caretIn(table.rows[0].cells[0]);
+      changedHere();
+    }
+
+    tableTools.addEventListener("click", (event) => {
+      const action = event.target.closest("button[data-table]")?.dataset.table;
+      if (!action) return;
+      area.focus();
+      const cell = closest("th, td");
+      const table = cell && cell.closest("table");
+      if (!table) return;
+      const rows = [...table.rows].map((tr) => [...tr.cells].map((c) => [...c.childNodes]));
+      const width = Math.max(...rows.map((row) => row.length));
+      let row = [...table.rows].indexOf(cell.parentElement);
+      let column = [...cell.parentElement.cells].indexOf(cell);
+      if (action === "row-above" || action === "row-below") {
+        if (action === "row-below") row += 1;
+        rows.splice(row, 0, Array.from({length: width}, () => []));
+      } else if (action === "column-left" || action === "column-right") {
+        if (action === "column-right") column += 1;
+        for (const cells of rows) cells.splice(column, 0, []);
+      } else if (action === "remove-row") {
+        rows.splice(row, 1);
+        row = Math.min(row, rows.length - 1);
+      } else if (action === "remove-column") {
+        for (const cells of rows) cells.splice(column, 1);
+        column = Math.max(0, Math.min(column, width - 2));
+      }
+      if (action === "remove-table" || !rows.length || !rows.some((cells) => cells.length)) {
+        removeTable(table);
+      } else {
+        const rebuilt = buildTable(rows);
+        table.replaceWith(rebuilt);
+        caretIn(rebuilt.rows[row].cells[Math.min(column, rebuilt.rows[row].cells.length - 1)]);
+      }
+      changedHere();
+      showState();
+    });
+
+    function removeTable(table) {
+      const wrapper = table.parentElement;
+      const block = wrapper.classList.contains(TABLE_SCROLL) && wrapper.children.length === 1
+        ? wrapper : table;
+      // The cursor goes to the empty paragraph after it (placeBlocks leaves
+      // one), or to a new one in its place.
+      const next = block.nextElementSibling;
+      const empty = next && next.tagName === "P" && !next.textContent.trim() &&
+        !next.querySelector("img");
+      const paragraph = empty ? next : element("p", {}, [element("br")]);
+      if (empty) block.remove();
+      else block.replaceWith(paragraph);
+      caretIn(paragraph);
+    }
+
+    // Puts blocks in the body after the block the cursor is in (in place of
+    // it, if that is an empty paragraph), not inside it: a table is never
+    // in a paragraph, list, or quote. A paragraph follows, to write on in.
+    function placeBlocks(blocks) {
+      const range = currentRange();
+      let top = range ? range.startContainer : null;
+      while (top && top.parentNode !== area) top = top.parentNode;
+      if (top && top.nodeType === Node.ELEMENT_NODE && top.tagName === "P" &&
+          !top.textContent.trim() && !top.querySelector("img")) {
+        top.replaceWith(...blocks);
+      } else if (top) {
+        top.after(...blocks);
+      } else {
+        area.append(...blocks);
+      }
+      const last = blocks[blocks.length - 1];
+      if (!last.nextElementSibling || last.nextElementSibling.tagName !== "P") {
+        last.after(element("p", {}, [element("br")]));
+      }
+    }
+
+    function caretIn(node) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      range.collapse(true);
+      const selection = document.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
 
     // Links.
@@ -377,10 +493,26 @@
       event.preventDefault();
       const html = data.getData("text/html");
       const text = data.getData("text/plain");
+      // In a table cell, a paste is its text on one line: a cell holds no
+      // blocks, and a Markdown table row is one line.
+      if (closest("th, td")) {
+        if (text) command("insertText", text.replace(/\s+/g, " ").trim());
+        return;
+      }
+      const rows = !html && text ? tabSeparated(text) : null;
       if (html) {
         const cleaned = cleanPasted(html);
         if (cleaned.droppedPicture) message(PICTURE_DROPPED);
-        if (cleaned.html) command("insertHTML", cleaned.html);
+        if (cleaned.html.querySelector("table")) {
+          placeBlocks(asBlocks([...cleaned.html.childNodes]));
+          changedHere();
+        } else if (cleaned.html.innerHTML) {
+          command("insertHTML", cleaned.html.innerHTML);
+        }
+      } else if (rows) {
+        placeBlocks([tableWrapper(buildTable(rows.map((cells) =>
+          cells.map((value) => value ? [document.createTextNode(value)] : []))))]);
+        changedHere();
       } else if (text) {
         command("insertHTML", textAsHtml(text));
       } else if ([...data.items].some((item) => item.kind === "file")) {
@@ -482,14 +614,32 @@
 
   // Cleaning a paste: only what the Editor supports survives.
 
+  // The cleaned paste, as the children of a <div>.
   function cleanPasted(html) {
     // DOMParser's document is inert: no script runs and nothing loads.
     const source = new DOMParser().parseFromString(html, "text/html");
     wordLists(source.body);
+    regularTables(source.body);
     const state = {droppedPicture: false};
     const out = document.createElement("div");
     for (const node of [...source.body.childNodes]) out.append(...clean(node, state));
-    return {html: out.innerHTML, droppedPicture: state.droppedPicture};
+    return {html: out, droppedPicture: state.droppedPicture};
+  }
+
+  // Nodes as blocks: each run of inline nodes between blocks a paragraph.
+  function asBlocks(nodes) {
+    const blocks = [];
+    let run = null;
+    for (const node of nodes) {
+      if (node.nodeType === Node.ELEMENT_NODE && BLOCKS.has(node.tagName)) {
+        blocks.push(node);
+        run = null;
+      } else if (node.nodeType === Node.ELEMENT_NODE || node.data.trim()) {
+        if (!run) blocks.push(run = element("p"));
+        run.append(node);
+      }
+    }
+    return blocks;
   }
 
   function clean(node, state) {
@@ -505,7 +655,8 @@
     const style = node.getAttribute("style") || "";
     if (tag === "BR") return [element("br")];
     if (tag in HEADINGS) return [element(HEADINGS[tag], {}, inner())];
-    if (["P", "UL", "OL", "BLOCKQUOTE", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]
+    if (tag === "TABLE") return [tableWrapper(element("table", {}, inner()))];
+    if (["P", "UL", "OL", "BLOCKQUOTE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]
         .includes(tag)) {
       const attributes = tag === "OL" && node.getAttribute("start") ? {start: node.getAttribute("start")} : {};
       return [element(tag.toLowerCase(), attributes, inner())];
@@ -538,6 +689,87 @@
     if (italic) content = [element("em", {}, content)];
     if (bold) content = [element("strong", {}, content)];
     return content;
+  }
+
+  // A pasted table laid out as the Editor keeps one: its merged cells undone
+  // (the value in the first cell a merge covers, as app.markdown_form does
+  // on save) and its first row the header.
+  function regularTables(root) {
+    // Innermost first, so each table's cells are final when it is read.
+    for (const table of [...root.querySelectorAll("table")].reverse()) {
+      const rows = [];
+      // Column -> how many more rows a merged cell above still covers.
+      const covered = [];
+      const coverOrPad = (cells) => {
+        if (covered[cells.length] > 0) covered[cells.length] -= 1;
+        cells.push([]);
+      };
+      for (const tr of table.rows) {
+        const cells = [];
+        for (const cell of tr.cells) {
+          while (covered[cells.length] > 0) coverOrPad(cells);
+          // The DOM keeps colSpan within 1 to 1000, as the server does.
+          for (let offset = 0; offset < cell.colSpan; offset++) {
+            if (cell.rowSpan > 1) covered[cells.length] = cell.rowSpan - 1;
+            cells.push(offset ? [] : [...cell.childNodes]);
+          }
+        }
+        while (covered.slice(cells.length).some((rows) => rows > 0)) coverOrPad(cells);
+        rows.push(cells);
+      }
+      table.replaceWith(buildTable(rows));
+    }
+  }
+
+  // A table of `rows`, each a list of cells' contents: the first row the
+  // header, every row as wide as the widest, and an empty cell holding a
+  // line break so the cursor can go in it.
+  function buildTable(rows) {
+    const width = Math.max(1, ...rows.map((cells) => cells.length));
+    const cell = (tag, content) => element(tag, {}, content.length ? content : [element("br")]);
+    const row = (tag, cells) => element("tr", {}, Array.from({length: width},
+                                                              (_, i) => cell(tag, cells[i] || [])));
+    const [header = [], ...body] = rows;
+    return element("table", {}, [element("thead", {}, [row("th", header)]),
+                                 element("tbody", {}, body.map((cells) => row("td", cells)))]);
+  }
+
+  function tableWrapper(table) {
+    return element("div", {class: TABLE_SCROLL}, [table]);
+  }
+
+  // Tab-separated text (a range copied as text) as rows of cell values; null
+  // unless every line has a tab. A value in double quotes may hold a line
+  // break, a tab, or a doubled quote, as spreadsheets write it.
+  function tabSeparated(text) {
+    text = text.replace(/\r\n?/g, "\n").replace(/\n$/, "");
+    const rows = [[]];
+    let value = "";
+    let quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quoted) {
+        if (c === '"' && text[i + 1] === '"') {
+          value += '"';
+          i++;
+        } else if (c === '"') {
+          quoted = false;
+        } else {
+          value += c;
+        }
+      } else if (c === '"' && value === "") {
+        quoted = true;
+      } else if (c === "\t" || c === "\n") {
+        rows[rows.length - 1].push(value);
+        value = "";
+        if (c === "\n") rows.push([]);
+      } else {
+        value += c;
+      }
+    }
+    rows[rows.length - 1].push(value);
+    if (rows.some((cells) => cells.length < 2)) return null;
+    return rows.map((cells) => cells.map((cell) => cell.replace(/\s+/g, " ").trim()));
   }
 
   // Word pastes a list as paragraphs, each with its marker in an
