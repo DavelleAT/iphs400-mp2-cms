@@ -30,12 +30,13 @@ def alignment(*cells: str) -> str:
     return to_markdown(table(["Value"], *([cell] for cell in cells))).split("\n")[1]
 
 
-# The spec's numbers: thousands commas, a leading - or $, a trailing %, and
-# accounting parentheses, with or without decimals.
+# The spec's numbers: thousands commas, a leading -, + or $, a trailing %,
+# and accounting parentheses, with or without decimals.
 NUMBERS = ["482", "1,234", "1,234,567", "3.2", "0.75", "-5", "-1,200.5", "$1,200",
-           "-$4.50", "12%", "-0.5%", "(3.2)", "(1,000)", "($1,000)", "(12%)"]
+           "-$4.50", "12%", "-0.5%", "(3.2)", "(1,000)", "($1,000)", "(12%)",
+           "+3%", "+2", "+$1,200"]
 # Cells that are not numbers, so their column is left-aligned.
-NOT_NUMBERS = ["+3%", "€5", "£1,000", "1,23", "12,3456", ",123", "3.2.1", "12 students",
+NOT_NUMBERS = ["+-5", "-+5", "(+3)", "€5", "£1,000", "1,23", "12,3456", ",123", "3.2.1", "12 students",
                "5$", "%12", "(3.2", "3.2)", "--5", "$$5", "1e3", "Fall 2025", "n/a*"]
 
 

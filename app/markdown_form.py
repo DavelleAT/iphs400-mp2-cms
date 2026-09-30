@@ -128,7 +128,7 @@ _BLOCK_TAGS = {"p", "blockquote", "table", "hr", "pre", "li", "tr", "caption",
 # a number (spec #14, "Tables"), and left-aligned otherwise.
 _MISSING = {"", "—", "n/a"}
 _DIGITS = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
-_NUMBER = re.compile(rf"-?\$?{_DIGITS}%?|\(\$?{_DIGITS}%?\)")
+_NUMBER = re.compile(rf"[-+]?\$?{_DIGITS}%?|\(\$?{_DIGITS}%?\)")
 
 
 def is_link(href: str) -> bool:
