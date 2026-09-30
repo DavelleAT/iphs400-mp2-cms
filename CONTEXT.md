@@ -43,11 +43,31 @@ it with Director action.
 _Avoid_: Live, public
 
 **Chart image**:
-A PNG, JPEG, or WebP picture (usually a graph made in Excel, R, or Tableau)
-that a Data Bite or Report shows inline, placed in its Markdown body as
-`image:<name>`. It belongs to its item and is published with it (ADR-004).
-Not a Report's **attached file**, which is a PDF offered for download.
+An *uploaded* PNG, JPEG, or WebP picture (usually a chart made in Excel, R,
+or Tableau) that a Data Bite or Report shows inline, placed in its body and
+stored there as `image:<name>`. It belongs to its item and is published with
+it (ADR-004). Not a **Chart**, which the CMS draws from data, and not a
+Report's **attached file**, which is a PDF offered for download.
 _Avoid_: figure, graphic, media, attachment
+
+**Chart**:
+A bar, horizontal bar, or line chart the CMS *draws* from data typed or
+pasted into it, shown inline in a Data Bite or Report body with its data
+available as a table (spec #14). Stored in the body as a `chart` block the
+writer never sees. Not a **Chart image**, which is made elsewhere and uploaded.
+_Avoid_: graph, plot, visualization
+
+**Editor**:
+The visual body editor on a Data Bite's or Report's edit page: a toolbar,
+tables edited in place, Charts, and Chart images, with no Markdown in sight.
+The body is still stored as Markdown (spec #14).
+_Avoid_: WYSIWYG, rich text, rich-text editor
+
+**Site preview**:
+A Draft (or unsaved edits) rendered as its public page would look, with the
+site's nav and stylesheet and a "Draft preview, not published" banner. Saves
+nothing and publishes nothing.
+_Avoid_: live view
 
 **Confirmation**:
 The one-line message the admin console shows, once, after a save, publish,
