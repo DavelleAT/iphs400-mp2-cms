@@ -110,7 +110,7 @@ def test_a_table_keeps_its_header_and_is_aligned_by_its_columns():
             '<tbody><tr><td>First | year</td><td>482</td><td>+3%</td><td></td></tr>'
             '</tbody></table></div>')
     assert to_markdown(html) == ("| Class | Enrolled | Change | Note |\n"
-                                 "| :-- | --: | :-- | :-- |\n"
+                                 "| :-- | --: | --: | :-- |\n"
                                  "| First \\| year | 482 | +3% |  |\n")
 
 

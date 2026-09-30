@@ -6,6 +6,7 @@ import pytest
 
 from app import editor
 from app.markdown_form import to_markdown
+from test_t13_editor import edited, save
 
 
 def table(*rows: list[str]) -> str:
@@ -103,3 +104,57 @@ def test_an_excel_range_is_stored_as_a_markdown_table_with_its_merges_undone():
                             "| First-year | 1,200 | 3% |\n"
                             "|  | 482 | n/a |\n"
                             "| Senior (not surveyed) |  | — |\n")
+
+
+# A range copied from Google Sheets: styled cells with no header markup, the
+# sheet's own values in data- attributes, a line break in a cell, and a
+# merged cell across the row.
+SHEETS = ("""<meta charset="utf-8"><google-sheets-html-origin><style type="text/css"><!--"""
+          """td {border: 1px solid #cccccc;}br {mso-data-placement:same-cell;}--></style>"""
+          """<table xmlns="http://www.w3.org/1999/xhtml" cellspacing="0" cellpadding="0" """
+          """dir="ltr" border="1" style="table-layout:fixed;font-size:10pt;font-family:Arial;"""
+          """width:0px;border-collapse:collapse;border:none" data-sheets-root="1">"""
+          """<colgroup><col width="160"/><col width="100"/><col width="100"/></colgroup><tbody>"""
+          """<tr style="height:21px;">"""
+          """<td style="overflow:hidden;padding:2px 3px;font-weight:bold;" """
+          """data-sheets-value="{&quot;1&quot;:2,&quot;2&quot;:&quot;Survey&quot;}">Survey</td>"""
+          """<td style="font-weight:bold;">Responses</td><td style="font-weight:bold;">Rate</td></tr>"""
+          """<tr style="height:21px;"><td>Student experience</td>"""
+          """<td style="text-align:right;" data-sheets-value="{&quot;1&quot;:3,&quot;3&quot;:1204}" """
+          """data-sheets-numberformat="{&quot;1&quot;:2}">1,204</td>"""
+          """<td style="text-align:right;">62%</td></tr>"""
+          """<tr style="height:42px;"><td>Faculty<br>and staff</td>"""
+          """<td style="text-align:right;">310</td><td style="text-align:right;">48.5%</td></tr>"""
+          """<tr style="height:21px;"><td colspan="3" rowspan="1">Alumni: not run in 2025</td></tr>"""
+          """</tbody></table>""")
+
+
+def test_a_sheets_range_is_stored_as_a_markdown_table():
+    assert saved(SHEETS) == ("| Survey | Responses | Rate |\n"
+                             "| :-- | --: | --: |\n"
+                             "| Student experience | 1,204 | 62% |\n"
+                             "| Faculty and staff | 310 | 48.5% |\n"
+                             "| Alumni: not run in 2025 |  |  |\n")
+
+
+def test_bold_italic_and_links_in_a_cell_survive_and_a_pipe_is_escaped():
+    html = table(["Measure", "Value"],
+                 ["<strong>Retention</strong> | <em>first-year</em>", "<b>91%</b>"],
+                 ['See <a href="https://example.test/cds">the CDS</a>', "n/a"])
+    assert saved(html) == ("| Measure | Value |\n| :-- | --: |\n"
+                           "| **Retention** \\| *first-year* | **91%** |\n"
+                           "| See [the CDS](https://example.test/cds) | n/a |\n")
+
+
+# A table as the standard form writes it: saving it again through the
+# Editor, unchanged, gives back the same bytes.
+STANDARD = ("Retention by cohort:\n\n"
+            "| Cohort | Retained | Change | Note |\n"
+            "| :-- | --: | --: | :-- |\n"
+            "| **Fall 2024** | 1,204 | +2% | [CDS](https://example.test/cds) |\n"
+            "| Fall 2023 \\| revised | (3.2) | — | *provisional* |\n"
+            "|  | n/a |  |  |\n")
+
+
+def test_a_stored_table_in_standard_form_survives_the_editor_unchanged():
+    assert save(STANDARD, html=edited(STANDARD)) == STANDARD
