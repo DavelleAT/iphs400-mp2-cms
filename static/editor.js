@@ -84,8 +84,15 @@
     const bodyDirty = hidden(form, "body_dirty");
     bodyDirty.value = wrapper.dataset.bodyDirty === "1" ? "1" : "0";
     // Whether leaving the page would lose anything: the body, or any field.
-    let unsaved = bodyDirty.value === "1";
+    // The form hears when it first would, for the save bar's "Unsaved
+    // changes" (admin/_save_bar.html).
+    let unsaved = false;
     let leaving = false;
+    const markUnsaved = () => {
+      if (!unsaved) form.dispatchEvent(new CustomEvent("admin-editor-unsaved"));
+      unsaved = true;
+    };
+    if (bodyDirty.value === "1") markUnsaved();
 
     const ui = element("div", {class: "admin-editor-ui"});
     ui.innerHTML = `
@@ -206,17 +213,17 @@
       if (event.inputType === "insertFromDrop") tidyDropped();
       markLinks();
       bodyDirty.value = "1";
-      unsaved = true;
+      markUnsaved();
       sync();
     });
     // The link and image panels' fields are only a way to change the body.
     const inPanel = (target) => linkPanel.contains(target) || imagePanel.contains(target);
     form.addEventListener("input", (event) => {
-      if (!inPanel(event.target)) unsaved = true;
+      if (!inPanel(event.target)) markUnsaved();
       if (event.target !== area) message("");
     });
     form.addEventListener("change", (event) => {
-      if (!inPanel(event.target)) unsaved = true;
+      if (!inPanel(event.target)) markUnsaved();
     });
     form.addEventListener("submit", (event) => {
       sync();

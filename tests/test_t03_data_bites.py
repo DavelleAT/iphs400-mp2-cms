@@ -102,9 +102,13 @@ def test_any_analyst_edits_any_data_bite_and_author_and_created_at_are_kept(clie
 
     page = analyst.get(f"/admin/data-bites/{bid}").text
     assert edited["title"] in page and edited["body"] in page
-    assert "Created 2026-01-05 09:00:00 by Riley Intern" in page
-    updated = re.search(r"Last updated ([\d:\- ]+)", page).group(1)
-    assert updated != "2026-01-05 09:00:00"
+    # The head's facts (T23): created and updated as ISO dates, and by whom.
+    assert ('<dt>Created</dt><dd class="text-mono"><time datetime="2026-01-05T09:00:00">'
+            in page)
+    assert "<dt>By</dt><dd>Riley Intern</dd>" in page
+    updated = re.search(r'<dt>Updated</dt><dd class="text-mono"><time datetime="([^"]+)"',
+                        page).group(1)
+    assert updated != "2026-01-05T09:00:00"
     assert "Riley Intern" in bite_row(analyst, edited["slug"])
 
 

@@ -117,6 +117,7 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
         request, "admin/report_edit.html",
         {"title": "Edit Report", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
+         "actions": listing.item_row(request, listing.REPORT, report, user),
          "status_labels": STATUS_LABELS, **editing.error_for(error), "form": form,
          "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], report["body"], links.src),
@@ -270,28 +271,32 @@ def delete_image(request: Request, report_id: int, name: str,
 
 
 def _set_status(request: Request, report_id: int, status: str, message: str,
-                back_status: str):
-    """Publish or unpublish, then back to the list, filtered by `back_status`
-    as it was."""
+                back_status: str, back: str):
+    """Publish or unpublish, then back to the edit page if `back` is "item"
+    (its save bar), else to the list, filtered by `back_status` as it was."""
     if not reports.set_status(report_id, status):
         raise HTTPException(status_code=404)
     confirm(request, message + SITE_NOTE)
-    back = f"?status={back_status}" if back_status else ""
-    return RedirectResponse(str(request.app.url_path_for("list_reports")) + back, status_code=303)
+    if back == "item":
+        return RedirectResponse(request.app.url_path_for("edit_report_form", report_id=report_id),
+                                status_code=303)
+    query = f"?status={back_status}" if back_status else ""
+    return RedirectResponse(str(request.app.url_path_for("list_reports")) + query, status_code=303)
 
 
 @router.post("/{report_id}/publish",
              dependencies=[Depends(require_director), Depends(require_csrf)])
 def publish(request: Request, report_id: int,
-            back_status: str = Depends(listing.status_filter)):
-    return _set_status(request, report_id, "published", "Report published.", back_status)
+            back_status: str = Depends(listing.status_filter), back: str = Form("")):
+    return _set_status(request, report_id, "published", "Report published.", back_status, back)
 
 
 @router.post("/{report_id}/unpublish",
              dependencies=[Depends(require_director), Depends(require_csrf)])
 def unpublish(request: Request, report_id: int,
-              back_status: str = Depends(listing.status_filter)):
-    return _set_status(request, report_id, "draft", "Report moved back to Draft.", back_status)
+              back_status: str = Depends(listing.status_filter), back: str = Form("")):
+    return _set_status(request, report_id, "draft", "Report moved back to Draft.",
+                       back_status, back)
 
 
 @router.get("/{report_id}/delete", dependencies=[Depends(require_director)])

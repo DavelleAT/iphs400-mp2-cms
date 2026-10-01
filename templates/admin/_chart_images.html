@@ -11,7 +11,7 @@
       <li><code>{{ name }}</code>
         <form method="post" action="{{ images_path }}/{{ name }}/delete">
           <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-          <button type="submit" aria-label="Delete {{ name }}">Delete</button>
+          <button class="button-quiet button-danger" type="submit" aria-label="Delete {{ name }}">Delete</button>
         </form></li>
       {% endfor %}
     </ul>
@@ -24,6 +24,6 @@
         <input type="file" name="file" required
                accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
         <small>An image with the same name as one above replaces it.</small></p>
-      <p><button type="submit">Upload</button></p>
+      <p><button class="button-secondary" type="submit">Upload</button></p>
     </form>
   </section>

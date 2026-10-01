@@ -8,6 +8,7 @@
   {% if error and not error_field %}<p class="alert-console" role="alert">{{ error }}</p>{% endif %}
   {% set action = path_for('create_report') %}
   {% set submit = "Save draft" %}
+  {% set address = "reports/" %}
   {% set file_label = "Attach PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
   {% include "admin/_content_fields.html" %}
 {% endblock %}

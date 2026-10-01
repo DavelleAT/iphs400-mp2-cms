@@ -1,0 +1,35 @@
+{#- An edit page's save bar (spec #25, T23), pinned to the bottom. Needs
+    `item`, and `actions` (app.routes.listing.ItemRow): the user's actions on
+    it, each shown only if theirs to take. Save submits the item's form
+    (#form-item); Publish or Unpublish posts its own, back to this page; Delete
+    opens the confirmation page. Read-only, it shows the State and why. #}
+  <div class="bar-save" role="region" aria-label="Save"><div class="bar-save-inner">
+    <span class="bar-save-state" role="status"><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span>
+      {%- if actions.may_edit %}<span class="bar-save-dirty"{% if not form.body_dirty %} hidden{% endif %}>Unsaved changes</span>
+      {%- else %}<span class="bar-save-note">Only the Director can edit, unpublish, or delete a published Report.</span>{% endif %}</span>
+    {%- if actions.delete_path %}
+    <a class="button-quiet button-danger" href="{{ actions.delete_path }}">Delete</a>
+    {%- endif %}
+    {%- if actions.status_path %}
+    <form method="post" action="{{ actions.status_path }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <input type="hidden" name="back" value="item">
+      <button class="button-secondary" type="submit">{{ "Unpublish" if item.status == "published" else "Publish" }}</button>
+    </form>
+    {%- endif %}
+    {%- if actions.may_edit %}
+    <button class="button-primary" type="submit" form="form-item">Save changes</button>
+    {%- endif %}
+  </div></div>
+  {%- if actions.may_edit %}
+  <script>
+    (() => {
+      // "Unsaved changes" follows the Editor's own unsaved state, which counts
+      // the body and every field of the form (static/editor.js).
+      const marker = document.currentScript.previousElementSibling.querySelector(".bar-save-dirty");
+      document.getElementById("form-item").addEventListener("admin-editor-unsaved", () => {
+        marker.hidden = false;
+      });
+    })();
+  </script>
+  {%- endif %}

@@ -239,15 +239,18 @@ def test_the_edit_page_embeds_the_site_preview_beside_the_body(client_as, kind, 
     assert content_body(shown) == content_body(preview(analyst, kind, item_id, **item).text)
     # The old admin-styled preview is gone.
     assert "content-preview" not in page and "/admin/preview" not in page
-    # Typing re-renders it; "Preview on site" posts the unsaved form to a new tab.
+    # Typing re-renders it; "Open" posts the unsaved form to a new tab. It sits
+    # in the preview's head, beside the form, so it names the form (T23).
     assert f'"/admin/{kind}/{item_id}/preview"' in page
-    assert re.search(rf'<button type="submit" formaction="/admin/{kind}/{item_id}/preview"'
-                     r' formtarget="_blank" formnovalidate>Preview on site</button>', page)
+    assert re.search(rf'<button class="button-quiet" type="submit" form="form-item"'
+                     rf' formaction="/admin/{kind}/{item_id}/preview" formtarget="_blank"'
+                     r' formnovalidate>Open<span class="text-hidden"> the preview in a new tab</span>',
+                     page)
     assert "Preview is not updating" in page
     for width in ("Desktop", "Phone"):
         assert re.search(rf'<button type="button"[^>]*data-width="{width.lower()}"[^>]*>{width}</button>', page)
     # "Save changes" stays the form's first submit button, so Enter saves.
-    assert page.index(">Save changes</button>") < page.index(">Preview on site</button>")
+    assert page.index(">Save changes</button>") < page.index(">Open<span")
 
 
 def test_a_failed_save_previews_what_was_typed(client_as):
@@ -266,7 +269,7 @@ def test_an_analyst_sees_a_locked_reports_saved_page_but_cannot_preview_edits(cl
 
     page = analyst.get(f"/admin/reports/{rid}").text
     assert_inert(content_body(framed(page)))
-    assert "Preview on site" not in page
+    assert 'formtarget="_blank"' not in page
     assert preview(analyst, "reports", rid, **REPORT).status_code == 403
     assert preview(director, "reports", rid, **REPORT).status_code == 200
 
@@ -321,7 +324,7 @@ def test_previewing_saves_nothing_and_writes_nothing_to_site(
     assert preview(director, kind, item_id, **form).status_code == 200
     assert preview(director, kind, **form).status_code == 200
     if kind == "reports":
-        # "Preview on site" posts the whole form, a chosen file included.
+        # "Open" posts the whole form, a chosen file included.
         form["csrf_token"] = csrf_from(director.get("/admin").text)
         response = director.post(f"/admin/reports/{item_id}/preview", data=form,
                                  files={"file": ("new.pdf", PDF, "application/pdf")})

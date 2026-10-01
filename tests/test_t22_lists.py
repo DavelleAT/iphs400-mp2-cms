@@ -232,7 +232,7 @@ def test_the_new_page_renders_the_create_form(client_as, kind):
     response = client_as("editor").get(f"/admin/{kind}/new")
     assert response.status_code == 200
     page = response.text
-    form = re.search(rf'<form class="admin-content-editing" method="post" action="/admin/{kind}"'
+    form = re.search(rf'<form id="form-item" class="admin-content-editing" method="post" action="/admin/{kind}"'
                      r'[^>]*>(.*?)</form>', page, re.S)
     assert form, "no create form posting to the list"
     for name in ("csrf_token", "title", "summary", "slug", "body"):

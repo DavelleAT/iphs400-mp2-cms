@@ -18,6 +18,11 @@ PDF = (b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
        b"trailer<</Root 1 0 R>>\n%%EOF\n")
 
 
+# The edit page's attached-file line when there is none (T23: in the form, under
+# the Editor).
+NO_FILE = '<p class="field-console-attached">None</p>'
+
+
 def post_with_file(c: TestClient, path: str, data: dict, file=None, *, with_csrf=True):
     """POST a multipart admin form. `file` is (filename, bytes, content type);
     None sends the form with no file chosen, as a browser does."""
@@ -128,7 +133,7 @@ def test_any_analyst_replaces_and_removes_the_file_on_a_draft_report(client_as):
 
     assert post_form(analyst, f"/admin/reports/{rid}/file/delete", {}).status_code == 303
     page = analyst.get(f"/admin/reports/{rid}").text
-    assert "Attached file:\n    none" in page and "factbook-v2.pdf" not in page
+    assert NO_FILE in page and "factbook-v2.pdf" not in page
     assert analyst.get(f"/admin/reports/{rid}/file").status_code == 404
     assert not reports_file(rid).exists()
 
@@ -224,7 +229,7 @@ def test_a_report_with_no_file_works_end_to_end(client_as, client, tmp_path):
     assert post_with_file(analyst, "/admin/reports", REPORT).status_code == 303
     rid = report_id(analyst, REPORT["slug"])
     page = analyst.get(f"/admin/reports/{rid}").text
-    assert "Attached file:\n    none" in page and "/file/delete" not in page
+    assert NO_FILE in page and "/file/delete" not in page
     assert analyst.get(f"/admin/reports/{rid}/file").status_code == 404
 
     edited = {**REPORT, "body": "Revised body."}
@@ -316,7 +321,7 @@ def test_an_existing_database_gains_the_file_column(tmp_path, monkeypatch, clien
 
     analyst = client_as("editor")
     rid = report_id(analyst, "old-cds")
-    assert "Attached file:\n    none" in analyst.get(f"/admin/reports/{rid}").text
+    assert NO_FILE in analyst.get(f"/admin/reports/{rid}").text
     assert post_with_file(analyst, f"/admin/reports/{rid}",
                           {"title": "Old CDS", "slug": "old-cds", "body": "Body."},
                           pdf()).status_code == 303

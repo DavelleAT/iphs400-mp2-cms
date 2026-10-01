@@ -7,21 +7,26 @@
   {%- if refused %} aria-invalid="true"{% endif %}{% endmacro %}
 {%- macro field_error(name) %}{% if error_field == name %}
       <small id="{{ name }}-error" class="admin-field-error" role="alert">{{ error }}</small>{% endif %}{% endmacro %}
-  <form class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
+{#- Two columns at desktop width (spec #25): the item's form, then on an edit
+    page a Report's file and the chart images, and the save bar; beside them,
+    the Site preview. The save bar's Save comes before the preview's "Open",
+    which also submits the form, so it stays the button Enter presses. #}
+<div class="grid-edit">
+  <div class="grid-edit-main">
+  <form id="form-item" class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     {%- if form.item_base %}
     <input type="hidden" name="item_base" value="{{ form.item_base }}">
     {%- endif %}
-    <div class="admin-content-fields">
-    <p class="field-console"><label for="title">Title</label><input type="text" id="title" name="title" value="{{ form.title }}" required{{ invalid("title") }}>
+    <p class="field-console field-console-title"><label for="title">Title</label><input type="text" id="title" name="title" value="{{ form.title }}" required{{ invalid("title") }}>
       {{- field_error("title") }}</p>
     {#- The Summary (spec #22): plain text, counted as the server counts it,
         its runs of whitespace as one space, by character. Over the limit,
         the count says so; the server refuses it, by this field. #}
     <p class="field-console admin-summary-field" data-summary-max="{{ summary_max }}"><label for="summary">Summary (optional)</label>
       <textarea id="summary" name="summary" rows="2" cols="60"{{ invalid("summary", "summary-hint") }}>{{ form.summary }}</textarea>
-      <small id="summary-hint" class="field-console-hint">One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.
-        <span class="admin-summary-count" aria-live="polite"></span></small>
+      <small id="summary-hint" class="field-console-hint field-console-hint-count"><span>One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.</span>
+        <span class="admin-summary-count text-mono" aria-live="polite"></span></small>
       {{- field_error("summary") }}</p>
     <script>
       (() => {
@@ -38,10 +43,12 @@
         show();
       })();
     </script>
-    <p class="field-console"><label for="slug">Slug</label><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
-      pattern="[a-z0-9]+(-[a-z0-9]+)*"{{ invalid("slug", "slug-hint") }}>
-      <small id="slug-hint" class="field-console-hint">Lowercase letters, digits, and hyphens.</small>
-      {{- field_error("slug") }}</p>
+    {#- The slug, as the item's address on the site: `address`, its folder. #}
+    <div class="field-console"><label for="slug">Address</label>
+      <div class="field-console-slug"><span>{{ address }}</span><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
+      pattern="[a-z0-9]+(-[a-z0-9]+)*"{{ invalid("slug", "slug-hint") }}><span>.html</span></div>
+      <small id="slug-hint" class="field-console-hint">Its page on the site. Lowercase letters, digits, and hyphens.</small>
+      {{- field_error("slug") }}</div>
     {#- The Editor (app.editor, static/editor.js) takes over the textarea, and
         shows the body from the template below, which a browser never renders
         itself. If its script doesn't run, the textarea posts Markdown, each
@@ -57,15 +64,31 @@
     </div>
     {#- Outside the Editor, which replaces the textarea's paragraph. #}
     {%- if error_field == "body" %}<p>{{ field_error("body") }}</p>{% endif %}
-    {% if file_label %}
-    <p><label>{{ file_label }}
-      <input type="file" name="file" accept="application/pdf,.pdf"{{ invalid("file") }}></label>
-      {{- field_error("file") }}</p>
-    {% endif %}
+    {#- A Report's PDF. On its edit page, `attached`: the file it has, which
+        "Remove file" removes by a form of its own, below this one. #}
+    {%- if file_label %}
+    <div class="field-console field-console-file">
+      {%- if attached is defined %}
+      <p class="field-console-label">Attached file</p>
+      <p class="field-console-attached">{% if attached.name %}<a href="{{ attached.href }}">{{ attached.name }}</a>
+        <button class="button-quiet button-danger" type="submit" form="form-file-remove">Remove file</button>{% else %}None{% endif %}</p>
+      {%- endif %}
+      <label for="file">{{ file_label }}</label>
+      <input type="file" name="file" accept="application/pdf,.pdf" id="file"{{ invalid("file") }}>
+      {{- field_error("file") }}</div>
+    {%- endif %}
+    {%- if actions is not defined %}
     <p class="actions-form"><button class="button-primary" type="submit">{{ submit }}</button></p>
-    </div>
-    {#- After the save button, so Enter in a field still saves: the form's
-        first submit button is the one Enter presses. #}
-    {% include "admin/_site_preview.html" %}
+    {%- endif %}
   </form>
+  {%- if attached is defined and attached.name %}
+  <form id="form-file-remove" method="post" action="{{ attached.remove }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+  </form>
+  {%- endif %}
+  {%- if images is defined %}{% include "admin/_chart_images.html" %}{% endif %}
+  {%- if actions is defined %}{% include "admin/_save_bar.html" %}{% endif %}
+  </div>
+  {% include "admin/_site_preview.html" %}
+</div>
   <script src="{{ path_for('editor_script') }}" defer></script>

@@ -7,8 +7,9 @@
 
    Served at /admin.css, so the fonts' relative url()s resolve to /fonts/,
    the public site's own font route. Text contrast, both themes, is listed in
-   the closing comment of T21 (#26). The .content-body and .chart-* rules are
-   for the Editor's body and the Chart builder's preview. */
+   the closing comment of T21 (#26), and T23's (#28) for the edit page. The
+   .content-body and .chart-* rules are for the Editor's body and the Chart
+   builder's preview, coloured as the public site's. */
 @font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
 @font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-italic.woff2") format("woff2"); font-weight: 200 800; font-style: italic; font-display: swap; }
 @font-face { font-family: "Atkinson Mono"; src: url("fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
@@ -33,6 +34,12 @@
   --color-bright: #8f80ff;         /* Kenyon bright purple */
   --color-citron: #d6f550;         /* only ever on --color-field */
   --color-danger: #b3261e;
+  /* Chart series (the newest last), as on the public site: Kenyon purple,
+     then bright purple, then two greys a third and fourth series need. */
+  --color-chart-newest: var(--color-purple);
+  --color-chart-bright: var(--color-bright);
+  --color-chart-grey: #8a849b;
+  --color-chart-neutral: #5d5870;
   --width-page: 84rem;
   --gutter-page: clamp(1rem, 3vw, 2rem);
 }
@@ -49,6 +56,8 @@
     --color-purple: #a99cff;
     --color-bright: #7d6ef0;
     --color-danger: #ff8a80;
+    --color-chart-bright: #6352d6;   /* darker than the text step, so it parts from the newest */
+    --color-chart-neutral: #e4e0ee;
   }
 }
 
@@ -233,123 +242,226 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .fieldset-figure > legend { color: var(--color-purple); float: left; grid-column: 1 / -1; padding: 0.75rem 0 0; width: 100%; }
 .fieldset-figure .field-console { margin-top: 0.75rem; }
 
-/* The Editor and the Chart builder, as they were: T23 restyles them by class. */
+/* An edit page (T23): the fields, the Editor, and a Report's file and chart
+   images, beside a sticky Site preview; one column below 64rem. The save bar
+   is pinned to the bottom, so the page leaves room for it to scroll past. */
+.grid-edit { align-items: start; display: grid; gap: 2rem 2.5rem; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); margin-top: 1.5rem; }
+@media (max-width: 64rem) { .grid-edit { grid-template-columns: minmax(0, 1fr); } }
+.grid-edit .field-console { max-width: none; }
+.grid-edit .field-console:first-of-type { margin-top: 0; }
+.page-console:has(.bar-save) { padding-bottom: 9rem; }
+.facts-page { display: flex; flex-wrap: wrap; gap: 0.35rem 1.75rem; margin: 0.75rem 0 0; }
+.facts-page div { align-items: center; display: flex; gap: 0.5rem; }
+.facts-page dt { color: var(--color-muted); }
+.facts-page dd { margin: 0; }
+.field-console-title input { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; padding-block: 0.45rem; }
+.field-console-hint-count { display: flex; gap: 1rem; justify-content: space-between; }
+.field-console-hint-count .text-mono { white-space: nowrap; }
+.admin-summary-over .admin-summary-count { color: var(--color-danger); font-weight: 700; }
+/* The slug as an address: its folder and .html either side of it. */
+.field-console-slug { align-items: stretch; display: flex; }
+.field-console-slug span { align-items: center; background: var(--color-tint); border: 1px solid var(--color-line-strong); color: var(--color-muted); display: flex; font: 500 0.85rem var(--font-mono); padding-inline: 0.6rem; white-space: nowrap; }
+.field-console-slug span:first-child { border-right: 0; }
+.field-console-slug span:last-child { border-left: 0; }
+.field-console .field-console-slug input { font-family: var(--font-mono); font-size: 0.9rem; min-width: 0; }
+.field-console-file { border-top: 1px solid var(--color-line); padding-top: 1.25rem; }
+.field-console-file p { margin: 0 0 0.35rem; }
+.field-console-attached { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+.field-console-attached + label { margin-top: 0.85rem; }
+.field-console-attached .button-quiet { font-size: 0.85rem; padding-block: 0.35rem; }
+.field-console .field-console-file input[type="file"], .field-console-file input[type="file"] { padding-inline: 0; }
+.content-image-warning { background: var(--color-tint); border-left: 3px solid var(--color-bright); margin: 1.25rem 0 0; padding: 0.7rem 1rem; }
+/* A Report locked for this user: as saved, nothing to change. */
+.facts-item { margin: 0; }
+.facts-item div { border-bottom: 1px solid var(--color-line); padding: 0.75rem 0; }
+.facts-item dt { color: var(--color-muted); font: 500 0.75rem/1.3 var(--font-mono); letter-spacing: 0.05em; margin-bottom: 0.25rem; text-transform: uppercase; }
+.facts-item dd { margin: 0; overflow-wrap: anywhere; }
+
+/* The chart images under the Editor (app.chart_images). */
+.content-images { border-top: 1px solid var(--color-ink); margin-top: 2.25rem; padding-top: 0.5rem; }
+.content-images h2 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+.content-images > p { color: var(--color-muted); font-size: 0.92rem; margin: 0 0 0.75rem; }
+.content-images-list { list-style: none; margin: 0 0 1rem; padding: 0; }
+.content-images-list li { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; gap: 1rem; justify-content: space-between; padding: 0.4rem 0; }
+.content-images-list code { overflow-wrap: anywhere; }
+.content-images-list form { margin: 0; }
+.content-images-list .button-danger { border-color: transparent; font-size: 0.85rem; padding-block: 0.4rem; }
+.content-images-list .button-danger:hover { box-shadow: none; }
+.content-images label { display: block; font-size: 0.92rem; font-weight: 700; }
+.content-images input[type="file"] { display: block; font-weight: 400; margin-top: 0.35rem; max-width: 100%; }
+.content-images small { color: var(--color-muted); display: block; font-size: 0.82rem; margin-top: 0.35rem; }
+
+/* The Site preview: Desktop or Phone, and Open in a new tab. Sticky beside
+   the fields; in their flow once they are one column. */
+.preview-console { background: var(--color-surface); border: 1px solid var(--color-line); position: sticky; top: 1rem; }
+.preview-console-head { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0.75rem; }
+.preview-console-head h2 { font-size: 0.95rem; margin: 0 auto 0 0; }
+.preview-console-head .button-quiet { font-size: 0.85rem; padding-block: 0.4rem; }
+.toggle-console { display: flex; }
+.toggle-console button { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-muted); cursor: pointer; font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; padding: 0.4rem 0.6rem; text-transform: uppercase; }
+.toggle-console button + button { border-left: 0; }
+.toggle-console button[aria-pressed="true"] { background: var(--color-kenyon); border-color: var(--color-kenyon); color: #fff; }
+.admin-site-preview-status { color: var(--color-danger); font-size: 0.85rem; margin: 0; padding: 0.5rem 0.75rem; }
+.admin-site-preview-status:empty { display: none; }
+.admin-site-preview-frame { border: 0; display: block; height: min(70vh, 46rem); margin-inline: auto; width: 100%; }
+.admin-site-preview-frame[data-width="phone"] { border-inline: 1px solid var(--color-line); max-width: 100%; width: 390px; }
+@media (max-width: 64rem) { .preview-console { position: static; } .admin-site-preview-frame { height: 32rem; } }
+
+/* The save bar: the State, "Unsaved changes", and the item's actions. */
+.bar-save { background: var(--color-surface); border-top: 1px solid var(--color-line-strong); bottom: 0; left: 0; position: fixed; right: 0; z-index: 2; }
+.bar-save-inner { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin-inline: auto; max-width: var(--width-page); padding: 0.65rem var(--gutter-page); }
+.bar-save-state { align-items: center; color: var(--color-muted); display: flex; flex-wrap: wrap; font-size: 0.88rem; gap: 0.25rem 0.75rem; margin-right: auto; }
+.bar-save-dirty { color: var(--color-ink); font-weight: 600; }
+.bar-save-dirty::before { color: var(--color-bright); content: "● " / ""; }
+.bar-save-dirty[hidden] { display: none; }
+.bar-save form { margin: 0; }
+
+/* Form controls inside the Chart builder, which is a dialog outside the page. */
+:where(.admin-chart-builder) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
+:where(.admin-chart-builder) :is(input, select) { background: var(--color-surface); border: 1px solid var(--color-line-strong); padding: 0.45rem 0.6rem; }
+:where(.admin-chart-builder) :is(input, select):focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
+:where(.admin-chart-builder) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
+:where(.admin-chart-builder) button:hover { border-color: var(--color-ink); }
+
+/* The Editor (static/editor.js), restyled by its classes: "Body", then one
+   box of its toolbar, its panels, and the body itself. */
+.admin-editor-label { font-size: 0.92rem; font-weight: 700; margin: 1.25rem 0 0.35rem; }
+.admin-editor-toolbar, .admin-editor-cell-tools, .admin-editor-link, .admin-editor-image, .admin-editor-message, .admin-editor-area { border: 1px solid var(--color-line-strong); border-bottom: 0; margin: 0; }
+.admin-editor-toolbar { background: var(--color-surface); display: flex; flex-wrap: wrap; padding: 0.3rem; position: sticky; top: 0; z-index: 1; }
+.admin-editor-toolbar button, .admin-editor-cell-tools button { background: none; border: 1px solid transparent; color: var(--color-ink); font: 600 0.82rem var(--font-text); min-height: 2.1rem; padding: 0.3rem 0.55rem; }
+.admin-editor-toolbar button:hover, .admin-editor-cell-tools button:hover { background: var(--color-tint); border-color: transparent; }
+.admin-editor-toolbar [aria-pressed="true"] { background: var(--color-tint); border-color: var(--color-line-strong); }
+/* A rule before Section, Bulleted list, and Insert table: the groups. */
+.admin-editor-toolbar [data-action="bullets"], .admin-editor-toolbar [data-action="h2"], .admin-editor-toolbar [data-action="table"] { margin-left: 0.7rem; position: relative; }
+.admin-editor-toolbar [data-action="bullets"]::before, .admin-editor-toolbar [data-action="h2"]::before, .admin-editor-toolbar [data-action="table"]::before { border-left: 1px solid var(--color-line); bottom: 0.3rem; content: ""; left: -0.4rem; position: absolute; top: 0.3rem; }
+/* The table controls, shown while the cursor is in a table. Not named
+   "table": only .content-body's own rules may style tables (T09). */
+.admin-editor-cell-tools { background: var(--color-tint); display: flex; flex-wrap: wrap; padding: 0.25rem 0.3rem; }
+.admin-editor-cell-tools::before { align-self: center; color: var(--color-muted); content: "Table" / ""; font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; padding: 0 0.6rem 0 0.3rem; text-transform: uppercase; }
+.admin-editor-cell-tools[hidden] { display: none; }
+/* The link and image panels, between the toolbar and the body. */
+.admin-editor-link, .admin-editor-image { background: var(--color-tint); min-width: 0; padding: 0.6rem 1rem 0.75rem; }
+.admin-editor-link legend, .admin-editor-image > legend { float: left; font-weight: 700; padding: 0; width: 100%; }
+.admin-editor-link legend + *, .admin-editor-image > legend + * { clear: both; }
+.admin-editor-link p, .admin-editor-image p { align-items: center; display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; margin: 0.4rem 0; }
+.admin-editor-link label, .admin-editor-image-description label { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
+.admin-editor-link small, .admin-editor-image small { color: var(--color-muted); display: block; font-size: 0.82rem; }
+.admin-editor-link[hidden], .admin-editor-link p[hidden] { display: none; }
+.admin-editor-link select { max-width: 100%; }
+.admin-editor-image[hidden], .admin-editor-image [hidden] { display: none; }
+.admin-editor-image-choices { border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.25rem 0; min-width: 0; padding: 0; }
+.admin-editor-image-choices legend { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
+.admin-editor-image-choice { align-items: center; background: var(--color-surface); border: 1px solid var(--color-line-strong); display: flex; gap: 0.4rem; max-width: 100%; overflow-wrap: anywhere; padding: 0.3rem 0.5rem; }
+.admin-editor-image-choice:has(:checked) { border-color: var(--color-kenyon); outline: 2px solid var(--color-kenyon); outline-offset: -1px; }
+.admin-editor-image-choice img { background: #fff; height: 3.5rem; object-fit: contain; width: 5.5rem; }
+.admin-editor-image-description input { max-width: 100%; width: 32rem; }
+.admin-editor-image-description small { flex-basis: 100%; }
+.admin-editor-image-actions, .admin-editor-link-actions { gap: 0.4rem; }
+.admin-editor-message, .admin-chart-builder-message { background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface)); border-left: 3px solid var(--color-danger); padding: 0.5rem 0.9rem; }
+.admin-editor-message:empty, .admin-chart-builder-message:empty { display: none; }
+/* The body. */
+.admin-editor-area { background: var(--color-surface); border-bottom: 1px solid var(--color-line-strong); font-size: 1.05rem; line-height: 1.65; min-height: 22rem; overflow-wrap: anywhere; padding: 0.5rem 1.5rem 1rem; }
+.admin-editor-area:focus { outline: 2px solid var(--color-bright); outline-offset: -2px; }
+.admin-editor-area > * { max-width: 44rem; }
+.admin-editor-area h2 { font-size: 1.4rem; margin: 1.75rem 0 0.5rem; }
+.admin-editor-area h3 { font-size: 1.12rem; margin: 1.4rem 0 0.4rem; }
+.admin-editor-area p { margin: 0.9rem 0; }
+.admin-editor-area blockquote { border-left: 3px solid var(--color-kenyon); color: var(--color-muted); margin: 1rem 0; padding-left: 1rem; }
+.admin-editor-area img { cursor: pointer; }
+.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid var(--color-bright); outline-offset: 2px; }
+/* A site link that won't be a link on the site, marked for the writer. */
+.admin-editor-area a[data-link-mark]::after { background: var(--color-tint); border: 1px dashed var(--color-line-strong); color: var(--color-muted); content: attr(data-link-mark); display: inline-block; font: 500 0.7rem/1.5 var(--font-mono); letter-spacing: 0.03em; margin-left: 0.35em; padding: 0 0.4em; text-decoration: none; }
+/* A part of the body the Editor can't edit, shown read-only. */
+.admin-editor-locked { background: var(--color-tint); border: 1px dashed var(--color-line-strong); margin-block: 1rem; padding: 0 0.9rem; }
+.admin-editor-locked-note { color: var(--color-muted); font-size: 0.85rem; margin: 0.5rem 0; }
+.admin-editor-locked pre { overflow-x: auto; }
+.admin-editor-locked-remove { font-size: 0.82rem; padding: 0.2rem 0.5rem; }
+/* A Chart in the body, as a card: "Chart", then Edit and Remove. */
+.admin-editor-chart { border: 1px solid var(--color-line); margin-block: 1.25rem; max-width: 44rem; padding: 0 1rem 0.25rem; }
+.admin-editor-chart-tools { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0 -1rem; padding: 0.3rem 0.5rem 0.3rem 1rem; }
+.admin-editor-chart-tools::before { color: var(--color-muted); content: "Chart" / ""; font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; margin-right: auto; text-transform: uppercase; }
+.admin-editor-chart-tools button { background: none; border: 1px solid transparent; color: var(--color-purple); font: 700 0.85rem var(--font-text); padding: 0.35rem 0.5rem; }
+.admin-editor-chart-tools button:hover { border-color: transparent; text-decoration: underline; }
+.admin-editor-chart-tools button + button { color: var(--color-danger); }
+.admin-editor-chart .chart-figure { margin: 1rem 0 0.75rem; }
+
+/* The Chart builder (T17), a dialog: its fields, its grid, and the chart as
+   the server draws it. The grid is styled by its own classes: only
+   .content-body's own rules may style tables (T09). */
+.admin-chart-builder { background: var(--color-paper); border: 1px solid var(--color-line-strong); color: var(--color-ink); max-height: calc(100vh - 1rem); max-width: calc(100vw - 1rem); padding: 1.25rem 1.5rem; width: 52rem; }
+.admin-chart-builder::backdrop { background: rgb(23 19 31 / 0.55); }
+.admin-chart-builder h2 { border-bottom: 2px solid var(--color-ink); font-size: 1.35rem; margin: 0 0 0.75rem; padding-bottom: 0.5rem; }
+.admin-chart-builder h3 { border-bottom: 1px solid var(--color-ink); color: var(--color-purple); font: 500 0.78rem var(--font-mono); letter-spacing: 0.05em; margin: 1.5rem 0 0.6rem; padding-bottom: 0.35rem; text-transform: uppercase; }
+.admin-chart-builder-fields p { margin: 0.6rem 0; }
+.admin-chart-builder-fields label { display: flex; flex-direction: column; font-size: 0.92rem; font-weight: 700; gap: 0.3rem; }
+.admin-chart-builder-fields input, .admin-chart-builder-fields select { font-weight: 400; max-width: 100%; width: 26rem; }
+.admin-chart-builder-fields small, .admin-chart-builder-hint { color: var(--color-muted); display: block; font-size: 0.82rem; }
+.admin-chart-builder-hint { margin: 0 0 0.6rem; }
+.admin-chart-builder-suggestion { background: var(--color-tint); border-left: 3px solid var(--color-bright); padding: 0.5rem 0.9rem; }
+.admin-chart-builder-suggestion[hidden] { display: none; }
+.admin-chart-builder-error { color: var(--color-danger); display: block; font-size: 0.85rem; font-weight: 600; margin: 0.2rem 0 0; }
+.admin-chart-builder-error:empty { display: none; }
+.admin-chart-builder [aria-invalid="true"] { border-color: var(--color-danger); outline: 2px solid var(--color-danger); outline-offset: -1px; }
+.admin-chart-builder-grid-scroll { overflow-x: auto; }
+.admin-chart-builder-grid { border-collapse: collapse; }
+.admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
+.admin-chart-builder-cell input { font-family: var(--font-mono); font-size: 0.88rem; width: 8.5rem; }
+.admin-chart-builder-name { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; }
+.admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
+@media (max-width: 30rem) { .admin-chart-builder { padding: 1rem; } .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
+.admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.admin-chart-builder-actions { border-top: 1px solid var(--color-line); margin: 1.25rem 0 0; padding-top: 1rem; }
+.admin-chart-builder-actions [data-builder="insert"] { background: var(--color-kenyon); border-color: var(--color-kenyon); color: #fff; }
+.admin-chart-builder-actions [data-builder="insert"]:hover { background: var(--color-field); }
+.admin-chart-builder-actions [data-builder="insert"]:disabled { background: var(--color-line-strong); border-color: var(--color-line-strong); color: var(--color-muted); cursor: not-allowed; }
+.admin-chart-builder-status { color: var(--color-muted); font-size: 0.85rem; }
+/* As wide as the public page's column, so the chart is drawn at its size there. */
+.admin-chart-builder-preview { background: var(--color-surface); border: 1px dashed var(--color-line-strong); max-width: 40rem; min-height: 3rem; padding: 0 1rem; }
+.admin-chart-builder-stale figure { opacity: 0.35; }
+
 /* Markdown tables, in a Data Bite's or Report's body. A wide one scrolls
    sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
    the page; on a phone, rather than squeezing its text to a word a line. */
 .content-body .content-table-scroll { margin-block: 1rem; overflow-x: auto; }
 /* Chart images (app.chart_images) shrink to the column, keeping their shape. */
 .content-body img { height: auto; max-width: 100%; }
-.content-body table { border-collapse: collapse; }
-.content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
-.content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
+.content-body table { border-collapse: collapse; font-size: 0.95rem; }
+.content-body th, .content-body td { border-bottom: 1px solid var(--color-line); padding: 0.4rem 0.9rem 0.4rem 0; text-align: left; }
+.content-body thead th { border-bottom-color: var(--color-ink); color: var(--color-muted); font: 500 0.75rem var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.content-body tbody th { font-weight: 600; }
+.content-body td[style*="right"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+/* In the Editor a cell needs room to click into, and its edges shown. */
+.admin-editor-area th, .admin-editor-area td { border: 1px solid var(--color-line); min-width: 6ch; padding-left: 0.6rem; }
 @media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
-/* Charts (app.chart_drawing): an SVG scaled to the column, its text at the
-   size its layout assumes (FONT, in the SVG's units), and its data in a
-   <details> table that scrolls sideways rather than widen the page. Each is
-   drawn twice; the narrow drawing replaces the wide one on a phone, and
-   display: none takes the hidden one out of the accessibility tree. */
-.chart-figure { margin: 1.5rem 0; }
-.chart-title { font-weight: 600; margin-bottom: 0.5rem; }
+
+/* Charts (app.chart_drawing), recoloured by class only, as on the public
+   site: Kenyon purple for the newest series, then bright purple, then two
+   greys. The SVG scales to the column, but no wider than the 40rem it is
+   drawn for. Each is drawn twice; the narrow drawing replaces the wide one
+   on a phone, and display: none takes the hidden one out of the
+   accessibility tree. */
+.chart-figure { margin: 1.5rem 0; max-width: 40rem; }
+.chart-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.6rem; }
 .chart-svg, .chart-svg-phone { display: block; height: auto; width: 100%; }
 .chart-svg-phone { display: none; }
 @media (max-width: 30rem) { .chart-svg { display: none; } .chart-svg-phone { display: block; } }
-.chart-figure text { font-family: system-ui, sans-serif; font-size: 13px; }
+.chart-figure text { fill: var(--color-muted); font-family: var(--font-text); font-size: 13px; }
+.chart-figure .chart-tick, .chart-figure .chart-value { font-family: var(--font-mono); }
+.chart-figure .chart-value { fill: var(--color-ink); }
+.chart-figure .chart-grid { stroke: var(--color-line); }
+.chart-figure .chart-baseline { stroke: var(--color-muted); }
 .chart-figure polyline { stroke-linecap: round; stroke-linejoin: round; }
-.chart-figure circle { stroke: Canvas; }
-.chart-note, .chart-source { margin: 0.25rem 0; }
-.chart-data { margin-top: 0.5rem; overflow-x: auto; }
-.chart-data summary { cursor: pointer; }
-.content-body .chart-data td { font-variant-numeric: tabular-nums; text-align: right; }
-@media (prefers-color-scheme: dark) {
-  .chart-figure text { fill: #c3c2b7; }
-  .chart-figure .chart-tick { fill: #898781; }
-  .chart-figure .chart-grid { stroke: #2c2c2a; }
-  .chart-figure .chart-baseline { stroke: #5c5b57; }
-  .chart-series-1, .chart-marker-1 { fill: #3987e5; } .chart-line-1 { stroke: #3987e5; }
-  .chart-series-2, .chart-marker-2 { fill: #d95926; } .chart-line-2 { stroke: #d95926; }
-  .chart-series-3, .chart-marker-3 { fill: #199e70; } .chart-line-3 { stroke: #199e70; }
-  .chart-series-4, .chart-marker-4 { fill: #c98500; } .chart-line-4 { stroke: #c98500; }
-}
-/* Admin only: an edit form's fields beside its Site preview, stacked below
-   them on a narrow screen. */
-.admin-content-fields textarea { box-sizing: border-box; width: 100%; }
-/* A form field's Summary count, and a refusal shown beside its field. */
-.admin-summary-field label, .admin-summary-field small { display: block; }
-.admin-summary-field small { font-size: 0.875rem; }
-.admin-summary-over .admin-summary-count, .admin-field-error { color: var(--color-danger); font-weight: 600; }
-.admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
-.admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
-/* Admin only: the Editor (static/editor.js), its toolbar, and the parts of a
-   body it can't edit, shown read-only. */
-.admin-editor-label { font-weight: 600; margin: 0 0 0.25rem; }
-.admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
-/* The table controls, shown while the cursor is in a table. Not named
-   "table": only .content-body's own rules may style tables (T09). */
-.admin-editor-cell-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
-.admin-editor-cell-tools[hidden] { display: none; }
-.admin-editor-toolbar [aria-pressed="true"] { background: color-mix(in srgb, currentColor 18%, transparent); }
-.admin-editor-link { margin-block: 0.25rem; }
-.admin-editor-link p { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0.25rem 0; }
-.admin-editor-link[hidden], .admin-editor-link p[hidden] { display: none; }
-/* A site link that won't be a link on the site, marked for the writer. */
-.admin-editor-area a[data-link-mark]::after { background: #fff4ce; border-radius: 3px; color: #4d3800; content: attr(data-link-mark); display: inline-block; font-size: 0.75rem; font-style: normal; font-weight: 600; margin-left: 0.3em; padding: 0 0.35em; }
-.admin-editor-message, .admin-chart-builder-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
-.admin-editor-message:empty, .admin-chart-builder-message:empty { display: none; }
-.admin-editor-area { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); min-height: 16rem; overflow-wrap: anywhere; padding: 0.25rem 0.75rem; }
-.admin-editor-locked { background: color-mix(in srgb, currentColor 5%, transparent); border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); margin-block: 0.75rem; padding: 0 0.75rem; }
-.admin-editor-locked-note { font-size: 0.875rem; font-style: italic; margin: 0.4rem 0; }
-.admin-editor-locked pre { overflow-x: auto; }
-/* Admin only: a Chart in the Editor's body, as a card, and the Chart builder
-   (T17). The builder's grid is styled by its own classes: only
-   .content-body's own rules may style tables (T09). */
-.admin-editor-chart { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; margin-block: 0.75rem; padding: 0 0.75rem; }
-.admin-editor-chart-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.5rem 0 0; }
-.admin-chart-builder { box-sizing: border-box; max-height: calc(100vh - 1rem); max-width: calc(100vw - 1rem); padding: 1rem; width: 52rem; }
-.admin-chart-builder::backdrop { background: rgb(0 0 0 / 0.4); }
-.admin-chart-builder h2 { margin-top: 0; }
-.admin-chart-builder h3 { margin: 1rem 0 0.25rem; }
-.admin-chart-builder-fields p { margin: 0.5rem 0; }
-.admin-chart-builder-fields label { display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-chart-builder-fields input, .admin-chart-builder-fields select { box-sizing: border-box; max-width: 100%; width: 26rem; }
-.admin-chart-builder-fields small, .admin-chart-builder-hint { display: block; font-size: 0.875rem; }
-.admin-chart-builder-hint { margin: 0 0 0.5rem; }
-.admin-chart-builder-suggestion { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; padding: 0.4rem 0.8rem; }
-.admin-chart-builder-suggestion[hidden] { display: none; }
-.admin-chart-builder-error { color: var(--color-danger); display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
-.admin-chart-builder-error:empty { display: none; }
-.admin-chart-builder [aria-invalid="true"] { border-color: var(--color-danger); outline: 2px solid var(--color-danger); outline-offset: -1px; }
-.admin-chart-builder-grid-scroll { overflow-x: auto; }
-.admin-chart-builder-grid { border-collapse: collapse; }
-.admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
-.admin-chart-builder-cell input { box-sizing: border-box; width: 8.5rem; }
-.admin-chart-builder-name { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
-@media (max-width: 30rem) { .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
-.admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-/* As wide as the public page's column, so the chart is drawn at its size there. */
-.admin-chart-builder-preview { border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); max-width: 40rem; min-height: 3rem; padding: 0 0.75rem; }
-/* Admin only: the Editor's "Insert image" panel (T18), with the item's chart
-   images as thumbnails, and the image in the body it is changing. */
-/* A fieldset is as wide as its widest content unless told otherwise, which
-   would push the page sideways on a phone. */
-.admin-editor-image, .admin-editor-image-choices { min-width: 0; }
-.admin-editor-image { margin-block: 0.25rem; }
-.admin-editor-image p { margin: 0.4rem 0; }
-.admin-editor-image[hidden], .admin-editor-image [hidden] { display: none; }
-.admin-editor-image-choices { border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; }
-.admin-editor-image-choices legend { font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
-.admin-editor-image-choice { align-items: center; box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
-.admin-editor-image-choice:has(:checked) { outline: 2px solid currentColor; }
-.admin-editor-image-choice img { background: #fff; height: 3.5rem; object-fit: contain; width: 5.5rem; }
-.admin-editor-image-description label { display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-editor-image-description input { box-sizing: border-box; max-width: 100%; width: 32rem; }
-.admin-editor-image-description small { display: block; font-size: 0.875rem; }
-.admin-editor-image-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.admin-editor-area img { cursor: pointer; }
-.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid currentColor; outline-offset: 2px; }
-.admin-chart-builder-stale figure { opacity: 0.35; }
-@media (min-width: 64rem) {
-  .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }
-}
+.chart-figure circle { stroke: var(--color-surface); }
+/* Series by how many the Chart has, the newest (the last) in Kenyon purple. */
+.chart-figure { --chart-1: var(--color-chart-newest); --chart-2: var(--color-chart-newest); --chart-3: var(--color-chart-newest); --chart-4: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-2, .chart-line-2) { --chart-1: var(--color-chart-bright); --chart-2: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-3, .chart-line-3) { --chart-1: var(--color-chart-grey); --chart-2: var(--color-chart-bright); --chart-3: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-4, .chart-line-4) { --chart-1: var(--color-chart-neutral); --chart-2: var(--color-chart-grey); --chart-3: var(--color-chart-bright); --chart-4: var(--color-chart-newest); }
+.chart-series-1, .chart-marker-1 { fill: var(--chart-1); } .chart-line-1 { stroke: var(--chart-1); }
+.chart-series-2, .chart-marker-2 { fill: var(--chart-2); } .chart-line-2 { stroke: var(--chart-2); }
+.chart-series-3, .chart-marker-3 { fill: var(--chart-3); } .chart-line-3 { stroke: var(--chart-3); }
+.chart-series-4, .chart-marker-4 { fill: var(--chart-4); } .chart-line-4 { stroke: var(--chart-4); }
+.chart-note, .chart-source { color: var(--color-muted); font-size: 0.9rem; margin: 0.25rem 0; }
+.chart-data { border-top: 1px solid var(--color-line); font-size: 0.9rem; margin-top: 0.6rem; overflow-x: auto; padding-top: 0.5rem; }
+.chart-data summary { color: var(--color-purple); cursor: pointer; font: 500 0.78rem var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.content-body .chart-data td { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; text-align: right; }

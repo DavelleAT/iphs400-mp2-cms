@@ -1,28 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-  <p><a href="{{ path_for('list_reports') }}">All Reports</a></p>
-  <h1>{{ "Edit Report" if can_edit else report.title }}</h1>
-  <p>{{ status_labels[report.status] }}. Created {{ report.created_at }} by {{ report.author_name }}.
-     Last updated {{ report.updated_at }}.</p>
-  {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
-  {% if can_edit %}{% include "admin/_undescribed_images.html" %}{% endif %}
-  <p>Attached file:
-    {% if report.file_name %}<a href="{{ path_for('download_file', report_id=report.id) }}">{{ report.file_name }}</a>{% else %}none{% endif %}</p>
+  {%- set item, site_route = report, "report" %}
+  {% include "admin/_edit_head.html" %}
   {% if can_edit %}
-  {% if report.file_name %}
-  <form method="post" action="/admin/reports/{{ report.id }}/file/delete">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-    <button type="submit">Remove file</button>
-  </form>
-  {% endif %}
+  {% include "admin/_undescribed_images.html" %}
   {% set action = "/admin/reports/" ~ report.id %}
-  {% set submit = "Save changes" %}
+  {% set address = "reports/" %}
   {% set file_label = ("Replace" if report.file_name else "Attach") ~ " PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
+  {% set attached = {"name": report.file_name,
+                     "href": path_for('download_file', report_id=report.id),
+                     "remove": "/admin/reports/" ~ report.id ~ "/file/delete"} %}
   {% include "admin/_content_fields.html" %}
-  {% include "admin/_chart_images.html" %}
   {% else %}
-  <p>Only the Director can edit, unpublish, or delete a published Report.</p>
-  <p>Slug: <code>{{ report.slug }}</code></p>
-  {% with preview_path = none %}{% include "admin/_site_preview.html" %}{% endwith %}
+  {#- Locked for this user (an Analyst, the Report published): as saved,
+      in the edit page's layout, with nothing to change. #}
+  <div class="grid-edit">
+    <div class="grid-edit-main">
+      <dl class="facts-item">
+        <div><dt>Address</dt><dd class="text-mono">reports/{{ report.slug }}.html</dd></div>
+        {%- if report.summary %}
+        <div><dt>Summary</dt><dd>{{ report.summary }}</dd></div>
+        {%- endif %}
+        <div><dt>Attached file</dt><dd>{% if report.file_name %}<a href="{{ path_for('download_file', report_id=report.id) }}">{{ report.file_name }}</a>{% else %}None{% endif %}</dd></div>
+      </dl>
+      {% include "admin/_save_bar.html" %}
+    </div>
+    {% with preview_path = none %}{% include "admin/_site_preview.html" %}{% endwith %}
+  </div>
   {% endif %}
 {% endblock %}
