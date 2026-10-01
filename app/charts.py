@@ -300,7 +300,7 @@ def _series(value: object, index: int, categories: tuple[str, ...]) -> Series:
     return Series(name, typed, cells)
 
 
-def _second(names: Sequence[str]) -> int | None:
+def _first_repeat(names: Sequence[str]) -> int | None:
     """Where the first name in `names` that repeats one before it is."""
     return next((index for index, name in enumerate(names) if name in names[:index]), None)
 
@@ -319,7 +319,7 @@ def _chart(data: object) -> Chart:
     if not fewest <= len(categories) <= most:
         raise ChartError(f"a {TYPE_NAMES[kind]} has {fewest} to {most} categories; "
                          f"this one has {len(categories)}", "categories")
-    if (twice := _second(categories)) is not None:
+    if (twice := _first_repeat(categories)) is not None:
         raise ChartError(f"the category '{categories[twice]}' appears twice",
                          f"categories.{twice}")
     raw_series = _list(data["series"], "the series")
@@ -327,7 +327,7 @@ def _chart(data: object) -> Chart:
         raise ChartError(f"a chart has 1 to {MAX_SERIES} series; this one has {len(raw_series)}",
                          "series")
     series = tuple(_series(item, index, categories) for index, item in enumerate(raw_series))
-    if (twice := _second([item.name for item in series])) is not None:
+    if (twice := _first_repeat([item.name for item in series])) is not None:
         raise ChartError(f"the series name '{series[twice].name}' appears twice",
                          f"series.{twice}.name")
     chart = Chart(type=kind, title=_string(data["title"], "title", "the title", "title"),
@@ -382,34 +382,34 @@ def _field_problems(data: object) -> list[ChartError]:
         return []
     found: list[ChartError] = []
 
-    def check(rule, *args) -> None:
+    def collect(rule, *args) -> None:
         try:
             rule(*args)
         except ChartError as exc:
             found.append(exc)
 
     if "type" in data:
-        check(_type, data["type"])
+        collect(_type, data["type"])
     for key in ("title", "x_label", "y_label", "source"):
         if key in data:
-            check(_string, data[key], key, _NAMES[key], key)
+            collect(_string, data[key], key, _NAMES[key], key)
     if "unit" in data:
-        check(_unit, data["unit"])
+        collect(_unit, data["unit"])
     categories = data.get("categories")
     categories = categories if isinstance(categories, list) else []
     for index, category in enumerate(categories):
-        check(_category, category, index)
+        collect(_category, category, index)
     series = data.get("series")
     series = [item if isinstance(item, dict) else {}
               for item in (series if isinstance(series, list) else [])]
     for index, item in enumerate(series):
         if "name" in item:
-            check(_series_name, item["name"], index)
+            collect(_series_name, item["name"], index)
     for place, category in enumerate(categories):
         for index, item in enumerate(series):
             values = item.get("values")
             if isinstance(values, list) and place < len(values):
-                check(_cell, values[place], item.get("name"), category,
+                collect(_cell, values[place], item.get("name"), category,
                       f"series.{index}.values.{place}")
     return found
 

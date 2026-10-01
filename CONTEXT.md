@@ -58,6 +58,14 @@ available as a table (spec #14,
 as a `chart` block the writer never sees. Not a **Chart image**, which is made elsewhere and uploaded.
 _Avoid_: graph, plot, visualization
 
+**Chart builder**:
+The Editor's "Insert chart" dialog: a Chart's fields and a grid (categories
+down, series across) that takes typing or a paste from Excel or Sheets, with
+the Chart drawn by the server as the writer types and each error beside its
+field or cell (spec #14, T17). In the body, a Chart shows as a *card*, its
+drawing with Edit and Remove.
+_Avoid_: chart editor, chart wizard
+
 **Editor**:
 The visual body editor on a Data Bite's or Report's edit page: a toolbar,
 tables edited in place, Charts, and Chart images, with no Markdown in sight.

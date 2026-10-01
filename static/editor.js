@@ -31,6 +31,8 @@
     'Upload a picture under "Chart images" instead.';
   const LOCKED = "[data-locked]";
   const CHART = "[data-chart]";
+  // What the body shows but doesn't edit in place.
+  const SHOWN_ONLY = `${LOCKED}, ${CHART}`;
   const CARD = "admin-editor-chart";
   // The wrapper each table sits in (app.rendering), so a wide one scrolls.
   const TABLE_SCROLL = "content-table-scroll";
@@ -365,10 +367,10 @@
     function openChart(card) {
       chartRange = card ? null : currentRange();
       builder = builder || chartBuilder(chartPreview, () => form.elements.csrf_token.value);
-      builder.open(card ? card.dataset.chart : null, (chart, figure) => {
+      builder.open(card ? card.dataset.chart : null, (chart, drawing) => {
         const placed = element("div", {class: CARD, "data-chart": chart});
         // The server's drawing (app.chart_drawing), safe as it is built.
-        placed.innerHTML = figure;
+        placed.innerHTML = drawing;
         chartCard(placed);
         area.focus();
         if (card) {
@@ -594,7 +596,7 @@
         }
       }
       for (const node of area.querySelectorAll("[style], span, font")) {
-        if (node.closest(`${LOCKED}, ${CHART}`)) continue;
+        if (node.closest(SHOWN_ONLY)) continue;
         if (node.tagName === "SPAN" || node.tagName === "FONT") node.replaceWith(...node.childNodes);
         else node.removeAttribute("style");
       }
@@ -620,11 +622,10 @@
     // starts or ends with one: there is always a paragraph to write in. An
     // empty paragraph isn't saved.
     function ensureParagraph() {
-      const shown = `${LOCKED}, ${CHART}`;
-      if (!area.lastElementChild || area.lastElementChild.matches(shown)) {
+      if (!area.lastElementChild || area.lastElementChild.matches(SHOWN_ONLY)) {
         area.append(element("p", {}, [element("br")]));
       }
-      if (area.firstElementChild.matches(shown)) area.prepend(element("p", {}, [element("br")]));
+      if (area.firstElementChild.matches(SHOWN_ONLY)) area.prepend(element("p", {}, [element("br")]));
     }
 
     function changedHere() {
@@ -642,7 +643,7 @@
     // takes it.
     function posted() {
       const copy = area.cloneNode(true);
-      for (const block of copy.querySelectorAll(`${LOCKED}, ${CHART}`)) {
+      for (const block of copy.querySelectorAll(SHOWN_ONLY)) {
         let top = block;
         while (top.parentNode !== copy) top = top.parentNode;
         if (top !== block) top.after(block);
@@ -663,7 +664,7 @@
       const found = start && start.closest(selector);
       // Nothing in a locked block or a card is edited in place.
       return found && area.contains(found) && found !== area &&
-        !found.closest(`${LOCKED}, ${CHART}`) ? found : null;
+        !found.closest(SHOWN_ONLY) ? found : null;
     }
 
     function currentRange() {
@@ -767,16 +768,16 @@
     let pending = false;
     let timer = null;
     let latest = 0;
-    let done = null;
+    let onInsert = null;
     // Said once after a paste the grid couldn't hold all of.
     let pasteNote = "";
 
-    function open(text, onInsert) {
+    function open(text, inserted) {
       const chart = text ? parseJson(text, null) : null;
       state = chart ? fromChart(chart) : blankChart();
       touched = new Set();
       showAll = Boolean(chart);
-      done = onInsert;
+      onInsert = inserted;
       answer = null;
       pending = true;
       pasteNote = "";
@@ -911,7 +912,9 @@
     // first row is series names, and its first column category names, when
     // they aren't numbers: those go to the names, wherever it was pasted.
     // The cell above the category names names them: the category axis
-    // label, unless the writer has given one.
+    // label, unless the writer has given one. One column (a series copied
+    // with its name) is never category names: pasted into a series, its
+    // first cell is that series' name, if it isn't a number.
     grid.addEventListener("paste", (event) => {
       const input = event.target.closest("[data-field]");
       const text = event.clipboardData ? event.clipboardData.getData("text/plain") : "";
@@ -931,8 +934,11 @@
     }
 
     function pasteRange(rows, [top, left]) {
-      const seriesNames = rows[0].some((text, column) => column > 0 && text && !isValue(text));
-      const categoryNames = rows.slice(seriesNames ? 1 : 0)
+      const oneColumn = rows.every((cells) => cells.length === 1);
+      const seriesNames = oneColumn
+        ? left > 0 && rows.length > 1 && Boolean(rows[0][0]) && !isValue(rows[0][0])
+        : rows[0].some((text, column) => column > 0 && text && !isValue(text));
+      const categoryNames = !oneColumn && rows.slice(seriesNames ? 1 : 0)
         .some((cells) => cells[0] && !isValue(cells[0]));
       if (seriesNames) top = 0;
       if (categoryNames) left = 0;
@@ -995,9 +1001,9 @@
         renderGrid();
         redraw(0);
       } else if (action === "insert" && ready()) {
-        const {chart, figure} = answer;
+        const {chart, drawing} = answer;
         dialog.close();
-        done(chart, figure);
+        onInsert(chart, drawing);
       } else if (action === "cancel") {
         dialog.close();
       }
@@ -1023,15 +1029,15 @@
         if (request !== latest) return;
         pending = false;
         answer = found;
-        if (found && found.figure) {
+        if (found && found.drawing) {
           // The server's drawing (app.chart_drawing), safe as it is built.
-          preview.innerHTML = found.figure;
+          preview.innerHTML = found.drawing;
         } else if (!preview.querySelector("figure")) {
           preview.replaceChildren(element("p", {}, ["No chart yet."]));
         }
         // The last drawing stays, faded, until the Chart is valid again, so
         // the dialog doesn't jump as the writer types.
-        preview.classList.toggle("admin-chart-builder-stale", !(found && found.figure));
+        preview.classList.toggle("admin-chart-builder-stale", !(found && found.drawing));
         showAnswer();
       }, delay);
     }
@@ -1040,7 +1046,7 @@
       return !pending && Boolean(answer) && !answer.errors.length && Boolean(answer.chart);
     }
 
-    function shown(name) {
+    function errorShown(name) {
       return showAll || touched.has(name);
     }
 
@@ -1057,7 +1063,7 @@
         const slot = name && dialog.querySelector(`[data-error-for="${CSS.escape(name)}"]`);
         const input = name && dialog.querySelector(`[data-field="${CSS.escape(name)}"]`);
         if (slot && input) {
-          if (!shown(name)) continue;
+          if (!errorShown(name)) continue;
           slot.textContent = error.message;
           input.setAttribute("aria-invalid", "true");
         } else if (slot && (showAll || touched.size)) {

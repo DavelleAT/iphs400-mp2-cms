@@ -56,13 +56,13 @@ def test_a_valid_chart_is_drawn_as_the_public_page_draws_it(client_as, role):
     def without_ids(html: str) -> str:
         return re.sub(r"chart-[0-9a-f]{32}-[0-9]+-title", "ID", html)
 
-    assert without_ids(found["figure"]) == without_ids(public)
-    assert chart_drawing.TITLE_ID.search(found["figure"])
+    assert without_ids(found["drawing"]) == without_ids(public)
+    assert chart_drawing.TITLE_ID.search(found["drawing"])
 
 
 def test_each_error_comes_back_with_its_field(analyst):
     found = answer(analyst, source(title="", series=[series("482", "abc", name="Fall")]))
-    assert found["figure"] is None and found["chart"] is None
+    assert found["drawing"] is None and found["chart"] is None
     assert found["errors"] == [
         {"field": "title", "message": "Can't be blank"},
         {"field": "series.0.values.1", "message": "'abc' isn't a number"}]
@@ -86,12 +86,12 @@ def test_a_long_category_suggests_a_horizontal_bar_chart_even_with_errors(analys
     assert answer(analyst, source())["suggestion"] is None
 
 
-def test_writer_text_is_only_escaped_text_in_the_figure(analyst):
+def test_writer_text_is_only_escaped_text_in_the_drawing(analyst):
     hostile = '"><svg onload=alert(1)></title>&'
     found = answer(analyst, source(title=hostile, source="<script>x</script>"))
-    assert "<script>" not in found["figure"] and "<svg onload" not in found["figure"]
-    assert "&lt;script&gt;x&lt;/script&gt;" in found["figure"]
-    assert "&quot;&gt;&lt;svg onload=alert(1)&gt;&lt;/title&gt;&amp;" in found["figure"]
+    assert "<script>" not in found["drawing"] and "<svg onload" not in found["drawing"]
+    assert "&lt;script&gt;x&lt;/script&gt;" in found["drawing"]
+    assert "&quot;&gt;&lt;svg onload=alert(1)&gt;&lt;/title&gt;&amp;" in found["drawing"]
 
 
 def test_it_saves_nothing(analyst, tmp_path):
@@ -112,9 +112,9 @@ def test_a_missing_chart_field_is_an_error_not_a_crash(analyst):
 
 
 def test_the_answer_is_json_the_page_can_trust(analyst):
-    """Everything but the figure is data; the figure is only T16's drawing."""
+    """Everything but the drawing is data; the drawing is only T16's."""
     found = answer(analyst, source())
-    assert set(found) == {"errors", "figure", "chart", "suggestion"}
+    assert set(found) == {"errors", "drawing", "chart", "suggestion"}
     assert json.loads(found["chart"])["title"] == "Fall enrollment by class"
 
 

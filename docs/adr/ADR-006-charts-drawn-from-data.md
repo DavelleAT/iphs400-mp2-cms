@@ -41,8 +41,8 @@ has passed them, and `app.rendering` puts it in the page.
 - **Canonical form, only when edited.** A top-level Chart saved from an
   edited body is rewritten in one form: keys in the grammar's order, absent optional keys
   left out, `json.dumps(..., ensure_ascii=False, indent=2)`, NFC strings. An
-  untouched body, or a Chart the Editor shows as a locked block, keeps its
-  bytes (ADR-005). A Chart inside a list or quote is checked and drawn but
+  untouched body, or a Chart the Editor shows as a locked block (since T17,
+  only an invalid or nested one), keeps its bytes (ADR-005). A Chart inside a list or quote is checked and drawn but
   kept as typed: rewriting it would mean rewriting the list's or quote's
   own markers.
 - **The trusted SVG boundary.** Nothing inserted after nh3 is sanitized
@@ -87,6 +87,10 @@ has passed them, and `app.rendering` puts it in the page.
 - Uploaded Chart images stay (ADR-004), and no uploaded SVG is ever served.
 - The Editor shows a Chart as a locked block, drawn and read-only, until
   the Chart builder (T17) gives it an editable card.
+  - *T17:* a valid top-level Chart is now a card, edited in the Chart
+    builder, so it is rewritten in canonical form whenever its body is
+    edited, even if the Chart itself wasn't. An invalid or nested Chart is
+    still a locked block.
 - A future grammar version needs a new `version` and must keep reading
   version 1, because stored bodies are never rewritten unless edited.
 - Pie, stacked, scatter, and dual-axis charts, and colour choice, are out of

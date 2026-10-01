@@ -93,8 +93,8 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-editor-link[hidden], .admin-editor-link p[hidden] { display: none; }
 /* A site link that won't be a link on the site, marked for the writer. */
 .admin-editor-area a[data-link-mark]::after { background: #fff4ce; border-radius: 3px; color: #4d3800; content: attr(data-link-mark); display: inline-block; font-size: 0.75rem; font-style: normal; font-weight: 600; margin-left: 0.3em; padding: 0 0.35em; }
-.admin-editor-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
-.admin-editor-message:empty { display: none; }
+.admin-editor-message, .admin-chart-builder-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
+.admin-editor-message:empty, .admin-chart-builder-message:empty { display: none; }
 .admin-editor-area { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); min-height: 16rem; overflow-wrap: anywhere; padding: 0.25rem 0.75rem; }
 .admin-editor-locked { background: color-mix(in srgb, currentColor 5%, transparent); border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); margin-block: 0.75rem; padding: 0 0.75rem; }
 .admin-editor-locked-note { font-size: 0.875rem; font-style: italic; margin: 0.4rem 0; }
@@ -115,8 +115,6 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-chart-builder-hint { margin: 0 0 0.5rem; }
 .admin-chart-builder-suggestion { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; padding: 0.4rem 0.8rem; }
 .admin-chart-builder-suggestion[hidden] { display: none; }
-.admin-chart-builder-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
-.admin-chart-builder-message:empty { display: none; }
 .admin-chart-builder-error { color: #b3261e; display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
 .admin-chart-builder-error:empty { display: none; }
 .admin-chart-builder [aria-invalid="true"] { border-color: #b3261e; outline: 2px solid #b3261e; outline-offset: -1px; }

@@ -1,6 +1,6 @@
 """The Chart builder's live drawing (spec #14, T17). The Editor's "Insert
 chart" dialog posts the Chart it holds, as the grammar's JSON, and gets back
-its errors by field, or the figure T16's server rendering draws for it.
+its errors by field, or its drawing by T16's server rendering.
 Any signed-in user may use it; it saves nothing."""
 from __future__ import annotations
 
@@ -24,15 +24,15 @@ def _message(error: charts.ChartError) -> str:
 @router.post("/preview", dependencies=[Depends(require_csrf)])
 def preview_chart(chart: str = Form("")):
     """`chart`'s errors, each with its field (app.charts), and the type it
-    would be better as; if it has none, its figure and its canonical form,
+    would be better as; if it has none, its drawing and its canonical form,
     which the dialog inserts into the body."""
     problems = charts.problems(chart)
-    figure = canonical = None
+    drawing = canonical = None
     if not problems:
         parsed = charts.parse(chart)
         canonical = parsed.canonical()
         # Its title's id needs only to be unique on the admin page.
-        figure = chart_drawing.draw(parsed, secrets.token_hex(16), 0)
+        drawing = chart_drawing.draw(parsed, secrets.token_hex(16), 0)
     return JSONResponse({
         "errors": [{"field": error.field, "message": _message(error)} for error in problems],
-        "figure": figure, "chart": canonical, "suggestion": charts.suggestion(chart)})
+        "drawing": drawing, "chart": canonical, "suggestion": charts.suggestion(chart)})

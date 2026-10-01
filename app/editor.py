@@ -225,7 +225,9 @@ CARD = "admin-editor-chart"
 
 def _card_html(chart: charts.Chart, key: str, number: int) -> str:
     """A Chart as the Editor shows it: its drawing, and its canonical block,
-    which is what the Editor posts back."""
+    which is what the Editor posts back. Put in after nh3, like the site's
+    Charts: the drawing is safe as app.chart_drawing builds it, and the block
+    is escaped here; on save it is parsed again, never trusted."""
     return (f'<div class="{CARD}" data-chart="{escape(chart.canonical())}">'
             f'{chart_drawing.draw(chart, key, number)}</div>')
 
