@@ -37,14 +37,7 @@ def _images(request: Request, bite_id: int) -> editor.ImageLinks:
 @router.get("")
 def list_bites(request: Request, user=Depends(current_user),
                status: str = Depends(listing.status_filter)):
-    return templates.TemplateResponse(
-        request, "admin/data_bites.html",
-        {"title": "Data Bites", "user": user,
-         "rows": [listing.item_row(listing.DATA_BITE, bite, user)
-                  for bite in data_bites.list_all(status or None)],
-         "filters": listing.filters(request.url.path, data_bites.count_by_status(), status),
-         "status": status, "status_labels": STATUS_LABELS},
-    )
+    return listing.list_page(request, user, listing.DATA_BITE, status, "admin/data_bites.html")
 
 
 def _new_page(request: Request, user: sqlite3.Row, *, error: ContentError | None = None,
@@ -213,21 +206,27 @@ def delete_image(request: Request, bite_id: int, name: str):
     return RedirectResponse(f"/admin/data-bites/{bite_id}", status_code=303)
 
 
-def _set_status(request: Request, bite_id: int, status: str, message: str):
+def _set_status(request: Request, bite_id: int, status: str, message: str,
+                back_status: str):
+    """Publish or unpublish, then back to the list, filtered by `back_status`
+    as it was."""
     if not data_bites.set_status(bite_id, status):
         raise HTTPException(status_code=404)
     confirm(request, message + SITE_NOTE)
-    return RedirectResponse("/admin/data-bites", status_code=303)
+    back = f"?status={back_status}" if back_status else ""
+    return RedirectResponse(str(request.app.url_path_for("list_bites")) + back, status_code=303)
 
 
 @router.post("/{bite_id}/publish", dependencies=[Depends(require_csrf)])
-def publish(request: Request, bite_id: int):
-    return _set_status(request, bite_id, "published", "Data Bite published.")
+def publish(request: Request, bite_id: int,
+            back_status: str = Depends(listing.status_filter)):
+    return _set_status(request, bite_id, "published", "Data Bite published.", back_status)
 
 
 @router.post("/{bite_id}/unpublish", dependencies=[Depends(require_csrf)])
-def unpublish(request: Request, bite_id: int):
-    return _set_status(request, bite_id, "draft", "Data Bite moved back to Draft.")
+def unpublish(request: Request, bite_id: int,
+              back_status: str = Depends(listing.status_filter)):
+    return _set_status(request, bite_id, "draft", "Data Bite moved back to Draft.", back_status)
 
 
 @router.get("/{bite_id}/delete", dependencies=[Depends(require_director)])

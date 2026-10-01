@@ -195,8 +195,8 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .filters-console a:hover { border-color: var(--color-line-strong); color: var(--color-ink); }
 .filters-console a .text-mono { margin-left: 0.3rem; }
 .filters-console a[aria-current] { border-color: var(--color-purple); color: var(--color-ink); font-weight: 700; }
-.filters-content { align-items: end; display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
-.filters-content .field-console { margin-top: 1rem; }
+.form-content-filter { align-items: end; display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.form-content-filter .field-console { margin-top: 1rem; }
 .empty-console { border-bottom: 1px solid var(--color-line); color: var(--color-muted); margin: 0.75rem 0 0; padding: 1.25rem 0; }
 .badge-state { border: 1px solid; display: inline-block; font: 500 0.7rem/1 var(--font-mono); letter-spacing: 0.05em; padding: 0.3rem 0.45rem; text-transform: uppercase; white-space: nowrap; }
 .badge-state-published { background: var(--color-tint); border-color: transparent; color: var(--color-purple); }

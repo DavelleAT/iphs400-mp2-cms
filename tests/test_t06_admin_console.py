@@ -85,7 +85,7 @@ def listed(c: TestClient, query: str = "") -> list[tuple[str, str, str]]:
     the state as a badge."""
     response = c.get(f"/admin/content{query}")
     assert response.status_code == 200, response.text
-    return re.findall(r'<tr id="[a-z-]+-\d+">.*?<span class="table-items-type text-label">([^<]+)'
+    return re.findall(r'<tr id="[a-z-]+-\d+" role="row">.*?<span class="table-items-type text-label">([^<]+)'
                       r'</span><a href="[^"]+">([^<]+)</a>.*?<span class="badge-state [a-z-]+">'
                       r'(Draft|Published)</span>', response.text, re.S)
 

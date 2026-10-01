@@ -42,6 +42,12 @@ Content visible on the public site. The one-way gate: a Report only crosses
 it with Director action.
 _Avoid_: Live, public
 
+**State**:
+Whether a Data Bite or Report is a Draft or Published. The Console's lists
+show it as a badge and filter by it (spec #25, T22). In code and in the
+lists' `?status=`, it is `status`.
+_Avoid_: status (on a page), stage
+
 **Chart image**:
 An *uploaded* PNG, JPEG, or WebP picture (usually a chart made in Excel, R,
 or Tableau) that a Data Bite or Report shows inline, placed in its body with

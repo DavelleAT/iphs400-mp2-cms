@@ -3,7 +3,7 @@ add new admin routes here (or to a router built the same way) and they are
 protected without further work."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -11,7 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app import settings
 from app.auth import current_user, signed_in_user
 from app.content import STATUS_LABELS
-from app.routes.listing import CONTENT_TYPES, item_row, status_filter
+from app.routes.listing import CONTENT_TYPES, item_row, status_filter, type_filter
 from app.templating import templates
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(current_user)])
@@ -27,14 +27,6 @@ async def refused_page(request: Request, exc: StarletteHTTPException):
         {"title": "Not allowed", "user": signed_in_user(request), "reason": exc.detail},
         status_code=403,
     )
-
-
-def type_filter(content_type: str = Query("", alias="type")) -> str:
-    """The All content list's `?type=`: "" (all) or a type's key. 400 for any
-    other value, as for `?status=` (app.routes.listing)."""
-    if content_type not in ("", *(ctype.key for ctype in CONTENT_TYPES)):
-        raise HTTPException(status_code=400, detail="Unknown type filter.")
-    return content_type
 
 
 @router.get("")
@@ -54,7 +46,7 @@ def content_list(request: Request, user=Depends(current_user),
                  status: str = Depends(status_filter)):
     """Data Bites and Reports together, most recently updated first,
     optionally narrowed to one type and/or one status."""
-    rows = [item_row(ctype, item, user) for ctype in CONTENT_TYPES
+    rows = [item_row(request, ctype, item, user) for ctype in CONTENT_TYPES
             if content_type in ("", ctype.key) for item in ctype.module.list_all(status or None)]
     rows.sort(key=lambda row: row.item["updated_at"], reverse=True)
     return templates.TemplateResponse(

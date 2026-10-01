@@ -1,7 +1,10 @@
 {#- A refused save's message, beside the field it is about (error_field), and
     the field marked invalid and described by it. Any other refusal is shown
     above the form by the page. #}
-{%- macro invalid(name) %}{% if error_field == name %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}{% endmacro %}
+{%- macro invalid(name, hint="") %}
+  {%- set refused = error_field == name %}
+  {%- if hint or refused %} aria-describedby="{{ hint }}{% if hint and refused %} {% endif %}{% if refused %}{{ name }}-error{% endif %}"{% endif %}
+  {%- if refused %} aria-invalid="true"{% endif %}{% endmacro %}
 {%- macro field_error(name) %}{% if error_field == name %}
       <small id="{{ name }}-error" class="admin-field-error" role="alert">{{ error }}</small>{% endif %}{% endmacro %}
   <form class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
@@ -15,16 +18,11 @@
     {#- The Summary (spec #22): plain text, counted as the server counts it,
         its runs of whitespace as one space, by character. Over the limit,
         the count says so; the server refuses it, by this field. #}
-    {%- set summary_error = error if error_field == "summary" %}
     <p class="field-console admin-summary-field" data-summary-max="{{ summary_max }}"><label for="summary">Summary (optional)</label>
-      <textarea id="summary" name="summary" rows="2" cols="60"
-        aria-describedby="summary-hint{% if summary_error %} summary-error{% endif %}"
-        {%- if summary_error %} aria-invalid="true"{% endif %}>{{ form.summary }}</textarea>
+      <textarea id="summary" name="summary" rows="2" cols="60"{{ invalid("summary", "summary-hint") }}>{{ form.summary }}</textarea>
       <small id="summary-hint" class="field-console-hint">One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.
         <span class="admin-summary-count" aria-live="polite"></span></small>
-      {%- if summary_error %}
-      <small id="summary-error" class="admin-field-error" role="alert">{{ summary_error }}</small>
-      {%- endif %}</p>
+      {{- field_error("summary") }}</p>
     <script>
       (() => {
         const field = document.currentScript.previousElementSibling;
@@ -41,8 +39,7 @@
       })();
     </script>
     <p class="field-console"><label for="slug">Slug</label><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
-      pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint{% if error_field == "slug" %} slug-error{% endif %}"
-      {%- if error_field == "slug" %} aria-invalid="true"{% endif %}>
+      pattern="[a-z0-9]+(-[a-z0-9]+)*"{{ invalid("slug", "slug-hint") }}>
       <small id="slug-hint" class="field-console-hint">Lowercase letters, digits, and hyphens.</small>
       {{- field_error("slug") }}</p>
     {#- The Editor (app.editor, static/editor.js) takes over the textarea, and

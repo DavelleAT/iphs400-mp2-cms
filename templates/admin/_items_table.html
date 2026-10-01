@@ -1,33 +1,33 @@
 {#- The console's item table (spec #25, T22), for the Data Bites, Reports,
     and All content lists: `rows` (app.routes.listing.ItemRow), and the
     first column's head, `noun`. With `show_type`, each title says its type.
-    On a phone its rows stack, and it stays a table. #}
-  <table class="table-items table-items-stack">
-    <thead><tr><th scope="col">{{ noun }}</th><th scope="col">State</th><th scope="col">Author</th><th scope="col">Updated</th><th scope="col"><span class="text-hidden">Actions</span></th></tr></thead>
-    <tbody>
+    On a phone its rows stack; the explicit roles keep it a table to a screen
+    reader, which some browsers stop reading it as once its CSS display
+    changes (as T20's Reports table). #}
+  <table class="table-items table-items-stack" role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">{{ noun }}</th><th role="columnheader" scope="col">State</th><th role="columnheader" scope="col">Author</th><th role="columnheader" scope="col">Updated</th><th role="columnheader" scope="col"><span class="text-hidden">Actions</span></th></tr></thead>
+    <tbody role="rowgroup">
     {%- for row in rows %}
-      {%- set item, ctype = row.item, row.ctype %}
-      {%- set edit_path = ctype.list_path ~ "/" ~ item.id %}
-      <tr id="{{ ctype.key }}-{{ item.id }}">
-        <th scope="row" class="table-items-title">
-          {%- if show_type %}<span class="table-items-type text-label">{{ ctype.noun }}</span>{% endif -%}
-          <a href="{{ edit_path }}">{{ item.title }}</a>
+      {%- set item = row.item %}
+      <tr id="{{ row.ctype.key }}-{{ item.id }}" role="row">
+        <th role="rowheader" scope="row" class="table-items-title">
+          {%- if show_type %}<span class="table-items-type text-label">{{ row.ctype.noun }}</span>{% endif -%}
+          <a href="{{ row.edit_path }}">{{ item.title }}</a>
           {%- if item.summary %}<p>{{ item.summary }}</p>{% endif -%}
         </th>
-        <td><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span></td>
-        <td>{{ item.author_name }}</td>
-        <td class="text-mono"><time datetime="{{ item.updated_at | replace(" ", "T") }}">{{ item.updated_at[:10] }}</time></td>
-        <td class="table-items-actions">
-          <a class="button-quiet" href="{{ edit_path }}">{{ "Edit" if row.may_edit else "View" }}</a>
-          {%- if row.may_publish %}
-          {%- set action = "unpublish" if item.status == "published" else "publish" %}
-          <form method="post" action="{{ edit_path }}/{{ action }}">
+        <td role="cell"><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span></td>
+        <td role="cell">{{ item.author_name }}</td>
+        <td role="cell" class="text-mono"><time datetime="{{ item.updated_at | replace(" ", "T") }}">{{ item.updated_at[:10] }}</time></td>
+        <td role="cell" class="table-items-actions">
+          <a class="button-quiet" href="{{ row.edit_path }}">{{ "Edit" if row.may_edit else "View" }}</a>
+          {%- if row.status_path %}
+          <form method="post" action="{{ row.status_path }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-            <button class="button-quiet" type="submit">{{ action | capitalize }}</button>
+            <button class="button-quiet" type="submit">{{ "Unpublish" if item.status == "published" else "Publish" }}</button>
           </form>
           {%- endif %}
-          {%- if row.may_delete %}
-          <a class="button-quiet button-danger" href="{{ edit_path }}/delete">Delete</a>
+          {%- if row.delete_path %}
+          <a class="button-quiet button-danger" href="{{ row.delete_path }}">Delete</a>
           {%- endif %}
         </td>
       </tr>

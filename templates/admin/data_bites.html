@@ -8,13 +8,5 @@
     </div>
     <div class="actions-page"><a class="button-primary" href="{{ path_for('new_bite_form') }}">New Data Bite</a></div>
   </div>
-  {% include "admin/_list_filters.html" %}
-  {%- if rows %}
-  {%- set noun, show_type = "Data Bite", false %}
-  {% include "admin/_items_table.html" %}
-  {%- elif status %}
-  <p class="empty-console">{% if status == "published" %}No Data Bite is Published yet.{% else %}No Data Bite is a Draft.{% endif %}</p>
-  {%- else %}
-  <p class="empty-console">No Data Bites yet.</p>
-  {%- endif %}
+  {% include "admin/_items_list.html" %}
 {% endblock %}

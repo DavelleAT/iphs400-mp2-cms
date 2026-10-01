@@ -40,7 +40,7 @@ def row_ids(html: str, key: str) -> list[str]:
 
 
 def row(html: str, key: str, item_id: str) -> str:
-    match = re.search(rf'<tr id="{key}-{item_id}">(.*?)</tr>', html, re.S)
+    match = re.search(rf'<tr id="{key}-{item_id}" role="row">(.*?)</tr>', html, re.S)
     assert match, f"{key}-{item_id} is not listed"
     return match.group(1)
 
@@ -66,11 +66,11 @@ def test_each_row_has_the_title_summary_state_author_and_iso_date(client_as, kin
         conn.execute(f"UPDATE {kind.replace('-', '_')} SET updated_at = '2026-09-30 14:05:00'")
 
     cells = row(director.get(f"/admin/{kind}").text, key, item_id)
-    assert (f'<th scope="row" class="table-items-title"><a href="/admin/{kind}/{item_id}">Fall</a>'
+    assert (f'<th role="rowheader" scope="row" class="table-items-title"><a href="/admin/{kind}/{item_id}">Fall</a>'
             '<p>Headcount on the census date.</p></th>') in cells
     assert '<span class="badge-state badge-state-draft">Draft</span>' in cells
-    assert "<td>admin</td>" in cells  # the seeded Director's name
-    assert ('<td class="text-mono"><time datetime="2026-09-30T14:05:00">2026-09-30</time></td>'
+    assert "<td role=\"cell\">admin</td>" in cells  # the seeded Director's name
+    assert ('<td role="cell" class="text-mono"><time datetime="2026-09-30T14:05:00">2026-09-30</time></td>'
             in cells)
 
 
@@ -125,6 +125,30 @@ def test_an_analyst_may_not_publish_a_report_and_views_a_published_one(client_as
     assert f'<a class="button-quiet" href="/admin/reports/{live}">View</a>' in row(page, "report", live)
 
 
+@pytest.mark.parametrize("kind", LISTS)
+def test_the_row_links_are_the_routes(client_as, kind):
+    """Each row's links lead where the routes say, whichever type it is."""
+    key, _ = LISTS[kind]
+    director = client_as("admin")
+    item_id = create(director, kind, "fall")
+    cells = row(director.get(f"/admin/{kind}").text, key, item_id)
+    assert set(re.findall(r'(?:href|action)="([^"]+)"', cells)) == {
+        f"/admin/{kind}/{item_id}", f"/admin/{kind}/{item_id}/publish",
+        f"/admin/{kind}/{item_id}/delete"}
+    for path in (f"/admin/{kind}/{item_id}", f"/admin/{kind}/{item_id}/delete"):
+        assert director.get(path).status_code == 200, path
+
+
+def test_the_table_keeps_its_roles_when_its_rows_stack(client_as):
+    analyst = client_as("editor")
+    bid = create(analyst, "data-bites", "fall")
+    page = analyst.get("/admin/data-bites").text
+    assert '<table class="table-items table-items-stack" role="table">' in page
+    assert page.count('role="columnheader"') == 5
+    cells = row(page, "data-bite", bid)
+    assert '<th role="rowheader" scope="row"' in cells and cells.count('role="cell"') == 4
+
+
 # --- Filters -----------------------------------------------------------------
 
 @pytest.mark.parametrize("kind", LISTS)
@@ -155,6 +179,23 @@ def test_the_filters_show_their_counts_and_mark_the_current_one(client_as, kind)
     ]
     assert [current for *_, current in filters(director.get(f"/admin/{kind}").text)] == [
         True, False, False]
+
+
+@pytest.mark.parametrize("kind", LISTS)
+def test_publishing_from_a_filtered_list_returns_to_that_filter(client_as, kind):
+    key, _ = LISTS[kind]
+    director = client_as("admin")
+    live, draft = published_and_draft(kind, director)
+    cells = row(director.get(f"/admin/{kind}?status=draft").text, key, draft)
+    assert f'action="/admin/{kind}/{draft}/publish?status=draft"' in cells
+    response = post_form(director, f"/admin/{kind}/{draft}/publish?status=draft", {})
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/admin/{kind}?status=draft"
+    # Unfiltered, it returns to the whole list; a bad filter changes nothing.
+    response = post_form(director, f"/admin/{kind}/{live}/unpublish", {})
+    assert response.headers["location"] == f"/admin/{kind}"
+    assert post_form(director, f"/admin/{kind}/{draft}/unpublish?status=x", {}).status_code == 400
+    assert row(director.get(f"/admin/{kind}").text, key, draft).count("badge-state-published") == 1
 
 
 @pytest.mark.parametrize("path", ["/admin/data-bites", "/admin/reports", "/admin/content"])
@@ -272,7 +313,7 @@ def test_all_content_uses_the_same_table(client_as):
     bid = create(director, "data-bites", "fall", summary="A bite.")
     rid = create(director, "reports", "factbook")
     page = director.get("/admin/content").text
-    assert '<table class="table-items table-items-stack">' in page
+    assert '<table class="table-items table-items-stack" role="table">' in page
     bite = row(page, "data-bite", bid)
     assert '<p>A bite.</p>' in bite and "badge-state-draft" in bite
     assert f'action="/admin/data-bites/{bid}/publish"' in bite
@@ -283,4 +324,4 @@ def test_the_lists_stack_on_a_phone(client_as):
     analyst = client_as("editor")
     create(analyst, "data-bites", "fall"), create(analyst, "reports", "factbook")
     for path in ("/admin/data-bites", "/admin/reports", "/admin/content"):
-        assert '<table class="table-items table-items-stack">' in analyst.get(path).text
+        assert '<table class="table-items table-items-stack" role="table">' in analyst.get(path).text

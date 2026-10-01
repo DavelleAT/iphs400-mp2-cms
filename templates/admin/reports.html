@@ -12,13 +12,5 @@
     </div>
     <div class="actions-page"><a class="button-primary" href="{{ path_for('new_report_form') }}">New Report</a></div>
   </div>
-  {% include "admin/_list_filters.html" %}
-  {%- if rows %}
-  {%- set noun, show_type = "Report", false %}
-  {% include "admin/_items_table.html" %}
-  {%- elif status %}
-  <p class="empty-console">{% if status == "published" %}No Report is Published yet.{% else %}No Report is a Draft.{% endif %}</p>
-  {%- else %}
-  <p class="empty-console">No Reports yet.</p>
-  {%- endif %}
+  {% include "admin/_items_list.html" %}
 {% endblock %}
