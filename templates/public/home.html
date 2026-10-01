@@ -28,7 +28,7 @@
           <span class="text-label text-mono">{{ created_date(latest) }} · Data Bite</span>
           <h3><a href="{{ href }}">{{ latest.title }}</a></h3>
           {%- if latest.summary %}
-          <p>{{ latest.summary }}</p>
+          <p class="latest-home-summary">{{ latest.summary }}</p>
           {%- endif %}
           <a class="button-read" href="{{ href }}">Read the Data Bite <span aria-hidden="true">→</span></a>
         </div>

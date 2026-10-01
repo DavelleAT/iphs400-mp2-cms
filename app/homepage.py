@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 
 from app import db
+from app.content import one_line
 
 FIGURES_MAX = 4
 # Each field's limit in characters, the Key figures' by part.
@@ -55,26 +56,13 @@ SAMPLE = Homepage(
                  KeyFigure("10:1", "Student–faculty ratio", "Fall 2026"),
                  KeyFigure("87%", "Six-year graduation", "Class entering 2020")))
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS homepage (
-    id              INTEGER PRIMARY KEY CHECK (id = 1),  -- one row only
-    headline        TEXT NOT NULL,
-    headline_accent TEXT NOT NULL,
-    intro           TEXT NOT NULL,
-    key_figures     TEXT NOT NULL,  -- JSON: [{"value", "label", "note"}], at most four
-    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-"""
-
-
 def _row(settings: Homepage) -> tuple[str, str, str, str]:
     return (settings.headline, settings.headline_accent, settings.intro,
             json.dumps([asdict(figure) for figure in settings.key_figures]))
 
 
 def seed(conn: sqlite3.Connection) -> None:
-    """Make the table, with SAMPLE in it if it has no row yet (db.init_db)."""
-    conn.executescript(SCHEMA)
+    """Put SAMPLE in the table if it has no row yet (db.init_db)."""
     conn.execute("INSERT OR IGNORE INTO homepage"
                  " (id, headline, headline_accent, intro, key_figures)"
                  " VALUES (1, ?, ?, ?, ?)", _row(SAMPLE))
@@ -89,7 +77,7 @@ def get() -> Homepage:
 
 def _text(form: Mapping[str, str], field: str, limit: str, what: str) -> str:
     """A field's text as saved, its runs of whitespace as single spaces."""
-    text = " ".join(str(form.get(field, "")).split())
+    text = one_line(str(form.get(field, "")))
     if len(text) > LIMITS[limit]:
         raise SettingsError(f"Keep {what} to {LIMITS[limit]} characters or fewer; "
                             f"it has {len(text)}.", field)

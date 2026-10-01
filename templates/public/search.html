@@ -11,7 +11,7 @@
 {%- endblock %}
 {% block content %}
     <section class="section-list" aria-labelledby="search-results-title">
-      <h2 id="search-results-title" class="search-results-title">Results</h2>
+      <h2 id="search-results-title" class="text-hidden">Results</h2>
       {%- if items %}
       <p class="search-status" role="status">Everything published, {{ items | length }} {{ "item" if items | length == 1 else "items" }}. Search above to narrow it.</p>
       <ul class="list-search">

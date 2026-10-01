@@ -1,5 +1,4 @@
-"""SQLite access. Every content table's schema lives here, and init_db() builds
-them all, with the homepage settings' one-row table (app.homepage)."""
+"""SQLite access. Every table's schema lives here, so init_db() builds them all."""
 from __future__ import annotations
 
 import sqlite3
@@ -42,6 +41,16 @@ CREATE TABLE IF NOT EXISTS reports (
     updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
     file_name  TEXT,   -- the attached PDF's sanitized name for display; NULL if none
     ref        TEXT    -- what a site link names it by (app.site_links); never changes
+);
+
+-- Homepage settings (app.homepage): one row, seeded by init_db.
+CREATE TABLE IF NOT EXISTS homepage (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),  -- one row only
+    headline        TEXT NOT NULL,
+    headline_accent TEXT NOT NULL,
+    intro           TEXT NOT NULL,
+    key_figures     TEXT NOT NULL,  -- JSON: [{"value", "label", "note"}], at most four
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- The ref of each deleted Data Bite and Report (kind: "data-bite" or

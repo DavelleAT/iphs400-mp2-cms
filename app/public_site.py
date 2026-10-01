@@ -28,6 +28,7 @@ from types import ModuleType
 from markupsafe import Markup
 
 from app import data_bites, homepage, reports, settings, site_links
+from app.content import one_line
 from app.rendering import first_chart
 from app.templating import templates
 
@@ -143,7 +144,7 @@ def home() -> Page:
     latest = bites[0] if bites else None
     shown = homepage.get()
     return Page("index.html", "public/home.html",
-                {"homepage": shown, "description": shown.intro, "latest": latest,
+                {"homepage": shown, "meta_description": shown.intro, "latest": latest,
                  "latest_chart": latest and first_chart(latest["body"]),
                  "data_bites": bites[1:RECENT_DATA_BITES + 1]})
 
@@ -162,7 +163,7 @@ def data_bite(slug: str) -> Page | None:
 def _data_bite_page(bite: Mapping) -> Page:
     return Page(data_bite_path(bite["slug"]), "public/data_bite.html",
                 {"page_title": bite["title"], "bite": bite,
-                 "description": bite["summary"], "og_type": "article"},
+                 "meta_description": bite["summary"], "og_type": "article"},
                 images={name: data_bite_image_path(bite["slug"], name)
                         for name in _stored_images(data_bites, bite)})
 
@@ -217,7 +218,7 @@ def report(slug: str) -> Page | None:
 def _report_page(found: Mapping) -> Page:
     return Page(report_path(found["slug"]), "public/report.html",
                 {"page_title": found["title"], "report": found,
-                 "description": found["summary"], "og_type": "article",
+                 "meta_description": found["summary"], "og_type": "article",
                  "has_file": _stored_file(found) is not None},
                 images={name: report_image_path(found["slug"], name)
                         for name in _stored_images(reports, found)})
@@ -338,7 +339,7 @@ def _as_if_published(form: Mapping[str, str], saved: sqlite3.Row | None) -> dict
     item = dict(saved) if saved is not None else {
         "id": None, "slug": _UNSAVED_SLUG, "file_name": None,
         "created_at": now, "updated_at": now}
-    return {**item, "title": form["title"].strip(), "summary": " ".join(form["summary"].split()),
+    return {**item, "title": form["title"].strip(), "summary": one_line(form["summary"]),
             "body": form["body"], "status": "published"}
 
 

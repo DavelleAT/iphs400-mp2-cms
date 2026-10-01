@@ -57,16 +57,21 @@ def item_base(title: str, slug: str, body: str, summary: str = "") -> str:
     """The version of an item an edit form was opened on: a hash of its
     stored title, slug, body, and Summary, all of which the form saves. A
     hash of the body alone would let a stale form overwrite a newer title or
-    slug. An item without a Summary hashes as it did before Summaries."""
-    fields = [title, slug, body, summary] if summary else [title, slug, body]
-    return hashlib.sha256(json.dumps(fields).encode()).hexdigest()
+    slug."""
+    return hashlib.sha256(json.dumps([title, slug, body, summary]).encode()).hexdigest()
+
+
+def one_line(text: str) -> str:
+    """Plain text as a Summary or a Homepage setting is stored: its runs of
+    whitespace, line breaks too, as single spaces, trimmed."""
+    return " ".join(text.split())
 
 
 def validate_summary(summary: str) -> str:
     """A Summary as stored: plain text on one line, its runs of whitespace
     (line breaks too) as single spaces, trimmed. Empty is allowed: it's
     optional. ContentError, about the summary field, if it is too long."""
-    summary = " ".join(summary.split())
+    summary = one_line(summary)
     if len(summary) > SUMMARY_MAX:
         raise ContentError(f"Keep the summary to {SUMMARY_MAX} characters or fewer; "
                            f"it has {len(summary)}.", field="summary")
