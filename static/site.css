@@ -3,7 +3,7 @@
    Mono for figures and labels, built so 0/O and 1/l/I can't be confused.
    Solid fields of deep purple with a faint plotting grid, Kenyon purple and
    bright purple on paper, and one citron accent, used only on the purple
-   field (and for one Chart series in dark mode, where the paper is dark).
+   field.
    Never linked from an admin page, which has the console's own stylesheet.
 
    Text contrast, both themes, is listed in the closing comment of T19 (#23):
@@ -28,13 +28,12 @@
   --color-purple: #4b2e84;         /* Kenyon purple */
   --color-bright: #8f80ff;         /* Kenyon bright purple */
   --color-citron: #d6f550;         /* only ever on --color-field */
-  /* Chart series (the newest last): Kenyon purple, then green, then bright
-     purple, then a muted violet. Citron is too pale on paper for a mark, so
-     the light theme's green is a deep olive. */
+  /* Chart series (the newest last): Kenyon purple, then bright purple, then
+     two greys a third and fourth series need to be told apart. */
   --color-chart-newest: var(--color-purple);
-  --color-chart-green: #6b8a00;
   --color-chart-bright: var(--color-bright);
-  --color-chart-oldest: #8a849b;
+  --color-chart-grey: #8a849b;
+  --color-chart-neutral: #5d5870;
   --width-page: 78rem;
   --width-measure: 44rem;
 }
@@ -48,9 +47,8 @@
     --color-field: #1a0f33;
     --color-purple: #a99cff;
     --color-bright: #7d6ef0;
-    --color-chart-green: var(--color-citron);
     --color-chart-bright: #6352d6;   /* darker than the text step, so it parts from the newest */
-    --color-chart-oldest: #8a849b;
+    --color-chart-neutral: #e4e0ee;
   }
 }
 
@@ -173,9 +171,9 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .chart-figure circle { stroke: var(--color-paper); }
 /* Series by how many the Chart has, the newest (the last) in Kenyon purple. */
 .chart-figure { --chart-1: var(--color-chart-newest); }
-.chart-figure:has(.chart-series-2, .chart-line-2) { --chart-1: var(--color-chart-green); --chart-2: var(--color-chart-newest); }
-.chart-figure:has(.chart-series-3, .chart-line-3) { --chart-1: var(--color-chart-bright); --chart-2: var(--color-chart-green); --chart-3: var(--color-chart-newest); }
-.chart-figure:has(.chart-series-4, .chart-line-4) { --chart-1: var(--color-chart-oldest); --chart-2: var(--color-chart-bright); --chart-3: var(--color-chart-green); --chart-4: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-2, .chart-line-2) { --chart-1: var(--color-chart-bright); --chart-2: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-3, .chart-line-3) { --chart-1: var(--color-chart-grey); --chart-2: var(--color-chart-bright); --chart-3: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-4, .chart-line-4) { --chart-1: var(--color-chart-neutral); --chart-2: var(--color-chart-grey); --chart-3: var(--color-chart-bright); --chart-4: var(--color-chart-newest); }
 .chart-series-1, .chart-marker-1 { fill: var(--chart-1); } .chart-line-1 { stroke: var(--chart-1); }
 .chart-series-2, .chart-marker-2 { fill: var(--chart-2); } .chart-line-2 { stroke: var(--chart-2); }
 .chart-series-3, .chart-marker-3 { fill: var(--chart-3); } .chart-line-3 { stroke: var(--chart-3); }

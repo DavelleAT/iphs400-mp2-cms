@@ -56,12 +56,11 @@ The site is served from a GitHub Pages subfolder with relative paths only
   later spec, and it will start from `static/admin.css`.
 - A font update is a file swap. The licence files have to be kept with the
   fonts.
-- **The citron rule has one exception.** Spec #22 limits citron `#D6F550` to
-  the purple field. The user asked for the green in Charts. Citron on the
-  light paper is 1.2:1, too pale for a mark, so the light theme uses a deep
-  olive `#6B8A00` (3.8:1) for that series, and only dark mode uses citron
-  (15.5:1 on its paper). Series by count, the newest last: Kenyon purple
-  alone; then green before it; then bright purple; then a muted violet.
+- **Chart series, by count, the newest last.** One series is Kenyon purple;
+  two are bright purple then Kenyon purple, as spec #22 says. A third and
+  fourth series are greys (`#8A849B`, then `#5D5870` in light and `#E4E0EE`
+  in dark), not more bright purple, so no two series share a colour. Citron
+  stays off Charts: it is the field's accent only.
 
 ## Why this is an ADR
 
