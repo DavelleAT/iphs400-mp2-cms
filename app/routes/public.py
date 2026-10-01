@@ -40,18 +40,13 @@ def font(name: str):
     return asset(f"fonts/{name}")
 
 
-# By extension, so a font or licence is never sniffed as anything else.
-_ASSET_TYPES = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2",
-                ".txt": "text/plain; charset=utf-8"}
-
-
 def asset(path: str) -> FileResponse:
     """The stylesheet, or a font or its licence, at `path` in the site
     (public_site.assets)."""
     stored = public_site.assets().get(path)
     if stored is None:
         raise HTTPException(status_code=404)
-    return FileResponse(stored, media_type=_ASSET_TYPES[stored.suffix],
+    return FileResponse(stored, media_type=public_site.ASSET_TYPES[stored.suffix],
                         headers={"X-Content-Type-Options": "nosniff"})
 
 

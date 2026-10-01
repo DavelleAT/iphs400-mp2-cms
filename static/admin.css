@@ -5,7 +5,6 @@
 :root { color-scheme: light dark; }
 body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; }
 .header-home { font-weight: 700; text-decoration: none; }
-.nav-site ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
 main { margin-block: 2rem; }
 /* Admin only: the message after a successful save (app.flash). */
 .admin-confirmation { background: color-mix(in srgb, #2e7d32 12%, transparent); border-left: 4px solid #2e7d32; margin: 0 0 1.5rem; padding: 0.6rem 0.9rem; }

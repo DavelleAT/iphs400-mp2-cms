@@ -96,7 +96,6 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 /* The home intro. */
 .intro-home { border-top: 1px solid var(--color-field-line); padding-block: clamp(2.5rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem); }
 .intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; }
-.intro-home-lede { color: var(--color-field-text); font-size: 1.2rem; margin: 1.25rem 0 0; max-width: 36rem; }
 
 /* A page's title on the field: breadcrumb, title, and its facts row. */
 .title-item { border-top: 1px solid var(--color-field-line); padding-top: clamp(2rem, 6vw, 3.75rem); }
@@ -111,10 +110,10 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 /* Sections on paper: a mono number, a heading, and a link. */
 .section-home { padding-top: clamp(2.5rem, 6vw, 4.5rem); }
 .section-list { padding-top: clamp(1.5rem, 4vw, 2.5rem); }
-.head-section { align-items: baseline; border-bottom: 2px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-bottom: 0.5rem; padding-bottom: 0.6rem; }
-.head-section > .text-mono { color: var(--color-purple); font-size: 0.85rem; }
-.head-section h2 { font-size: 1.6rem; }
-.head-section a { color: var(--color-muted); margin-left: auto; }
+.section-head { align-items: baseline; border-bottom: 2px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-bottom: 0.5rem; padding-bottom: 0.6rem; }
+.section-head > .text-mono { color: var(--color-purple); font-size: 0.85rem; }
+.section-head h2 { font-size: 1.6rem; }
+.section-head a { color: var(--color-muted); margin-left: auto; }
 
 /* Data Bites and Reports: an ISO date column, then the title. */
 .list-data-bites, .list-reports { list-style: none; margin: 0; padding: 0; }
@@ -172,7 +171,7 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .chart-figure polyline { stroke-linecap: round; stroke-linejoin: round; }
 .chart-figure circle { stroke: var(--color-paper); }
 /* Series by how many the Chart has, the newest (the last) in Kenyon purple. */
-.chart-figure { --chart-1: var(--color-chart-newest); }
+.chart-figure { --chart-1: var(--color-chart-newest); --chart-2: var(--color-chart-newest); --chart-3: var(--color-chart-newest); --chart-4: var(--color-chart-newest); }
 .chart-figure:has(.chart-series-2, .chart-line-2) { --chart-1: var(--color-chart-bright); --chart-2: var(--color-chart-newest); }
 .chart-figure:has(.chart-series-3, .chart-line-3) { --chart-1: var(--color-chart-grey); --chart-2: var(--color-chart-bright); --chart-3: var(--color-chart-newest); }
 .chart-figure:has(.chart-series-4, .chart-line-4) { --chart-1: var(--color-chart-neutral); --chart-2: var(--color-chart-grey); --chart-3: var(--color-chart-bright); --chart-4: var(--color-chart-newest); }
@@ -204,7 +203,7 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   :root { --color-paper: #fff; --color-ink: #000; --color-muted: #333; --color-line: #999; --color-purple: #000; }
   body { font-size: 11pt; }
   .field-site { background: none; color: #000; }
-  .field-site a, .nav-breadcrumb, .nav-breadcrumb a, .meta-item dt, .meta-item dd, .meta-item a, .intro-home-lede { color: #000; }
+  .field-site a, .nav-breadcrumb, .nav-breadcrumb a, .meta-item dt, .meta-item dd, .meta-item a { color: #000; }
   .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back { display: none; }
   .header-site { padding-block: 0 0.5rem; }
   .header-mark { background: none; border: 1px solid #000; color: #000; }

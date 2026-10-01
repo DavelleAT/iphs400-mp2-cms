@@ -2,7 +2,7 @@
 {% from "public/_lists.html" import data_bite_list, title_field, fact with context %}
 {% block field %}
   {%- call title_field([(home_path, "Home")], "Data Bites") %}
-    {%- call fact("Published") %}<span class="text-mono">{{ data_bites | length }}</span>{% endcall %}
+    {%- call fact("Count") %}<span class="text-mono">{{ data_bites | length }}</span>{% endcall %}
     {%- call fact("Order") %}Newest first{% endcall %}
   {%- endcall %}
 {%- endblock %}

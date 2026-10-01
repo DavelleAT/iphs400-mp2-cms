@@ -199,8 +199,17 @@ def test_404_with_a_base_path_is_based_at_the_site_root(client, monkeypatch, con
     page = client.get("/404.html").text
     assert re.findall(r'<base href="([^"]+)">', page) == ["https://example.github.io/cms/"]
     assert stylesheets(page) == ["style.css"] and "<style>" not in page
-    # A fragment link would resolve against the <base>, off this page.
+    # "#main" would resolve against the <base>, the site's root: the skip
+    # link names this page at its own path instead.
+    assert '<a class="skip-link" href="404.html#main">Skip to content</a>' in page
     assert 'href="#' not in page
+
+
+@pytest.mark.parametrize("configured", ["/cms/", "cms/", "//example.github.io/cms/"])
+def test_a_base_path_that_is_not_a_url_is_ignored(client, monkeypatch, configured):
+    monkeypatch.setattr(settings, "BASE_PATH", configured)
+    page = client.get("/404.html").text
+    assert "<base" not in page and "<style>" in page
 
 
 def test_the_only_base_in_the_export_is_404s_and_no_link_is_root_absolute(

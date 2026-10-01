@@ -21,9 +21,10 @@ _SITE_PATH = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", re.ASCII)
 
 def site_file(path: str, images: dict[str, Path], pdfs: dict[str, Path] | None = None) -> Response:
     """What a Site preview's link to `path` in the site gets: the stylesheet
-    or a font (public_site.assets), or one of the previewed item's own chart `images` or `pdfs` (a Report's
-    file), by path in the site, which the public site would not serve for a
-    draft. Any other page sends the browser to the published one."""
+    or a font (public_site.assets), or one of the previewed item's own chart
+    `images` or `pdfs` (a Report's file), by path in the site, which the
+    public site would not serve for a draft. Any other page sends the browser
+    to the published one."""
     if path in public_site.assets():
         return asset(path)
     if path in images:

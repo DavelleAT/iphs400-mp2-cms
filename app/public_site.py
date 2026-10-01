@@ -31,6 +31,9 @@ from app.templating import templates
 # The site's stylesheet and the fonts it loads, with their licences (ADR-007).
 STYLESHEET = settings.STATIC / "site.css"
 FONTS = settings.STATIC / "fonts"
+# What each kind of asset is served as, by extension; never sniffed.
+ASSET_TYPES = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2",
+               ".txt": "text/plain; charset=utf-8"}
 RECENT_DATA_BITES = 5  # on the home page; the rest are on the Data Bites list
 # A new item's slug in its Site preview, which only its paths use.
 _UNSAVED_SLUG = "untitled"
@@ -237,7 +240,9 @@ def not_found() -> Page:
     (local use) it inlines its stylesheet and links as from the site's root,
     which is right for a miss at the top level."""
     base = settings.BASE_PATH
-    if base and not base.endswith("/"):
+    if not base.startswith(("https://", "http://")):
+        base = ""  # a path alone would be a root-absolute link (ADR-001)
+    elif not base.endswith("/"):
         base += "/"  # else the <base> is the site's parent folder
     return Page("404.html", "public/not_found.html",
                 {"page_title": "Page not found", "site_base": base,
@@ -256,7 +261,7 @@ def assets() -> dict[str, Path]:
     stored}: style.css, and fonts/ beside it with the fonts' OFL licences."""
     return {"style.css": STYLESHEET,
             **{f"fonts/{font.name}": font for font in sorted(FONTS.iterdir())
-               if font.suffix in (".woff2", ".txt")}}
+               if font.suffix in ASSET_TYPES}}
 
 
 def files() -> dict[str, Path]:

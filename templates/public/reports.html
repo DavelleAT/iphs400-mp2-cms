@@ -2,7 +2,7 @@
 {% from "public/_lists.html" import report_list, title_field, fact with context %}
 {% block field %}
   {%- call title_field([(home_path, "Home")], "Reports") %}
-    {%- call fact("Published") %}<span class="text-mono">{{ reports | length }}</span>{% endcall %}
+    {%- call fact("Count") %}<span class="text-mono">{{ reports | length }}</span>{% endcall %}
     {%- call fact("Order") %}By title{% endcall %}
   {%- endcall %}
 {%- endblock %}

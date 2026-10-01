@@ -8,7 +8,7 @@
    404.html (`site_base`, app.public_site.not_found), which GitHub Pages
    serves at whatever path was missed. Without a site_base, 404.html inlines
    its stylesheet (`inline_css`) instead of linking it. #}
-{% from "public/_lists.html" import nav_number with context %}
+{% from "public/_lists.html" import index_number with context %}
 {%- set base_href = preview_base or site_base -%}
 <!doctype html>
 <html lang="en">
@@ -25,10 +25,12 @@
   {%- endif %}
 </head>
 <body>
-  {#- Under a <base>, a fragment link resolves against it and leaves the
-      page: so neither a Site preview nor 404.html with a site_base has one. #}
-  {%- if not base_href %}
-  <a class="skip-link" href="#main">Skip to content</a>
+  {#- Under a <base>, "#main" resolves against it, not this page. 404.html's
+      <base> is the site's root, so it skips to 404.html#main, the same page
+      at its own path. A Site preview, in a sandboxed frame in the console,
+      has none. #}
+  {%- if not preview_base %}
+  <a class="skip-link" href="{{ '404.html' if site_base }}#main">Skip to content</a>
   {%- endif %}
   <div class="field-site"><div class="layout-wrap">
     {%- if preview_base %}
@@ -38,11 +40,11 @@
     </header>
     <nav class="nav-site" aria-label="Site"><ul>
       {%- for report in nav_reports %}{% set path = report_path(report.slug) %}
-      <li><a href="{{ root }}{{ path }}"{% if path == page_path %} aria-current="page"{% endif %}>{{ nav_number(loop.index) }}{{ report.title }}</a></li>
+      <li><a href="{{ root }}{{ path }}"{% if path == page_path %} aria-current="page"{% endif %}>{{ index_number(loop.index) }}{{ report.title }}</a></li>
       {%- endfor %}
       <li><a href="{{ root }}data-bites/index.html"
         {%- if page_path == "data-bites/index.html" %} aria-current="page"
-        {%- elif page_path.startswith("data-bites/") %} aria-current="true"{% endif %}>{{ nav_number(nav_reports | length + 1) }}Data Bites</a></li>
+        {%- elif page_path.startswith("data-bites/") %} aria-current="true"{% endif %}>{{ index_number(nav_reports | length + 1) }}Data Bites</a></li>
     </ul></nav>
   </div></div>
   <main id="main">

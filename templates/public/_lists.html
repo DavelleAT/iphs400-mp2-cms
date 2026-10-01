@@ -4,12 +4,12 @@
 
 {% macro created_date(item) %}{{ iso_date(item.created_at) }}{% endmacro %}
 
-{#- A nav entry's or section's number, 01, 02, … #}
-{% macro nav_number(n) %}<span class="text-mono">{{ "%02d" | format(n) }}</span>{% endmacro %}
+{#- A nav entry's or a section's number: 01, 02, … #}
+{% macro index_number(n) %}<span class="text-mono">{{ "%02d" | format(n) }}</span>{% endmacro %}
 
 {#- A numbered section's heading row: its number, heading, and a link. #}
 {% macro section_head(n, id, heading, href, link) %}
-  <div class="head-section">{{ nav_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2><a class="text-label" href="{{ href }}">{{ link }}</a></div>
+  <div class="section-head">{{ index_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2><a class="text-label" href="{{ href }}">{{ link }}</a></div>
 {%- endmacro %}
 
 {% macro data_bite_list(bites) %}

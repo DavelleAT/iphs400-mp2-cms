@@ -35,18 +35,31 @@ The site is served from a GitHub Pages subfolder with relative paths only
   host would be a second origin and a request for every visitor.
 - **404.html carries a `<base>`.** GitHub Pages serves `404.html` at whatever
   missing URL was asked for, at any depth, so a relative link in it resolves
-  against the wrong folder. With `CMS_BASE_PATH` set (the deployed site's
-  URL, given a trailing `/` if it lacks one), `404.html` has
-  `<base href="CMS_BASE_PATH">`, and its links work at any depth. With it
+  against the wrong folder. With `CMS_BASE_PATH` set to the deployed site's
+  full URL (given a trailing `/` if it lacks one), `404.html` has
+  `<base href="CMS_BASE_PATH">`, and its links work at any depth. A value
+  that isn't an `http(s)://` URL is ignored, since a path alone would be a
+  root-absolute link. With it
   unset (local use), it inlines its stylesheet and links as from the site's
   root, which is right for a miss at the top level. Fonts then load only for
   a top-level miss.
 - **The crawler's one exception.** The T07/T08 crawler, which fails on any
   root-absolute or absolute site link, allows exactly one `<base>`, in
   `404.html`. The crawler starts from `index.html` and `404.html`, and follows
-  the stylesheet's `url()`s. A page with a `<base>` (a Site preview, or
-  `404.html` with `CMS_BASE_PATH`) has no skip link, because a `#main` link
-  would resolve against the `<base>` and leave the page.
+  the stylesheet's `url()`s.
+- **The skip link under a `<base>`.** `#main` resolves against a `<base>`,
+  not the page. `404.html`'s `<base>` is the site's root, so its skip link is
+  `404.html#main`: the same page, at its own path. A Site preview, a
+  sandboxed frame in the console, has no skip link.
+- **Chart series, by count, the newest last.** One series is Kenyon purple;
+  two are bright purple then Kenyon purple, as spec #22 says. A third and
+  fourth series are greys (`#8A849B`, then `#5D5870` in light and `#E4E0EE`
+  in dark), not more bright purple, so no two series share a colour. Citron
+  stays off Charts: it is the field's accent only. In dark mode, Kenyon
+  purple `#4B2E84` is 1.8:1 on the dark paper, so the newest series takes
+  the dark theme's Kenyon purple step, the light `#A99CFF`, and bright purple
+  a deeper `#6352D6` (3.4:1) to stay apart from it. The colours come from
+  `:has()` on the figure; without it every series is Kenyon purple.
 
 ## Consequences
 
@@ -56,12 +69,6 @@ The site is served from a GitHub Pages subfolder with relative paths only
   later spec, and it will start from `static/admin.css`.
 - A font update is a file swap. The licence files have to be kept with the
   fonts.
-- **Chart series, by count, the newest last.** One series is Kenyon purple;
-  two are bright purple then Kenyon purple, as spec #22 says. A third and
-  fourth series are greys (`#8A849B`, then `#5D5870` in light and `#E4E0EE`
-  in dark), not more bright purple, so no two series share a colour. Citron
-  stays off Charts: it is the field's accent only.
-
 ## Why this is an ADR
 
 It changes how every page gets its styles and where the site's files come
