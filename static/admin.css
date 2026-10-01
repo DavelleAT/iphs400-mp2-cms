@@ -189,6 +189,7 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .list-console-items > li > time { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
 .list-console-meta { color: var(--color-muted); font-size: 0.85rem; grid-column: 1; }
 .list-console-meta time { font-size: 0.8rem; }
+.list-console-meta time, .panel-console time { white-space: nowrap; }
 @media (max-width: 40rem) {
   .list-console-items > li { grid-template-columns: minmax(0, 1fr) auto; }
   .list-console-items > li > .button-secondary { grid-column: 1 / -1; justify-self: start; }

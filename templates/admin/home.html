@@ -30,7 +30,7 @@
         {%- for row in waiting %}{% set item = row.item %}
           <li id="waiting-{{ row.ctype.key }}-{{ item.id }}"><span class="list-console-title"><a href="{{ row.edit_path }}">{{ item.title }}</a></span>{{ state_badge(item) }}
             {%- if user.role == "admin" %}<a class="button-secondary" href="{{ row.edit_path }}">Review</a>
-            <span class="list-console-meta">Drafted by {{ item.author_name }} ({{ item.author_role | role_label }}) · updated {{ iso_date(item.updated_at) }}</span>
+            <span class="list-console-meta">Drafted by {{ "you" if item.author_id == user.id else item.author_name ~ " (" ~ item.author_role | role_label ~ ")" }} · updated {{ iso_date(item.updated_at) }}</span>
             {%- else %}<a class="button-secondary" href="{{ row.edit_path }}">Edit</a>
             <span class="list-console-meta">{{ row.ctype.noun }} · updated {{ iso_date(item.updated_at) }}</span>
             {%- endif %}</li>

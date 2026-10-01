@@ -136,6 +136,12 @@ def test_each_waiting_report_has_review_and_who_drafted_it(client_as):
             '<time class="text-mono" datetime="2026-09-14T10:00:00">2026-09-14</time>') in row
 
 
+def test_the_directors_own_draft_report_says_drafted_by_you(client_as):
+    director = client_as("admin")
+    rid = create(director, "reports", "fact-sheet")
+    assert "Drafted by you · updated" in item(director.get("/admin").text, "waiting", f"report-{rid}")
+
+
 def test_an_analyst_waits_on_their_own_drafts_of_both_kinds(client_as):
     director, analyst = client_as("admin"), client_as("editor")
     riley = second_analyst(director)
