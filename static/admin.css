@@ -77,15 +77,15 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .link-skip:focus-visible { outline-color: var(--color-ink); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 
-/* Form controls inside a console page: square, on the surface. :where()
-   keeps these at an element's weight, so any class (.button-primary, the
-   Editor's own) wins over them. */
-:where(.page-console) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
-:where(.page-console) :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) { background: var(--color-surface); border: 1px solid var(--color-line-strong); padding: 0.45rem 0.6rem; }
-:where(.page-console) :is(input, select, textarea):focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
-:where(.page-console) :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--color-danger); }
-:where(.page-console) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
-:where(.page-console) button:hover { border-color: var(--color-ink); }
+/* Form controls inside a console page, and the Chart builder (a dialog
+   outside it): square, on the surface. :where() keeps these at an element's
+   weight, so any class (.button-primary, the Editor's own) wins over them. */
+:where(.page-console, .admin-chart-builder) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
+:where(.page-console, .admin-chart-builder) :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) { background: var(--color-surface); border: 1px solid var(--color-line-strong); padding: 0.45rem 0.6rem; }
+:where(.page-console, .admin-chart-builder) :is(input, select, textarea):focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
+:where(.page-console, .admin-chart-builder) :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--color-danger); }
+:where(.page-console, .admin-chart-builder) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
+:where(.page-console, .admin-chart-builder) button:hover { border-color: var(--color-ink); }
 :where(.page-console) input[type="file"]::file-selector-button { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-ink); cursor: pointer; font: 600 0.85rem var(--font-text); margin-right: 0.75rem; padding: 0.4rem 0.75rem; }
 
 /* The slim bar: the field, its grid, the mark, numbered nav, who's signed in. */
@@ -252,7 +252,7 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .grid-edit .field-console-title { margin-top: 0; }
 .page-console:has(.bar-save) { padding-bottom: 9rem; }
 .facts-page { display: flex; flex-wrap: wrap; gap: 0.35rem 1.75rem; margin: 0.75rem 0 0; }
-.facts-page div { align-items: center; display: flex; gap: 0.5rem; }
+.facts-page > div { align-items: center; display: flex; gap: 0.5rem; }
 .facts-page dt { color: var(--color-muted); }
 .facts-page dd { margin: 0; }
 .field-console-title input { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; padding-block: 0.45rem; }
@@ -261,20 +261,20 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .admin-summary-over .admin-summary-count { color: var(--color-danger); font-weight: 700; }
 /* The slug as an address: its folder and .html either side of it. */
 .field-console-slug { align-items: stretch; display: flex; }
-.field-console-slug span { align-items: center; background: var(--color-tint); border: 1px solid var(--color-line-strong); color: var(--color-muted); display: flex; font: 500 0.85rem var(--font-mono); padding-inline: 0.6rem; white-space: nowrap; }
-.field-console-slug span:first-child { border-right: 0; }
-.field-console-slug span:last-child { border-left: 0; }
+.field-console-slug > span { align-items: center; background: var(--color-tint); border: 1px solid var(--color-line-strong); color: var(--color-muted); display: flex; font: 500 0.85rem var(--font-mono); padding-inline: 0.6rem; white-space: nowrap; }
+.field-console-slug > span:first-child { border-right: 0; }
+.field-console-slug > span:last-child { border-left: 0; }
 .field-console .field-console-slug input { font-family: var(--font-mono); font-size: 0.9rem; min-width: 0; }
 .field-console-file { border-top: 1px solid var(--color-line); padding-top: 1.25rem; }
 .field-console-file p { margin: 0 0 0.35rem; }
 .field-console-attached { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
 .field-console-attached + label { margin-top: 0.85rem; }
 .field-console-attached .button-quiet { font-size: 0.85rem; padding-block: 0.35rem; }
-.field-console .field-console-file input[type="file"], .field-console-file input[type="file"] { padding-inline: 0; }
+.field-console-file input[type="file"] { padding-inline: 0; }
 .content-image-warning { background: var(--color-tint); border-left: 3px solid var(--color-bright); margin: 1.25rem 0 0; padding: 0.7rem 1rem; }
 /* A Report locked for this user: as saved, nothing to change. */
 .facts-item { margin: 0; }
-.facts-item div { border-bottom: 1px solid var(--color-line); padding: 0.75rem 0; }
+.facts-item > div { border-bottom: 1px solid var(--color-line); padding: 0.75rem 0; }
 .facts-item dt { color: var(--color-muted); font: 500 0.75rem/1.3 var(--font-mono); letter-spacing: 0.05em; margin-bottom: 0.25rem; text-transform: uppercase; }
 .facts-item dd { margin: 0; overflow-wrap: anywhere; }
 
@@ -288,9 +288,9 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .content-images-list form { margin: 0; }
 .content-images-list .button-danger { border-color: transparent; font-size: 0.85rem; padding-block: 0.4rem; }
 .content-images-list .button-danger:hover { box-shadow: none; }
-.content-images label { display: block; font-size: 0.92rem; font-weight: 700; }
+.content-images form label { display: block; font-size: 0.92rem; font-weight: 700; }
 .content-images input[type="file"] { display: block; font-weight: 400; margin-top: 0.35rem; max-width: 100%; }
-.content-images small { color: var(--color-muted); display: block; font-size: 0.82rem; margin-top: 0.35rem; }
+.content-images form small { color: var(--color-muted); display: block; font-size: 0.82rem; margin-top: 0.35rem; }
 
 /* The Site preview: Desktop or Phone, and Open in a new tab. Sticky beside
    the fields; in their flow once they are one column. */
@@ -318,13 +318,6 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .bar-save form { margin: 0; }
 /* A phone: the State on its own line, the actions together under it. */
 @media (max-width: 40rem) { .bar-save-state { flex-basis: 100%; } }
-
-/* Form controls inside the Chart builder, which is a dialog outside the page. */
-:where(.admin-chart-builder) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
-:where(.admin-chart-builder) :is(input, select) { background: var(--color-surface); border: 1px solid var(--color-line-strong); padding: 0.45rem 0.6rem; }
-:where(.admin-chart-builder) :is(input, select):focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
-:where(.admin-chart-builder) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
-:where(.admin-chart-builder) button:hover { border-color: var(--color-ink); }
 
 /* The Editor (static/editor.js), restyled by its classes: "Body", then one
    box of its toolbar, its panels, and the body itself. */

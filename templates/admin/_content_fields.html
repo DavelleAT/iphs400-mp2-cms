@@ -10,10 +10,12 @@
 {#- Two columns at desktop width (spec #25): the item's form, then on an edit
     page a Report's file and the chart images, and the save bar; beside them,
     the Site preview. The save bar's Save comes before the preview's "Open",
-    which also submits the form, so it stays the button Enter presses. #}
+    which also submits the form, so it stays the button Enter presses. Needs
+    `ctype` (app.routes.listing.ContentType); with `unsaved`, the form holds a
+    refused post's values, which the Editor counts as unsaved. #}
 <div class="grid-edit">
   <div class="grid-edit-main">
-  <form id="form-item" class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
+  <form id="form-item" class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}{% if unsaved %} data-unsaved="1"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     {%- if form.item_base %}
     <input type="hidden" name="item_base" value="{{ form.item_base }}">
@@ -43,9 +45,9 @@
         show();
       })();
     </script>
-    {#- The slug, as the item's address on the site: `address`, its folder. #}
+    {#- The slug, as the item's Address on the site, in its type's folder. #}
     <div class="field-console"><label for="slug">Address</label>
-      <div class="field-console-slug"><span>{{ address }}</span><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
+      <div class="field-console-slug"><span>{{ ctype.folder }}</span><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
       pattern="[a-z0-9]+(-[a-z0-9]+)*"{{ invalid("slug", "slug-hint") }}><span>.html</span></div>
       <small id="slug-hint" class="field-console-hint">Its page on the site. Lowercase letters, digits, and hyphens.</small>
       {{- field_error("slug") }}</div>

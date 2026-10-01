@@ -139,8 +139,9 @@ def test_save_from_the_save_bar_still_refuses_a_stale_form(client_as, kind, crea
     assert save(director, kind, item_id, tab_b, title="Saved in tab B").status_code == 303
     response = save(director, kind, item_id, tab_a, title="Saved in tab A")
     assert response.status_code == 409 and STALE in response.text
-    # The refusal keeps the save bar, and its unsaved work is marked as such.
+    # The refusal keeps the save bar, and its unsaved title is marked as such.
     assert "Save changes" in bar_buttons(response.text)
+    assert '<span class="bar-save-dirty">Unsaved changes</span>' in save_bar(response.text)
 
 
 def test_save_is_the_forms_first_submit_button_so_enter_saves(client_as):
@@ -203,12 +204,30 @@ def test_the_unsaved_marker_shows_after_a_refused_save_of_an_edited_body(client_
     assert '<span class="bar-save-dirty">Unsaved changes</span>' in save_bar(response.text)
 
 
+@pytest.mark.parametrize("kind, create", KINDS)
+def test_a_refused_save_of_only_a_field_is_unsaved_too(client_as, kind, create):
+    """A refused save holds values that were never saved, whether or not the
+    body changed: the marker shows, and the form tells the Editor, which warns
+    before the page is left."""
+    director = client_as("admin")
+    item_id = create(director)
+    page = director.get(f"/admin/{kind}/{item_id}").text
+    response = save(director, kind, item_id, page, title="Retitled", slug="Not A Slug")
+    assert response.status_code == 400
+    assert '<span class="bar-save-dirty">Unsaved changes</span>' in save_bar(response.text)
+    assert re.search(r'<form id="form-item"[^>]* data-unsaved="1"', response.text)
+    # Opened afresh, nothing is unsaved.
+    fresh = director.get(f"/admin/{kind}/{item_id}").text
+    assert "data-unsaved" not in fresh and '<span class="bar-save-dirty" hidden>' in fresh
+
+
 def test_the_marker_follows_the_editors_unsaved_state():
     """The Editor tells its form when it has unsaved changes (the only change
     to static/editor.js), and the save bar listens for it."""
     editor = (ROOT / "static/editor.js").read_text()
     bar = (ROOT / "templates/admin/_save_bar.html").read_text()
     assert 'new CustomEvent("admin-editor-unsaved")' in editor
+    assert 'form.dataset.unsaved === "1"' in editor
     assert '"admin-editor-unsaved"' in bar
 
 

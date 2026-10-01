@@ -1,11 +1,12 @@
 {#- An edit page's save bar (spec #25, T23), pinned to the bottom. Needs
     `item`, and `actions` (app.routes.listing.ItemRow): the user's actions on
-    it, each shown only if theirs to take. Save submits the item's form
+    it, each shown only if theirs to take. "Unsaved changes" shows from the
+    start for a refused post (`unsaved`) or an edited body. Save submits the item's form
     (#form-item); Publish or Unpublish posts its own, back to this page; Delete
     opens the confirmation page. Read-only, it shows the State and why. #}
   <div class="bar-save" role="region" aria-label="Save"><div class="bar-save-inner">
     <span class="bar-save-state" role="status"><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span>
-      {%- if actions.may_edit %}<span class="bar-save-dirty"{% if not form.body_dirty %} hidden{% endif %}>Unsaved changes</span>
+      {%- if actions.may_edit %}<span class="bar-save-dirty"{% if not (unsaved or form.body_dirty) %} hidden{% endif %}>Unsaved changes</span>
       {%- else %}<span class="bar-save-note">Only the Director can edit, unpublish, or delete a published Report.</span>{% endif %}</span>
     {%- if actions.delete_path %}
     <a class="button-quiet button-danger" href="{{ actions.delete_path }}">Delete</a>
@@ -13,7 +14,7 @@
     {%- if actions.status_path %}
     <form method="post" action="{{ actions.status_path }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-      <input type="hidden" name="back" value="item">
+      <input type="hidden" name="back" value="item">{# listing.BACK_TO_ITEM #}
       <button class="button-secondary" type="submit">{{ "Unpublish" if item.status == "published" else "Publish" }}</button>
     </form>
     {%- endif %}

@@ -44,12 +44,15 @@ def _new_page(request: Request, user: sqlite3.Row, *, error: ContentError | None
               form: dict | None = None, status_code: int = 200):
     """The create form, on its own page; again, with what was typed, after a
     refused create."""
+    # A refused create's values were never saved.
+    unsaved = form is not None
     form = form or {"title": "", "slug": "", "summary": "", "body": ""}
     body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/data_bite_new.html",
         {"title": "New Data Bite", "user": user,
-         **editing.error_for(error), "form": form,
+         **editing.error_for(error), "form": form, "unsaved": unsaved,
+         "ctype": listing.DATA_BITE,
          "editor_html": editor.editor_html(form["body"], "", None),
          **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, None),
@@ -102,6 +105,8 @@ def new_bite_preview_site(path: str):
 def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
                error: ContentError | None = None, form: dict | None = None,
                status_code: int = 200):
+    # A refused save's values were never saved, whether or not the body changed.
+    unsaved = form is not None
     form = form or editor.form_for(bite)
     # The body with its locked blocks, which only the server sees.
     body = editor.full_body(form["body"], bite["body"])
@@ -111,7 +116,8 @@ def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
         {"title": "Edit Data Bite", "user": user,
          "bite": bite, "status_labels": STATUS_LABELS,
          "actions": listing.item_row(request, listing.DATA_BITE, bite, user),
-         **editing.error_for(error), "form": form,
+         **editing.error_for(error), "form": form, "unsaved": unsaved,
+         "ctype": listing.DATA_BITE,
          "editor_html": editor.editor_html(form["body"], bite["body"], links.src),
          "images": names,
          "body_images": editing.body_images(links, names),
@@ -209,16 +215,13 @@ def delete_image(request: Request, bite_id: int, name: str):
 
 def _set_status(request: Request, bite_id: int, status: str, message: str,
                 back_status: str, back: str):
-    """Publish or unpublish, then back to the edit page if `back` is "item"
-    (its save bar), else to the list, filtered by `back_status` as it was."""
+    """Publish or unpublish, then back where it was posted from
+    (listing.after_status_change)."""
     if not data_bites.set_status(bite_id, status):
         raise HTTPException(status_code=404)
     confirm(request, message + SITE_NOTE)
-    if back == "item":
-        return RedirectResponse(request.app.url_path_for("edit_bite_form", bite_id=bite_id),
-                                status_code=303)
-    query = f"?status={back_status}" if back_status else ""
-    return RedirectResponse(str(request.app.url_path_for("list_bites")) + query, status_code=303)
+    return listing.after_status_change(request, listing.DATA_BITE, bite_id,
+                                       back=back, back_status=back_status)
 
 
 @router.post("/{bite_id}/publish", dependencies=[Depends(require_csrf)])

@@ -92,7 +92,9 @@
       if (!unsaved) form.dispatchEvent(new CustomEvent("admin-editor-unsaved"));
       unsaved = true;
     };
-    if (bodyDirty.value === "1") markUnsaved();
+    // A page re-shown after a refused save holds values never saved, body
+    // or not (admin/_content_fields.html).
+    if (bodyDirty.value === "1" || form.dataset.unsaved === "1") markUnsaved();
 
     const ui = element("div", {class: "admin-editor-ui"});
     ui.innerHTML = `

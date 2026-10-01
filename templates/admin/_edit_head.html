@@ -1,7 +1,6 @@
 {#- An edit page's head (spec #25, T23): the item's title, its State, who
     made it and when, and, once Published, its page on the site. Needs `item`
-    and `actions` (app.routes.listing.ItemRow), and `site_route`, the public
-    route of its page. #}
+    and `actions` (app.routes.listing.ItemRow). #}
 {%- macro iso_date(stamp) %}<time datetime="{{ stamp | replace(" ", "T") }}">{{ stamp[:10] }}</time>{% endmacro %}
   <div class="head-page"><div>
     <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / <a href="{{ path_for(actions.ctype.list_route) }}">{{ actions.ctype.plural }}</a> / {{ "Edit" if actions.may_edit else "View" }}</span>
@@ -14,7 +13,7 @@
     </dl>
   </div>
   {%- if item.status == "published" %}
-  <div class="actions-page"><a class="button-quiet" href="{{ path_for(site_route, slug=item.slug) }}">View on site <span aria-hidden="true">↗</span></a></div>
+  <div class="actions-page"><a class="button-quiet" href="{{ path_for(actions.ctype.site_route, slug=item.slug) }}">View on site <span aria-hidden="true">↗</span></a></div>
   {%- endif %}
   </div>
   {%- if error and not error_field %}<p class="alert-console" role="alert">{{ error }}</p>{% endif %}

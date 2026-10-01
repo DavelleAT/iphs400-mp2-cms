@@ -11,6 +11,7 @@ from types import ModuleType
 from typing import NamedTuple
 
 from fastapi import HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 
 from app import data_bites, reports
 from app.content import STATUS_LABELS
@@ -28,16 +29,20 @@ class ContentType:
     list_route: str   # its admin routes' names, for url_path_for / path_for
     edit_route: str
     delete_route: str  # the confirm-delete page
+    site_route: str   # its public page's route, e.g. "data_bite"
+    folder: str       # its pages' folder on the site, the start of its Address
     director_publishes: bool  # only a Director may publish or unpublish one
     can_edit: Callable[[sqlite3.Row, sqlite3.Row], bool]  # (item, user): else read-only
 
 
 DATA_BITE = ContentType("data-bite", "Data Bite", "Data Bites", data_bites, "bite_id",
                         "list_bites", "edit_bite_form", "confirm_delete_bite",
-                        director_publishes=False, can_edit=lambda item, user: True)
+                        "data_bite", "data-bites/", director_publishes=False,
+                        can_edit=lambda item, user: True)
 REPORT = ContentType("report", "Report", "Reports", reports, "report_id",
                      "list_reports", "edit_report_form", "confirm_delete_report",
-                     director_publishes=True, can_edit=reports.can_edit)
+                     "report", "reports/", director_publishes=True,
+                     can_edit=reports.can_edit)
 CONTENT_TYPES = (DATA_BITE, REPORT)
 
 # The State filters, in order: the query value ("" for all) and its label.
@@ -71,7 +76,8 @@ class ItemRow:
     may_edit: bool             # else its page is read-only for the user ("View")
     edit_path: str
     status_path: str | None    # publish a draft, or unpublish; None if not the user's to do.
-                               # It returns to the list filtered as it was.
+                               # It returns to the list filtered as it was, or,
+                               # posted with back=item, to the edit page.
     delete_path: str | None    # Director only
 
 
@@ -92,6 +98,23 @@ def item_row(request: Request, ctype: ContentType, item: sqlite3.Row, user: sqli
                    edit_path=path(ctype.edit_route),
                    status_path=path(action) + back if may_publish else None,
                    delete_path=path(ctype.delete_route) if director else None)
+
+
+# A Publish or Unpublish form's `back` from an edit page's save bar (T23).
+BACK_TO_ITEM = "item"
+
+
+def after_status_change(request: Request, ctype: ContentType, item_id: int, *,
+                        back: str, back_status: str) -> RedirectResponse:
+    """Where Publish or Unpublish returns: the item's edit page if posted from
+    its save bar (`back`), else the type's list, filtered by `back_status` as
+    it was."""
+    if back == BACK_TO_ITEM:
+        path = str(request.app.url_path_for(ctype.edit_route, **{ctype.id_param: item_id}))
+    else:
+        path = str(request.app.url_path_for(ctype.list_route))
+        path += f"?status={back_status}" if back_status else ""
+    return RedirectResponse(path, status_code=303)
 
 
 class StateFilter(NamedTuple):

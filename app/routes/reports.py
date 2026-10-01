@@ -48,12 +48,15 @@ def _new_page(request: Request, user: sqlite3.Row, *, error: ContentError | None
               form: dict | None = None, status_code: int = 200):
     """The create form, on its own page; again, with what was typed, after a
     refused create (a chosen file is not kept)."""
+    # A refused create's values were never saved.
+    unsaved = form is not None
     form = form or {"title": "", "slug": "", "summary": "", "body": ""}
     body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/report_new.html",
         {"title": "New Report", "user": user,
-         **editing.error_for(error), "form": form, "max_file_mb": _MAX_FILE_MB,
+         **editing.error_for(error), "form": form, "unsaved": unsaved,
+         "ctype": listing.REPORT, "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], "", None),
          **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, None),
@@ -109,6 +112,8 @@ def new_report_preview_site(path: str):
 def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
                error: ContentError | None = None, form: dict | None = None,
                status_code: int = 200):
+    # A refused save's values were never saved, whether or not the body changed.
+    unsaved = form is not None
     form = form or editor.form_for(report)
     # The body with its locked blocks, which only the server sees.
     body = editor.full_body(form["body"], report["body"])
@@ -119,6 +124,7 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
          "report": report, "can_edit": reports.can_edit(report, user),
          "actions": listing.item_row(request, listing.REPORT, report, user),
          "status_labels": STATUS_LABELS, **editing.error_for(error), "form": form,
+         "unsaved": unsaved, "ctype": listing.REPORT,
          "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], report["body"], links.src),
          "images": names,
@@ -272,16 +278,13 @@ def delete_image(request: Request, report_id: int, name: str,
 
 def _set_status(request: Request, report_id: int, status: str, message: str,
                 back_status: str, back: str):
-    """Publish or unpublish, then back to the edit page if `back` is "item"
-    (its save bar), else to the list, filtered by `back_status` as it was."""
+    """Publish or unpublish, then back where it was posted from
+    (listing.after_status_change)."""
     if not reports.set_status(report_id, status):
         raise HTTPException(status_code=404)
     confirm(request, message + SITE_NOTE)
-    if back == "item":
-        return RedirectResponse(request.app.url_path_for("edit_report_form", report_id=report_id),
-                                status_code=303)
-    query = f"?status={back_status}" if back_status else ""
-    return RedirectResponse(str(request.app.url_path_for("list_reports")) + query, status_code=303)
+    return listing.after_status_change(request, listing.REPORT, report_id,
+                                       back=back, back_status=back_status)
 
 
 @router.post("/{report_id}/publish",

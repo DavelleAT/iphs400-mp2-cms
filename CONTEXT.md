@@ -90,6 +90,13 @@ It is a link on the site only while its target is Published; otherwise it
 shows as plain text (spec #14, T14).
 _Avoid_: internal link, cross-reference
 
+**Address**:
+Where a Data Bite's or Report's page is on the site: its type's folder, its
+slug, and `.html` (e.g. `data-bites/fall-enrollment.html`). The edit page
+shows the slug as an Address field, the folder and `.html` either side of it
+(spec #25, T23). In code, and in the form, the part typed is the `slug`.
+_Avoid_: URL, permalink, slug (on a page)
+
 **Site preview**:
 A Draft (or unsaved edits) rendered as its public page would look, with the
 site's nav and stylesheet and a "Draft preview, not published" banner. Saves

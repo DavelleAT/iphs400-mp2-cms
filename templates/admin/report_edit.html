@@ -1,15 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-  {%- set item, site_route = report, "report" %}
+  {%- set item = report %}
   {% include "admin/_edit_head.html" %}
   {% if can_edit %}
   {% include "admin/_undescribed_images.html" %}
-  {% set action = "/admin/reports/" ~ report.id %}
-  {% set address = "reports/" %}
+  {% set action = path_for('edit_report', report_id=report.id) %}
   {% set file_label = ("Replace" if report.file_name else "Attach") ~ " PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
   {% set attached = {"name": report.file_name,
                      "href": path_for('download_file', report_id=report.id),
-                     "remove": "/admin/reports/" ~ report.id ~ "/file/delete"} %}
+                     "remove": path_for('remove_file', report_id=report.id)} %}
   {% include "admin/_content_fields.html" %}
   {% else %}
   {#- Locked for this user (an Analyst, the Report published): as saved,
@@ -17,7 +16,7 @@
   <div class="grid-edit">
     <div class="grid-edit-main">
       <dl class="facts-item">
-        <div><dt>Address</dt><dd class="text-mono">reports/{{ report.slug }}.html</dd></div>
+        <div><dt>Address</dt><dd class="text-mono">{{ ctype.folder }}{{ report.slug }}.html</dd></div>
         {%- if report.summary %}
         <div><dt>Summary</dt><dd>{{ report.summary }}</dd></div>
         {%- endif %}

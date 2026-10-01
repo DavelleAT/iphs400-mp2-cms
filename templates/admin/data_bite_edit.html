@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-  {%- set item, site_route = bite, "data_bite" %}
+  {%- set item = bite %}
   {% include "admin/_edit_head.html" %}
   {% include "admin/_undescribed_images.html" %}
-  {% set action = "/admin/data-bites/" ~ bite.id %}
-  {% set address = "data-bites/" %}
+  {% set action = path_for('edit_bite', bite_id=bite.id) %}
   {% include "admin/_content_fields.html" %}
 {% endblock %}
