@@ -9,13 +9,15 @@ from / and exported to a GitHub Pages subfolder. Where each kind of page or
 file sits is decided here, by the *_path functions, and nowhere else.
 
 Content is read only through the published-only queries (`list_published`,
-`get_published`), so a draft cannot reach a page, a link, or the navigation.
+`get_published`), so a draft cannot reach a page, a link, the navigation, or
+the search index.
 The one exception is a Site preview (`data_bite_preview`, `report_preview`),
 which the admin console renders for one item, as if it were published, and
 which is never written to the site.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
@@ -29,12 +31,17 @@ from app import data_bites, homepage, reports, settings, site_links
 from app.rendering import first_chart
 from app.templating import templates
 
-# The site's stylesheet and the fonts it loads, with their licences (ADR-007).
+# The site's stylesheet and the fonts it loads, with their licences (ADR-007),
+# and Site search's script.
 STYLESHEET = settings.STATIC / "site.css"
 FONTS = settings.STATIC / "fonts"
+SEARCH_SCRIPT = settings.STATIC / "search.js"
 # What each kind of asset is served as, by extension; never sniffed.
 ASSET_TYPES = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2",
-               ".txt": "text/plain; charset=utf-8"}
+               ".txt": "text/plain; charset=utf-8", ".js": "text/javascript; charset=utf-8"}
+# Site search's index of the published items, which `cms publish` writes and
+# the app serves, as search_index_json().
+SEARCH_INDEX = "search-index.json"
 # On the home page, after the latest one; the rest are on the Data Bites list.
 RECENT_DATA_BITES = 5
 # A new item's slug in its Site preview, which only its paths use.
@@ -268,17 +275,41 @@ def not_found() -> Page:
                  "inline_css": None if base else Markup(STYLESHEET.read_text(encoding="utf-8"))})
 
 
+def search_index() -> list[dict[str, str]]:
+    """Site search's index: each published Report, by title, then each
+    published Data Bite, newest first, as its kind, title, Summary, date (as
+    its list shows it), and path in the site. Nothing from a draft."""
+    return ([{"kind": "Report", "title": found["title"], "summary": found["summary"],
+              "date": found["updated_at"][:10], "path": report_path(found["slug"])}
+             for found in reports.list_published()]
+            + [{"kind": "Data Bite", "title": bite["title"], "summary": bite["summary"],
+                "date": bite["created_at"][:10], "path": data_bite_path(bite["slug"])}
+               for bite in data_bites.list_published()])
+
+
+def search_index_json() -> str:
+    return json.dumps(search_index(), ensure_ascii=False)
+
+
+def search() -> Page:
+    """search.html: every published item, which search.js narrows to a
+    query's matches. Without JavaScript, the full list is what it shows."""
+    return Page("search.html", "public/search.html",
+                {"page_title": "Search", "items": search_index()})
+
+
 def pages() -> list[Page]:
     """Every page of the site: what `cms publish` writes."""
-    return [home(), data_bite_list(), report_list(), not_found(),
+    return [home(), data_bite_list(), report_list(), search(), not_found(),
             *map(_data_bite_page, data_bites.list_published()),
             *map(_report_page, reports.list_published())]
 
 
 def assets() -> dict[str, Path]:
-    """The stylesheet and its fonts, as {path in the site: where it is
-    stored}: style.css, and fonts/ beside it with the fonts' OFL licences."""
-    return {"style.css": STYLESHEET,
+    """The stylesheet and its fonts, and Site search's script, as {path in
+    the site: where it is stored}: style.css, search.js, and fonts/ beside
+    them with the fonts' OFL licences."""
+    return {"style.css": STYLESHEET, "search.js": SEARCH_SCRIPT,
             **{f"fonts/{font.name}": font for font in sorted(FONTS.iterdir())
                if font.suffix in ASSET_TYPES}}
 

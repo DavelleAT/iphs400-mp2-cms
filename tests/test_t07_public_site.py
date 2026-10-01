@@ -164,7 +164,8 @@ EXTERNAL = re.compile(r"(?:https:|mailto:)", re.I)
 def crawl(client: TestClient) -> dict[str, bytes]:
     """Every public page and file a visitor can reach by following links from
     the home page, or from 404.html, where a missed link lands, by path.
-    Follows the stylesheet's url()s too, to its fonts (T19). Fails on a broken
+    Follows the stylesheet's url()s too, to its fonts (T19), and the search
+    form's action and what search.js fetches, the index (T20). Fails on a broken
     link, and on any link but an <a>'s https: or mailto: that isn't relative:
     root-absolute, any other scheme, or any absolute src. The one <base>
     allowed is 404.html's (ADR-007)."""
@@ -179,7 +180,10 @@ def crawl(client: TestClient) -> dict[str, bytes]:
         if path.endswith(".css"):
             found = [("url", "url", link) for link in re.findall(r'url\("([^"]+)"\)', response.text)]
         elif path.endswith(".html"):
-            found = re.findall(r'<(\w+)\b[^>]*?\b(href|src)="([^"]+)"', response.text)
+            found = re.findall(r'<(\w+)\b[^>]*?\b(href|src|action)="([^"]+)"', response.text)
+        elif path.endswith(".js"):
+            # Relative to the page that runs it, search.html, beside it.
+            found = [("fetch", "fetch", link) for link in re.findall(r'fetch\("([^"]+)"\)', response.text)]
         else:
             continue
         for tag, attribute, link in found:

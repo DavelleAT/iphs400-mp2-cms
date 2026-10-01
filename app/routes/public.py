@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 
 from app import chart_images, public_site
 from app.public_site import Page
@@ -30,9 +30,25 @@ def not_found():
     return _html(public_site.not_found())
 
 
+@router.get("/search.html")
+def search():
+    return _html(public_site.search())
+
+
+@router.get("/" + public_site.SEARCH_INDEX)
+def search_index():
+    return Response(public_site.search_index_json(), media_type="application/json",
+                    headers={"X-Content-Type-Options": "nosniff"})
+
+
 @router.get("/style.css")
 def stylesheet():
     return asset("style.css")
+
+
+@router.get("/search.js")
+def search_script():
+    return asset("search.js")
 
 
 @router.get("/fonts/{name}")
@@ -41,8 +57,8 @@ def font(name: str):
 
 
 def asset(path: str) -> FileResponse:
-    """The stylesheet, or a font or its licence, at `path` in the site
-    (public_site.assets)."""
+    """The stylesheet, Site search's script, or a font or its licence, at
+    `path` in the site (public_site.assets)."""
     stored = public_site.assets().get(path)
     if stored is None:
         raise HTTPException(status_code=404)

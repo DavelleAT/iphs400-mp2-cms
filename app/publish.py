@@ -29,6 +29,8 @@ def render_site(out: Path | None = None) -> Path:
         _target(out, page.path).write_text(page.render(), encoding="utf-8")
     for path, stored in {**public_site.assets(), **public_site.files()}.items():
         shutil.copyfile(stored, _target(out, path))
+    _target(out, public_site.SEARCH_INDEX).write_text(public_site.search_index_json(),
+                                                      encoding="utf-8")
     return out
 
 

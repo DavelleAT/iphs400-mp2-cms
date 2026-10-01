@@ -73,10 +73,23 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 /* A Site preview's banner (Page.render_preview); never on a published page. */
 .site-preview-banner { border-bottom: 1px dashed var(--color-citron); color: var(--color-citron); font: 500 0.78rem/1.3 var(--font-mono); letter-spacing: 0.04em; margin: 0; padding-block: 0.6rem; text-transform: uppercase; }
 
-.header-site { align-items: center; display: flex; gap: 1rem 2rem; padding-block: 1.25rem; }
+.header-site { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; padding-block: 1.25rem; }
 .header-home { align-items: center; display: flex; gap: 0.8rem; text-decoration: none; }
 .header-mark { background: var(--color-citron); color: var(--color-field); display: grid; flex: none; font: 700 1.05rem/1 var(--font-mono); height: 2.6rem; letter-spacing: -0.04em; place-items: center; width: 2.6rem; }
 .header-home-text { font-size: 1.1rem; line-height: 1.25; }
+/* Site search in the header: a plain GET to search.html. Its label is
+   read, not shown; the field's own placeholder says what it searches. On a
+   phone it takes the header's full width, under the name. */
+.search-site { display: flex; }
+.search-site-label, .search-results-title { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.search-site input { background: rgb(255 255 255 / 0.07); border: 1px solid var(--color-field-line); border-radius: 0; border-right: 0; color: #fff; font: 400 0.95rem var(--font-text); padding: 0.55rem 0.8rem; width: 16rem; }
+.search-site input::placeholder { color: var(--color-field-text); opacity: 1; }
+.search-site button { background: var(--color-citron); border: 0; border-radius: 0; color: var(--color-field); cursor: pointer; font: 700 0.9rem var(--font-text); padding: 0 1rem; }
+.search-site button:hover { background: #fff; }
+@media (max-width: 40rem) {
+  .search-site { flex: 1 1 100%; }
+  .search-site input { flex: 1; min-width: 0; width: auto; }
+}
 
 /* Numbered nav: the Reports, then Data Bites. On a phone it scrolls
    sideways, fading at the edge, and never wraps. */
@@ -160,6 +173,17 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .list-data-bites a::after { content: ""; inset: 0; position: absolute; }
 .list-data-bites li:hover a { color: var(--color-purple); text-decoration: underline; }
 @media (max-width: 40rem) { .list-data-bites li { grid-template-columns: 1fr; } .list-data-bites p { grid-column: 1; } }
+
+/* Search results (search.html): a title, its date and kind, its Summary. */
+.search-status { color: var(--color-muted); font: 500 0.85rem/1.4 var(--font-mono); margin: 0 0 0.5rem; }
+.list-search { border-top: 2px solid var(--color-ink); list-style: none; margin: 0; padding: 0; }
+.list-search li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.2rem; padding: 1.1rem 0; position: relative; }
+.list-search li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
+.list-search a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+.list-search a::after { content: ""; inset: 0; position: absolute; }
+.list-search li:hover a { color: var(--color-purple); text-decoration: underline; }
+.list-search .text-label { color: var(--color-muted); }
+.list-search p { color: var(--color-muted); margin: 0; overflow-wrap: break-word; }
 
 /* Reports, in a real table: Report, What it covers, Updated, Format. On a
    phone each row stacks: the title and Summary, then the date and format. */
@@ -262,7 +286,7 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   .summary-item, .intro-home-accent, .intro-home-lede, .figures-home dt, .figures-home dt small { color: #000; }
   .figures-home, .figures-home div { border-color: #000; }
   .button-read { display: none; }
-  .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back { display: none; }
+  .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back, .search-site { display: none; }
   .header-site { padding-block: 0 0.5rem; }
   .header-mark { background: none; border: 1px solid #000; color: #000; }
   .title-item, .intro-home, .meta-item { border-color: #000; padding-top: 0.5rem; }

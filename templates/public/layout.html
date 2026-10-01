@@ -45,6 +45,13 @@
     <p class="site-preview-banner" role="note">Draft preview, not published</p>{% endif %}
     <header class="header-site">
       <a class="header-home" href="{{ home_path }}"><span class="header-mark" aria-hidden="true">IR</span><b class="header-home-text">{{ title }}</b></a>
+      {#- Site search: a plain GET to search.html, which lists everything
+          without JavaScript and search.js narrows with it. #}
+      <form class="search-site" role="search" action="{{ root }}search.html" method="get">
+        <label class="search-site-label" for="search-site-q">Search the site</label>
+        <input id="search-site-q" type="search" name="q" placeholder="Search Reports and Data Bites">
+        <button type="submit">Search</button>
+      </form>
     </header>
     <nav class="nav-site" aria-label="Site"><ul>
       {%- for report in nav_reports %}{% set path = report_path(report.slug) %}
@@ -68,5 +75,6 @@
     {#- The fonts' OFL licences travel with them (ADR-007). #}
     <p class="footer-colophon text-label">Set in Atkinson Hyperlegible <a href="{{ root }}fonts/OFL-atkinson-hyperlegible-next.txt">Next</a> and <a href="{{ root }}fonts/OFL-atkinson-hyperlegible-mono.txt">Mono</a>, under the SIL Open Font License</p>
   </div></footer>
+  {%- block scripts %}{% endblock %}
 </body>
 </html>

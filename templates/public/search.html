@@ -1,0 +1,31 @@
+{% extends "public/layout.html" %}
+{% from "public/_lists.html" import iso_date, title_field, fact with context %}
+{#- Site search (search.js). This list is every published item, from the
+    same index search.js reads; with a query, the script lists its matches
+    in its place and says how many in the status line. #}
+{% block field %}
+  {%- call title_field([(home_path, "Home")], "Search") %}
+    {%- call fact("Searches") %}Titles and Summaries{% endcall %}
+    {%- call fact("Published") %}<span class="text-mono">{{ items | length }}</span>{% endcall %}
+  {%- endcall %}
+{%- endblock %}
+{% block content %}
+    <section class="section-list" aria-labelledby="search-results-title">
+      <h2 id="search-results-title" class="search-results-title">Results</h2>
+      {%- if items %}
+      <p class="search-status" role="status">Everything published, {{ items | length }} {{ "item" if items | length == 1 else "items" }}. Search above to narrow it.</p>
+      <ul class="list-search">
+        {%- for item in items %}
+        <li><a href="{{ root }}{{ item.path }}">{{ item.title }}</a><span class="text-label text-mono">{{ iso_date(item.date) }} · {{ item.kind }}</span>
+          {%- if item.summary %}<p>{{ item.summary }}</p>{% endif %}</li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      <p class="search-status" role="status">Nothing is published yet.</p>
+      <ul class="list-search"></ul>
+      {%- endif %}
+    </section>
+{%- endblock %}
+{% block scripts %}
+  <script src="{{ root }}search.js" defer></script>
+{%- endblock %}
