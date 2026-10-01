@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuse a commit that would add a transcript with a password, secret, token,
+# or the author's email in it (scripts/redact_transcripts.py). Enabled by
+#   git config core.hooksPath .githooks
+exec python3 "$(git rev-parse --show-toplevel)/scripts/redact_transcripts.py" --staged

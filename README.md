@@ -19,6 +19,7 @@ https://davelleat.github.io/iphs400-mp2-cms/ — the public site, rebuilt with
 ```bash
 uv sync
 cp .env.example .env
+git config core.hooksPath .githooks  # refuse to commit an unredacted transcript
 uv run python scripts/seed_demo.py   # demo Director + Analyst (passwords from .env)
 uv run cms serve        # then open http://localhost:8000/admin and log in as
                         # admin@example.test or editor@example.test
