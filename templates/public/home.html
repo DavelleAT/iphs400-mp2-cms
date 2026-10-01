@@ -1,5 +1,5 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import data_bite_list, report_list, section_head with context %}
+{% from "public/_lists.html" import data_bite_list, report_table, section_head with context %}
 {% block field %}
     <div class="field-site"><div class="layout-wrap"><section class="intro-home" aria-labelledby="intro-home-title">
       <h1 id="intro-home-title">{{ title }}</h1>
@@ -18,7 +18,7 @@
     <section class="section-home" aria-labelledby="reports-home-title">
       {{- section_head(2, "reports-home-title", "Reports", root ~ "reports/index.html", "All Reports") }}
       {%- if nav_reports %}
-      {{ report_list(nav_reports) }}
+      {{ report_table(nav_reports) }}
       {%- else %}
       <p>No Reports published yet.</p>
       {%- endif %}

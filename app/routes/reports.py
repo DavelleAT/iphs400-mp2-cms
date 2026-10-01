@@ -38,15 +38,15 @@ def _images(request: Request, report_id: int) -> editor.ImageLinks:
     return editing.image_links(request, "serve_image", report_id=report_id)
 
 
-def _list_page(request: Request, user: sqlite3.Row, *, error: str | None = None,
+def _list_page(request: Request, user: sqlite3.Row, *, error: ContentError | None = None,
                form: dict | None = None, status_code: int = 200):
-    form = form or {"title": "", "slug": "", "body": ""}
+    form = form or {"title": "", "slug": "", "summary": "", "body": ""}
     body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/reports.html",
         {"title": "Reports", "home_path": "/admin", "user": user,
          "reports": reports.list_all(), "status_labels": STATUS_LABELS,
-         "error": error, "form": form, "max_file_mb": _MAX_FILE_MB,
+         **editing.error_for(error), "form": form, "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], "", None),
          **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, None),
@@ -62,14 +62,17 @@ def list_reports(request: Request, user=Depends(current_user)):
 
 @router.post("", dependencies=[Depends(require_csrf)])
 def create_report(request: Request, user=Depends(current_user), title: str = Form(""),
-                  slug: str = Form(""), posted: editor.Posted = Depends(editing.posted),
+                  slug: str = Form(""), summary: str = Form(""),
+                  posted: editor.Posted = Depends(editing.posted),
                   file: UploadFile | None = File(None)):
     try:
         pdf = uploads.read_pdf(file)
-        reports.create(title, slug, editor.saved_body(posted, None, None), user["id"], pdf=pdf)
+        reports.create(title, slug, editor.saved_body(posted, None, None), user["id"],
+                       summary=summary, pdf=pdf)
     except ContentError as exc:
-        return _list_page(request, user, error=str(exc), status_code=400,
-                          form=editor.form_after(posted, title, slug, "", None, None))
+        return _list_page(request, user, error=exc, status_code=400,
+                          form=editor.form_after(posted, title, slug, "", None, None,
+                                                 summary=summary))
     confirm(request, "Report created as a Draft, with its attached file." if pdf
             else "Report created as a Draft.")
     return RedirectResponse("/admin/reports", status_code=303)
@@ -79,12 +82,13 @@ def create_report(request: Request, user=Depends(current_user), title: str = For
 # otherwise take "preview" for an id.
 
 @router.post("/preview", dependencies=[Depends(require_csrf)])
-def preview_new_report(request: Request, title: str = Form(""),
+def preview_new_report(request: Request, title: str = Form(""), summary: str = Form(""),
                        posted: editor.Posted = Depends(editing.posted)):
     """The create form's Site preview, for its frame and "Preview on site".
     Saves nothing; a file chosen in the form is not read."""
     shown = editing.previewed(posted, None, None)
-    return HTMLResponse(_site_preview(request, {"title": title, "body": shown}, None))
+    return HTMLResponse(_site_preview(
+        request, {"title": title, "summary": summary, "body": shown}, None))
 
 
 @router.get("/preview/{path:path}")
@@ -95,7 +99,7 @@ def new_report_preview_site(path: str):
 
 
 def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
-               error: str | None = None, form: dict | None = None,
+               error: ContentError | None = None, form: dict | None = None,
                status_code: int = 200):
     form = form or editor.form_for(report)
     # The body with its locked blocks, which only the server sees.
@@ -105,7 +109,7 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
         request, "admin/report_edit.html",
         {"title": "Edit Report", "home_path": "/admin", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
-         "status_labels": STATUS_LABELS, "error": error, "form": form,
+         "status_labels": STATUS_LABELS, **editing.error_for(error), "form": form,
          "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], report["body"], links.src),
          "images": names,
@@ -145,7 +149,7 @@ def edit_report_form(request: Request, report_id: int, user=Depends(current_user
 
 @router.post("/{report_id}", dependencies=[Depends(require_csrf)])
 def edit_report(request: Request, report_id: int, user=Depends(current_user),
-                title: str = Form(""), slug: str = Form(""),
+                title: str = Form(""), slug: str = Form(""), summary: str = Form(""),
                 posted: editor.Posted = Depends(editing.posted),
                 item_base: str = Form(""), file: UploadFile | None = File(None)):
     report = _editable_or_403(report_id, user)
@@ -154,17 +158,19 @@ def edit_report(request: Request, report_id: int, user=Depends(current_user),
         pdf = uploads.read_pdf(file)
         if not reports.update(report_id, title, slug,
                               editor.saved_edit(posted, report, item_base, image_name),
-                              user=user, pdf=pdf, base=item_base or None):
+                              user=user, summary=summary, pdf=pdf,
+                              base=item_base or None):
             raise HTTPException(status_code=404)
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
         # Shown over the Report as stored now, which a stale form missed.
         current = _get_or_404(report_id)
-        return _edit_page(request, user, current, error=str(exc),
+        return _edit_page(request, user, current, error=exc,
                           status_code=editing.refused_status(exc),
                           form=editor.form_after(posted, title, slug, item_base,
-                                                 current["body"], image_name))
+                                                 current["body"], image_name,
+                                                 summary=summary))
     confirm(request, "Report saved, with its new attached file." if pdf
             else "Report saved.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
@@ -194,14 +200,16 @@ def remove_file(request: Request, report_id: int, user=Depends(current_user)):
 
 @router.post("/{report_id}/preview", dependencies=[Depends(require_csrf)])
 def preview_report(request: Request, report_id: int, user=Depends(current_user),
-                   title: str = Form(""), posted: editor.Posted = Depends(editing.posted)):
+                   title: str = Form(""), summary: str = Form(""),
+                   posted: editor.Posted = Depends(editing.posted)):
     """The edit form's Site preview, of its unsaved title and body, for its
     frame and "Preview on site". Only for a user who may make those edits
     (the lockdown). Saves nothing; a file chosen in the form is not read."""
     report = _editable_or_403(report_id, user)
     shown = editing.previewed(posted, report["body"],
                       _images(request, report_id).name)
-    return HTMLResponse(_site_preview(request, {"title": title, "body": shown}, report))
+    return HTMLResponse(_site_preview(
+        request, {"title": title, "summary": summary, "body": shown}, report))
 
 
 @router.get("/{report_id}/preview/{path:path}")
@@ -235,7 +243,7 @@ def upload_image(request: Request, report_id: int, user=Depends(current_user),
     except reports.ReportLocked as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from None
     except ContentError as exc:
-        return _edit_page(request, user, report, error=str(exc), status_code=400)
+        return _edit_page(request, user, report, error=exc, status_code=400)
     confirm(request, "Chart image uploaded.")
     return RedirectResponse(f"/admin/reports/{report_id}", status_code=303)
 

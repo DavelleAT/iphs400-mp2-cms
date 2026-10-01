@@ -370,25 +370,30 @@ def image_links(prefix: str) -> ImageLinks:
 def form_for(item: Mapping) -> dict:
     """The edit form for a stored item, as the page opens: its body
     tokenized, and its base version."""
-    return {"title": item["title"], "slug": item["slug"],
+    return {"title": item["title"], "slug": item["slug"], "summary": item["summary"],
             "body": tokenize(item["body"]).markdown,
-            "item_base": item_base(item["title"], item["slug"], item["body"]),
-            "body_dirty": False}
+            "item_base": _base_of(item), "body_dirty": False}
+
+
+def _base_of(item: Mapping) -> str:
+    return item_base(item["title"], item["slug"], item["body"], item["summary"])
 
 
 def form_after(posted: Posted, title: str, slug: str, base: str, stored: str | None,
-               image_name: ImageName | None) -> dict:
+               image_name: ImageName | None, *, summary: str = "") -> dict:
     """The form again after a refused save of `posted`, with what the writer
     had, and the same base version, so a stale form stays refused."""
     if stored is not None and posted.untouched(stored):
-        return {**form_for({"title": title, "slug": slug, "body": stored}),
+        return {**form_for({"title": title, "slug": slug, "summary": summary,
+                            "body": stored}),
                 "item_base": base}
     try:
         body = posted.markdown(image_name)
     except ContentError:
         # Editor HTML it didn't make: the Editor opens on the stored body again.
         body = tokenize(stored or "").markdown
-    return {"title": title, "slug": slug, "body": body, "item_base": base, "body_dirty": True}
+    return {"title": title, "slug": slug, "summary": summary, "body": body,
+            "item_base": base, "body_dirty": True}
 
 
 def full_body(markdown: str, stored: str) -> str:
@@ -405,7 +410,7 @@ def saved_edit(posted: Posted, item: Mapping, base: str, image_name: ImageName |
     on `base`. StaleItem if the item has changed since; ContentError if the
     Editor posted without a base version, or as saved_body. Old forms and
     scripts that post no base, and no Editor HTML, are not checked."""
-    if base and base != item_base(item["title"], item["slug"], item["body"]):
+    if base and base != _base_of(item):
         raise StaleItem(STALE)
     if posted.body_html is not None and not base:
         raise ContentError(NEEDS_BASE)

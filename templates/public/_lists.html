@@ -12,31 +12,43 @@
   <div class="section-head">{{ index_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2><a class="text-label" href="{{ href }}">{{ link }}</a></div>
 {%- endmacro %}
 
+{#- Each Data Bite by the date it was published, with its Summary if it has
+   one. #}
 {% macro data_bite_list(bites) %}
   <ul class="list-data-bites">
     {%- for bite in bites %}
-    <li><span class="text-mono">{{ created_date(bite) }}</span><a href="{{ root }}{{ data_bite_path(bite.slug) }}">{{ bite.title }}</a></li>
+    <li><span class="text-mono">{{ created_date(bite) }}</span><a href="{{ root }}{{ data_bite_path(bite.slug) }}">{{ bite.title }}</a>
+      {%- if bite.summary %}<p>{{ bite.summary }}</p>{% endif %}</li>
     {%- endfor %}
   </ul>
 {%- endmacro %}
 
-{#- Each Report by the date it was last updated. #}
-{% macro report_list(reports) %}
-  <ul class="list-reports">
-    {%- for report in reports %}
-    <li><span class="text-mono">{{ iso_date(report.updated_at) }}</span><a href="{{ root }}{{ report_path(report.slug) }}">{{ report.title }}</a></li>
-    {%- endfor %}
-  </ul>
+{#- The Reports as a table: each one's Summary ("What it covers"), the date
+   it was last updated, and its Format, PDF if its file can be downloaded
+   (`report_format`). On a phone each row stacks; the explicit roles keep it
+   a table to a screen reader, which some browsers stop reading it as once
+   its CSS display changes. #}
+{% macro report_table(reports) %}
+  <table class="table-reports" role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Report</th><th role="columnheader" scope="col">What it covers</th><th role="columnheader" scope="col">Updated</th><th role="columnheader" scope="col">Format</th></tr></thead>
+    <tbody role="rowgroup">
+      {%- for report in reports %}
+      <tr role="row"><td role="cell"><a href="{{ root }}{{ report_path(report.slug) }}">{{ report.title }}</a></td><td role="cell">{{ report.summary }}</td><td role="cell" class="text-mono">{{ iso_date(report.updated_at) }}</td><td role="cell"><span class="badge-format text-mono">{{ report_format(report) }}</span></td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
 {%- endmacro %}
 
 {#- An item page's or list page's head, on the purple field: a breadcrumb
-   (its `crumbs`, [(href, text)]), its title, and its facts row, which the
-   call's body gives as fact() entries. #}
-{% macro title_field(crumbs, heading) %}
+   (its `crumbs`, [(href, text)]), its title, its Summary if it has one, and
+   its facts row, which the call's body gives as fact() entries. #}
+{% macro title_field(crumbs, heading, summary="") %}
     <div class="field-site"><div class="layout-wrap"><div class="title-item">
       <nav class="nav-breadcrumb text-label" aria-label="Breadcrumb">
         {%- for href, text in crumbs %}{% if not loop.first %} / {% endif %}<a href="{{ href }}">{{ text }}</a>{% endfor %}</nav>
       <h1>{{ heading }}</h1>
+      {%- if summary %}
+      <p class="summary-item">{{ summary }}</p>{% endif %}
       <dl class="meta-item text-label">{{ caller() }}
       </dl>
     </div></div></div>

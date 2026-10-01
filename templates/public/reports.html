@@ -1,5 +1,5 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import report_list, title_field, fact with context %}
+{% from "public/_lists.html" import report_table, title_field, fact with context %}
 {% block field %}
   {%- call title_field([(home_path, "Home")], "Reports") %}
     {%- call fact("Count") %}<span class="text-mono">{{ reports | length }}</span>{% endcall %}
@@ -9,7 +9,7 @@
 {% block content %}
     <section class="section-list">
       {%- if reports %}
-      {{ report_list(reports) }}
+      {{ report_table(reports) }}
       {%- else %}
       <p>No Reports published yet.</p>
       {%- endif %}

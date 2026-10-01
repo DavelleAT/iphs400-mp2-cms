@@ -4,7 +4,7 @@
   <h1>Edit Data Bite</h1>
   <p>{{ status_labels[bite.status] }}. Created {{ bite.created_at }} by {{ bite.author_name }}.
      Last updated {{ bite.updated_at }}.</p>
-  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
   {% include "admin/_undescribed_images.html" %}
   {% set action = "/admin/data-bites/" ~ bite.id %}
   {% set submit = "Save changes" %}

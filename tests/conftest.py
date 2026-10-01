@@ -73,9 +73,11 @@ def backdate(table: str, row_id: str) -> None:
 @pytest.fixture(autouse=True)
 def seeded_db(tmp_path, monkeypatch):
     """Every test gets its own database holding the DEMO_USERS, and its own
-    uploads directory."""
+    uploads directory. No deployed URL either, whatever a local .env says; a
+    test that needs one sets it."""
     monkeypatch.setattr(settings, "DATABASE_PATH", tmp_path / "test.db")
     monkeypatch.setattr(settings, "UPLOADS", tmp_path / "uploads")
+    monkeypatch.setattr(settings, "BASE_PATH", "")
     db.init_db()
     for role, user in DEMO_USERS.items():
         users.create_user(user["email"], user["password"], role)

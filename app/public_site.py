@@ -103,7 +103,8 @@ class Page:
             title=settings.SITE_TITLE, root=root, page_path=self.path,
             home_path=f"{root}index.html", nav_reports=nav_reports,
             data_bite_path=data_bite_path, report_path=report_path,
-            report_file_path=report_file_path, preview_base=preview_base, **self.context)
+            report_file_path=report_file_path, report_format=report_format,
+            preview_base=preview_base, **self.context)
 
 
 def published_links() -> dict[str, str]:
@@ -143,7 +144,8 @@ def data_bite(slug: str) -> Page | None:
 
 def _data_bite_page(bite: Mapping) -> Page:
     return Page(data_bite_path(bite["slug"]), "public/data_bite.html",
-                {"page_title": bite["title"], "bite": bite},
+                {"page_title": bite["title"], "bite": bite,
+                 "description": bite["summary"], "og_type": "article"},
                 images={name: data_bite_image_path(bite["slug"], name)
                         for name in _stored_images(data_bites, bite)})
 
@@ -182,6 +184,12 @@ def _stored_file(report: Mapping) -> Path | None:
     return stored if stored.is_file() else None
 
 
+def report_format(report: Mapping) -> str:
+    """How a Report is offered, for the Reports table: PDF if its file can be
+    downloaded, otherwise WEB, its page alone."""
+    return "PDF" if _stored_file(report) is not None else "WEB"
+
+
 def report(slug: str) -> Page | None:
     """A published Report's page, linking its file only if that can be
     downloaded; None for a draft or no such Report."""
@@ -192,6 +200,7 @@ def report(slug: str) -> Page | None:
 def _report_page(found: Mapping) -> Page:
     return Page(report_path(found["slug"]), "public/report.html",
                 {"page_title": found["title"], "report": found,
+                 "description": found["summary"], "og_type": "article",
                  "has_file": _stored_file(found) is not None},
                 images={name: report_image_path(found["slug"], name)
                         for name in _stored_images(reports, found)})
@@ -280,15 +289,16 @@ def files() -> dict[str, Path]:
 
 def _as_if_published(form: Mapping[str, str], saved: sqlite3.Row | None) -> dict:
     """The item a Site preview shows: `saved` (None for a new item, dated now)
-    with `form`'s unsaved title and body, published. It keeps the saved slug:
+    with `form`'s unsaved title, Summary (as it would be saved, but not
+    refused for its length), and body, published. It keeps the saved slug:
     an unsaved slug would change only paths, which no reader sees, and with
     the saved one the preview finds the item's files where it puts them."""
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     item = dict(saved) if saved is not None else {
         "id": None, "slug": _UNSAVED_SLUG, "file_name": None,
         "created_at": now, "updated_at": now}
-    return {**item, "title": form["title"].strip(), "body": form["body"],
-            "status": "published"}
+    return {**item, "title": form["title"].strip(), "summary": " ".join(form["summary"].split()),
+            "body": form["body"], "status": "published"}
 
 
 def data_bite_preview(form: Mapping[str, str], saved: sqlite3.Row | None) -> Page:

@@ -26,17 +26,18 @@ set_status = _TABLE.set_status
 get_published = _TABLE.get_published
 
 
-def create(title: str, slug: str, body: str, author_id: int) -> int:
+def create(title: str, slug: str, body: str, author_id: int, *, summary: str = "") -> int:
     """Create a draft. It starts with no images, even if a deleted Data Bite
     that had its id left some behind (SQLite may reuse the highest id)."""
-    return _TABLE.create(title, slug, body, author_id,
+    return _TABLE.create(title, slug, body, author_id, summary=summary,
                          also=lambda conn, bite_id: chart_images.remove_all(_IMAGES, bite_id))
 
 
-def update(bite_id: int, title: str, slug: str, body: str, *, base: str | None = None) -> bool:
-    """Edit title, slug, and body. False if there is no such Data Bite;
-    StaleItem if it has changed since `base` (ContentTable.update)."""
-    return _TABLE.update(bite_id, title, slug, body, base=base)
+def update(bite_id: int, title: str, slug: str, body: str, *, summary: str = "",
+           base: str | None = None) -> bool:
+    """Edit title, slug, body, and Summary. False if there is no such Data
+    Bite; StaleItem if it has changed since `base` (ContentTable.update)."""
+    return _TABLE.update(bite_id, title, slug, body, summary=summary, base=base)
 
 
 def list_published() -> list[sqlite3.Row]:

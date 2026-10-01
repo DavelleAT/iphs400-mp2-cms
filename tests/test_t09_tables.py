@@ -85,7 +85,9 @@ def test_the_stylesheet_styles_tables_only_inside_content_bodies(client):
     assert table_rules, "no table styles"
     for selector in table_rules:
         for part in selector.split(","):
-            assert part.strip().startswith(".content-body "), part
+            # Or the site's own Reports table (T20), which a body can't make:
+            # only content-table-scroll survives the sanitizer as a class.
+            assert part.strip().startswith((".content-body ", ".table-reports")), part
     # Borders and padding, a header row, and sideways scrolling in the wrapper.
     assert re.search(r"\.content-body t[hd][^{]*\{[^}]*border", css)
     assert re.search(r"\.content-body t[hd][^{]*\{[^}]*padding", css)

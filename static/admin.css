@@ -49,6 +49,10 @@ main { margin-block: 2rem; }
    them on a narrow screen. */
 body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-content-fields textarea { box-sizing: border-box; width: 100%; }
+/* A form field's Summary count, and a refusal shown beside its field. */
+.admin-summary-field label, .admin-summary-field small { display: block; }
+.admin-summary-field small { font-size: 0.875rem; }
+.admin-summary-over .admin-summary-count, .admin-field-error { color: #b3261e; font-weight: 600; }
 .admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
 .admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
 /* Admin only: the Editor (static/editor.js), its toolbar, and the parts of a

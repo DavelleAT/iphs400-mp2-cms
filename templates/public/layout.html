@@ -18,6 +18,14 @@
   {%- if base_href %}
   <base href="{{ base_href }}">{% endif %}
   <title>{% if page_title %}{{ page_title }} · {% endif %}{{ title }}</title>
+  {#- The page's Summary, for search engines and link previews (spec #22).
+      og:url and og:image are left out: they need absolute URLs. #}
+  {%- if description %}
+  <meta name="description" content="{{ description }}">{% endif %}
+  <meta property="og:title" content="{{ page_title or title }}">
+  {%- if description %}
+  <meta property="og:description" content="{{ description }}">{% endif %}
+  <meta property="og:type" content="{{ og_type | default('website') }}">
   {%- if inline_css %}
   <style>{{ inline_css }}</style>
   {%- else %}

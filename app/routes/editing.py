@@ -33,6 +33,13 @@ def body_images(links: editor.ImageLinks, names) -> list[dict]:
     return [{"name": name, "src": links.src(name)} for name in names]
 
 
+def error_for(exc: ContentError | None) -> dict:
+    """A refused save's message for its page: `error`, and `error_field`, the
+    field it is shown beside, or None to show it above the form."""
+    return {"error": None if exc is None else str(exc),
+            "error_field": None if exc is None else exc.field}
+
+
 def refused_status(exc: ContentError) -> int:
     """A refused save's status: 409 if the item changed since its form was
     opened, else 400."""

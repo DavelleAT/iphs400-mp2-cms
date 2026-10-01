@@ -77,7 +77,7 @@ def _missing_or_locked(report_id: int) -> bool:
 
 
 def create(title: str, slug: str, body: str, author_id: int, *,
-           pdf: Pdf | None = None) -> int:
+           summary: str = "", pdf: Pdf | None = None) -> int:
     """Create a draft Report, with its file if one is given. It starts with no
     images, even if a deleted Report that had its id left some behind (SQLite
     may reuse the highest id)."""
@@ -88,16 +88,19 @@ def create(title: str, slug: str, body: str, author_id: int, *,
         if attach:
             attach(conn, report_id)
 
-    return _TABLE.create(title, slug, body, author_id, also=clear_images_then_attach)
+    return _TABLE.create(title, slug, body, author_id, summary=summary,
+                         also=clear_images_then_attach)
 
 
 def update(report_id: int, title: str, slug: str, body: str, *,
-           user: sqlite3.Row, pdf: Pdf | None = None, base: str | None = None) -> bool:
-    """Edit title, slug, and body on behalf of `user`, and attach or replace
+           user: sqlite3.Row, summary: str = "", pdf: Pdf | None = None,
+           base: str | None = None) -> bool:
+    """Edit title, slug, body, and Summary on behalf of `user`, and attach or replace
     the file if one is given. False if there is no such Report; ReportLocked if
     it is published and `user` is not a Director; StaleItem if it has changed
     since `base` (ContentTable.update)."""
-    if _TABLE.update(report_id, title, slug, body, drafts_only=not is_director(user),
+    if _TABLE.update(report_id, title, slug, body, summary=summary,
+                     drafts_only=not is_director(user),
                      also=_attaching(pdf), base=base):
         return True
     return _missing_or_locked(report_id)

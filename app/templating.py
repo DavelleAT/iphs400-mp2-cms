@@ -6,6 +6,7 @@ from jinja2 import pass_context
 
 from app import settings
 from app.auth import csrf_token
+from app.content import SUMMARY_MAX
 from app.flash import confirmation
 from app.rendering import render_markdown
 from app.users import ROLE_LABELS
@@ -25,5 +26,6 @@ templates = Jinja2Templates(directory=str(settings.TEMPLATES))
 templates.env.globals["path_for"] = path_for
 templates.env.globals["csrf_token"] = csrf_token
 templates.env.globals["confirmation"] = confirmation
+templates.env.globals["summary_max"] = SUMMARY_MAX
 templates.env.filters["role_label"] = ROLE_LABELS.get
 templates.env.filters["markdown"] = render_markdown

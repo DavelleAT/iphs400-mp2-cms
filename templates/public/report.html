@@ -1,7 +1,7 @@
 {% extends "public/layout.html" %}
 {% from "public/_lists.html" import created_date, iso_date, title_field, fact with context %}
 {% block field %}
-  {%- call title_field([(home_path, "Home"), (root ~ "reports/index.html", "Reports")], report.title) %}
+  {%- call title_field([(home_path, "Home"), (root ~ "reports/index.html", "Reports")], report.title, report.summary) %}
     {%- call fact("Published") %}<span class="text-mono">{{ created_date(report) }}</span>{% endcall %}
     {%- call fact("Updated") %}<span class="text-mono">{{ iso_date(report.updated_at) }}</span>{% endcall %}
     {%- call fact("Type") %}Report{% endcall %}

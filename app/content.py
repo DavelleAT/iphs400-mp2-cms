@@ -1,5 +1,5 @@
-"""What Data Bites and Reports share: the title/slug/Markdown-body fields, their
-validation, the draft/published status, and the table-level reads and writes.
+"""What Data Bites and Reports share: the title/slug/Markdown-body fields and
+the Summary, their validation, the draft/published status, and the table-level reads and writes.
 
 Each content type keeps its own table, so a slug is unique within a type but a
 Data Bite and a Report may share one (spec #1, "Publish gate & export paths":
@@ -29,7 +29,12 @@ _RESERVED_SLUGS = {"index"}
 
 
 class ContentError(ValueError):
-    """Content broke a rule; the message is safe to show."""
+    """Content broke a rule; the message is safe to show. `field` names the
+    form field it is about, to be shown beside, if it is about one."""
+
+    def __init__(self, message: str, field: str | None = None):
+        super().__init__(message)
+        self.field = field
 
 
 class DuplicateSlug(ContentError):
@@ -43,11 +48,29 @@ class StaleItem(ContentError):
     """Saved from an edit form opened on an older version of the item."""
 
 
-def item_base(title: str, slug: str, body: str) -> str:
+# A Summary's limit, in characters (code points), which the edit form counts
+# the same way (spec #22).
+SUMMARY_MAX = 200
+
+
+def item_base(title: str, slug: str, body: str, summary: str = "") -> str:
     """The version of an item an edit form was opened on: a hash of its
-    stored title, slug, and body, all three of which the form saves. A hash
-    of the body alone would let a stale form overwrite a newer title or slug."""
-    return hashlib.sha256(json.dumps([title, slug, body]).encode()).hexdigest()
+    stored title, slug, body, and Summary, all of which the form saves. A
+    hash of the body alone would let a stale form overwrite a newer title or
+    slug. An item without a Summary hashes as it did before Summaries."""
+    fields = [title, slug, body, summary] if summary else [title, slug, body]
+    return hashlib.sha256(json.dumps(fields).encode()).hexdigest()
+
+
+def validate_summary(summary: str) -> str:
+    """A Summary as stored: plain text on one line, its runs of whitespace
+    (line breaks too) as single spaces, trimmed. Empty is allowed: it's
+    optional. ContentError, about the summary field, if it is too long."""
+    summary = " ".join(summary.split())
+    if len(summary) > SUMMARY_MAX:
+        raise ContentError(f"Keep the summary to {SUMMARY_MAX} characters or fewer; "
+                           f"it has {len(summary)}.", field="summary")
+    return summary
 
 
 def validate(title: str, slug: str, body: str) -> tuple[str, str, str]:
@@ -93,17 +116,18 @@ class ContentTable:
         return DuplicateSlug(f"Another {self.noun} already uses the slug {slug}.")
 
     def create(self, title: str, slug: str, body: str, author_id: int, *,
-               also: AlsoWrite | None = None) -> int:
+               summary: str = "", also: AlsoWrite | None = None) -> int:
         """Create a draft, with a new ref."""
         title, slug, body = validate(title, slug, body)
+        summary = validate_summary(summary)
         try:
             with db.connect() as conn:
                 # Held from choosing the ref to storing it (site_links.new_ref).
                 conn.execute("BEGIN IMMEDIATE")
                 item_id = conn.execute(
-                    f"INSERT INTO {self.table} (title, slug, body, author_id, ref)"
-                    " VALUES (?, ?, ?, ?, ?)",
-                    (title, slug, body, author_id, site_links.new_ref(conn)),
+                    f"INSERT INTO {self.table} (title, slug, body, summary, author_id, ref)"
+                    " VALUES (?, ?, ?, ?, ?, ?)",
+                    (title, slug, body, summary, author_id, site_links.new_ref(conn)),
                 ).lastrowid
                 if also:
                     also(conn, item_id)
@@ -112,28 +136,29 @@ class ContentTable:
         return item_id
 
     def update(self, item_id: int, title: str, slug: str, body: str, *,
-               drafts_only: bool = False, also: AlsoWrite | None = None,
-               base: str | None = None) -> bool:
-        """Edit title, slug, and body. The author, created_at, and status are
+               summary: str = "", drafts_only: bool = False,
+               also: AlsoWrite | None = None, base: str | None = None) -> bool:
+        """Edit title, slug, body, and Summary. The author, created_at, and status are
         kept. With drafts_only, a published item is left alone. With `base`,
         the item_base the edit form was opened on, StaleItem if the item has
         changed since, and nothing is written. False if nothing was changed."""
         title, slug, body = validate(title, slug, body)
+        summary = validate_summary(summary)
         try:
             with db.connect() as conn:
                 if base is not None:
                     # Held from the check to the write, so no other save
                     # lands between them.
                     conn.execute("BEGIN IMMEDIATE")
-                    row = conn.execute(f"SELECT title, slug, body FROM {self.table}"
+                    row = conn.execute(f"SELECT title, slug, body, summary FROM {self.table}"
                                        " WHERE id = ?", (item_id,)).fetchone()
                     if row is not None and item_base(*row) != base:
                         raise StaleItem(STALE)
                 changed = conn.execute(
-                    f"UPDATE {self.table} SET title = ?, slug = ?, body = ?,"
+                    f"UPDATE {self.table} SET title = ?, slug = ?, body = ?, summary = ?,"
                     " updated_at = datetime('now')"
                     " WHERE id = ? AND (status = 'draft' OR NOT ?)",
-                    (title, slug, body, item_id, drafts_only),
+                    (title, slug, body, summary, item_id, drafts_only),
                 ).rowcount == 1
                 if changed and also:
                     also(conn, item_id)

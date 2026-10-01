@@ -1,6 +1,6 @@
 {# The Site preview (T12): the item as its public page, in a frame. Needs
    `site_preview`, that page's HTML. With `preview_path` and inside the item's
-   form, the frame follows the title and body as they are typed, and "Preview
+   form, the frame follows the title, Summary, and body as they are typed, and "Preview
    on site" posts the unsaved form there in a new tab. Without, it shows the
    item as saved. #}
   <section class="admin-site-preview" aria-labelledby="admin-site-preview-heading">
@@ -36,14 +36,15 @@
       const status = section.querySelector(".admin-site-preview-status");
       let timer, latest = 0;
       form.addEventListener("input", (event) => {
-        // The title, the body's textarea, or the Editor (static/editor.js).
-        if (!["title", "body"].includes(event.target.name)
+        // The title, the Summary, the body's textarea, or the Editor
+        // (static/editor.js).
+        if (!["title", "summary", "body"].includes(event.target.name)
             && !event.target.closest(".admin-editor-area")) return;
         clearTimeout(timer);
         timer = setTimeout(async () => {
           const request = ++latest;
           const data = new FormData();
-          for (const name of ["csrf_token", "title", "body", "body_html", "body_dirty"]) {
+          for (const name of ["csrf_token", "title", "summary", "body", "body_html", "body_dirty"]) {
             const field = form.elements[name];
             if (field && !field.disabled) data.append(name, field.value);
           }

@@ -4,7 +4,7 @@
   <h1>{{ "Edit Report" if can_edit else report.title }}</h1>
   <p>{{ status_labels[report.status] }}. Created {{ report.created_at }} by {{ report.author_name }}.
      Last updated {{ report.updated_at }}.</p>
-  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
   {% if can_edit %}{% include "admin/_undescribed_images.html" %}{% endif %}
   <p>Attached file:
     {% if report.file_name %}<a href="{{ path_for('download_file', report_id=report.id) }}">{{ report.file_name }}</a>{% else %}none{% endif %}</p>

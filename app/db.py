@@ -59,6 +59,9 @@ ADDED_COLUMNS = [
     ("reports", "file_name", "TEXT"),
     ("data_bites", "ref", "TEXT"),
     ("reports", "ref", "TEXT"),
+    # A Summary: plain text, at most 200 characters (app.content).
+    ("data_bites", "summary", "TEXT NOT NULL DEFAULT ''"),
+    ("reports", "summary", "TEXT NOT NULL DEFAULT ''"),
 ]
 # The tables whose rows have a ref. Built after ADDED_COLUMNS, which may add
 # the column: a unique index, and a trigger that keeps a ref from changing

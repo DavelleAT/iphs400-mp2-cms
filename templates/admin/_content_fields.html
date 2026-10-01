@@ -5,6 +5,34 @@
     {%- endif %}
     <div class="admin-content-fields">
     <p><label>Title <input type="text" name="title" value="{{ form.title }}" required></label></p>
+    {#- The Summary (spec #22): plain text, counted as the server counts it,
+        its runs of whitespace as one space, by character. Over the limit,
+        the count says so; the server refuses it, by this field. #}
+    {%- set summary_error = error if error_field == "summary" %}
+    <p class="admin-summary-field" data-summary-max="{{ summary_max }}"><label for="summary">Summary (optional)</label>
+      <textarea id="summary" name="summary" rows="2" cols="60"
+        aria-describedby="summary-hint{% if summary_error %} summary-error{% endif %}"
+        {%- if summary_error %} aria-invalid="true"{% endif %}>{{ form.summary }}</textarea>
+      <small id="summary-hint">One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.
+        <span class="admin-summary-count" aria-live="polite"></span></small>
+      {%- if summary_error %}
+      <small id="summary-error" class="admin-field-error" role="alert">{{ summary_error }}</small>
+      {%- endif %}</p>
+    <script>
+      (() => {
+        const field = document.currentScript.previousElementSibling;
+        const max = Number(field.dataset.summaryMax);
+        const input = field.querySelector("textarea"), count = field.querySelector(".admin-summary-count");
+        const show = () => {
+          const length = [...input.value.trim().split(/\s+/).join(" ")].length;
+          count.textContent = length > max ? `${length} of ${max}: ${length - max} too many.`
+                                           : `${length} of ${max}.`;
+          field.classList.toggle("admin-summary-over", length > max);
+        };
+        input.addEventListener("input", show);
+        show();
+      })();
+    </script>
     <p><label>Slug <input type="text" name="slug" value="{{ form.slug }}" required
       pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint"></label>
       <small id="slug-hint">Lowercase letters, digits, and hyphens.</small></p>

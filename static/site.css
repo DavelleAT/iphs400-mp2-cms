@@ -97,10 +97,12 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .intro-home { border-top: 1px solid var(--color-field-line); padding-block: clamp(2.5rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem); }
 .intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; }
 
-/* A page's title on the field: breadcrumb, title, and its facts row. */
+/* A page's title on the field: breadcrumb, title, its Summary, and its
+   facts row. */
 .title-item { border-top: 1px solid var(--color-field-line); padding-top: clamp(2rem, 6vw, 3.75rem); }
 .nav-breadcrumb, .nav-breadcrumb a { color: var(--color-field-text); }
 .title-item h1 { font-size: clamp(2.3rem, 5.4vw, 4rem); letter-spacing: -0.035em; margin: 1rem 0; max-width: 20ch; overflow-wrap: break-word; }
+.summary-item { color: var(--color-field-text); font-size: 1.25rem; line-height: 1.5; margin: 0; max-width: 38rem; }
 .meta-item { border-top: 1px solid var(--color-field-line); display: flex; flex-wrap: wrap; gap: 0.5rem 2.5rem; margin: 2.5rem 0 0; padding-block: 1rem; }
 .meta-item div { display: flex; gap: 0.6rem; min-width: 0; }
 .meta-item dt { color: var(--color-bright); }
@@ -115,16 +117,37 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .section-head h2 { font-size: 1.6rem; }
 .section-head a { color: var(--color-muted); margin-left: auto; }
 
-/* Data Bites and Reports: an ISO date column, then the title. */
-.list-data-bites, .list-reports { list-style: none; margin: 0; padding: 0; }
-.list-data-bites li, .list-reports li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.15rem 2rem; grid-template-columns: 8rem minmax(0, 1fr); padding: 1.15rem 0; position: relative; }
-.list-data-bites li:hover, .list-reports li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
-.list-data-bites .text-mono, .list-reports .text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 0.25rem; }
-.list-data-bites a, .list-reports a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+/* Data Bites: an ISO date column, then the title and its Summary. */
+.list-data-bites { list-style: none; margin: 0; padding: 0; }
+.list-data-bites li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.15rem 2rem; grid-template-columns: 8rem minmax(0, 1fr); padding: 1.15rem 0; position: relative; }
+.list-data-bites li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
+.list-data-bites .text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 0.25rem; }
+.list-data-bites a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+.list-data-bites p { color: var(--color-muted); grid-column: 2; margin: 0; overflow-wrap: break-word; }
 /* The whole row is the link's target. */
-.list-data-bites a::after, .list-reports a::after { content: ""; inset: 0; position: absolute; }
-.list-data-bites li:hover a, .list-reports li:hover a { color: var(--color-purple); text-decoration: underline; }
-@media (max-width: 40rem) { .list-data-bites li, .list-reports li { grid-template-columns: 1fr; } }
+.list-data-bites a::after { content: ""; inset: 0; position: absolute; }
+.list-data-bites li:hover a { color: var(--color-purple); text-decoration: underline; }
+@media (max-width: 40rem) { .list-data-bites li { grid-template-columns: 1fr; } .list-data-bites p { grid-column: 1; } }
+
+/* Reports, in a real table: Report, What it covers, Updated, Format. On a
+   phone each row stacks: the title and Summary, then the date and format. */
+.table-reports { border-collapse: collapse; width: 100%; }
+.table-reports th { border-bottom: 1px solid var(--color-line); color: var(--color-muted); font: 500 0.78rem var(--font-mono); letter-spacing: 0.04em; padding: 0.9rem 1rem 0.6rem 0; text-align: left; text-transform: uppercase; }
+.table-reports td { border-bottom: 1px solid var(--color-line); padding: 1.1rem 1rem 1.1rem 0; vertical-align: top; }
+.table-reports td:first-child a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+.table-reports td:first-child a:hover { color: var(--color-purple); text-decoration: underline; }
+.table-reports td:nth-child(2) { color: var(--color-muted); max-width: 30rem; overflow-wrap: break-word; }
+.table-reports td.text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 1.35rem; white-space: nowrap; }
+.table-reports tbody tr:hover { background: var(--color-tint); }
+.badge-format { border: 1px solid var(--color-line); color: var(--color-muted); display: inline-block; font-size: 0.75rem; margin-top: 0.2rem; padding: 0.15rem 0.4rem; }
+@media (max-width: 40rem) {
+  /* Hidden but still read, so each cell keeps its column's name. */
+  .table-reports thead { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+  .table-reports tr { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.25rem 1rem; grid-template-columns: auto auto 1fr; padding-block: 1rem; }
+  .table-reports td, .table-reports td.text-mono { border: 0; padding: 0; }
+  .table-reports td:nth-child(-n+2) { grid-column: 1 / -1; }
+  .table-reports td:nth-child(2):empty { display: none; }
+}
 
 /* An item's body, at a readable measure. */
 .body-item { max-width: var(--width-measure); padding-top: 2.5rem; }
