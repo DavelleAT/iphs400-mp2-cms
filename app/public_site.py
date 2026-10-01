@@ -130,12 +130,15 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-chart-builder-preview { border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); max-width: 40rem; min-height: 3rem; padding: 0 0.75rem; }
 /* Admin only: the Editor's "Insert image" panel (T18), with the item's chart
    images as thumbnails, and the image in the body it is changing. */
+/* A fieldset is as wide as its widest content unless told otherwise, which
+   would push the page sideways on a phone. */
+.admin-editor-image, .admin-editor-image-choices { min-width: 0; }
 .admin-editor-image { margin-block: 0.25rem; }
 .admin-editor-image p { margin: 0.4rem 0; }
 .admin-editor-image[hidden], .admin-editor-image [hidden] { display: none; }
 .admin-editor-image-choices { border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; }
 .admin-editor-image-choices legend { font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
-.admin-editor-image-choice { align-items: center; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
+.admin-editor-image-choice { align-items: center; box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
 .admin-editor-image-choice:has(:checked) { outline: 2px solid currentColor; }
 .admin-editor-image-choice img { background: #fff; height: 3.5rem; object-fit: contain; width: 5.5rem; }
 .admin-editor-image-description label { display: flex; flex-direction: column; gap: 0.15rem; }

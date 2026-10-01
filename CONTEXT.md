@@ -44,8 +44,9 @@ _Avoid_: Live, public
 
 **Chart image**:
 An *uploaded* PNG, JPEG, or WebP picture (usually a chart made in Excel, R,
-or Tableau) that a Data Bite or Report shows inline, placed in its body and
-stored there as `image:<name>`. It belongs to its item and is published with
+or Tableau) that a Data Bite or Report shows inline, placed in its body with
+the Editor's "Insert image", with a required description, and stored there as
+`image:<name>` (T18). It belongs to its item and is published with
 it (ADR-004). Not a **Chart**, which the CMS draws from data, and not a
 Report's **attached file**, which is a PDF offered for download.
 _Avoid_: figure, graphic, media, attachment
