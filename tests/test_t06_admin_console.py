@@ -25,8 +25,9 @@ def publish(director: TestClient, kind: str, item_id: str) -> None:
 
 
 def dashboard_counts(c: TestClient) -> dict[str, str]:
-    """The dashboard's count cells, e.g. {"data-bite-draft": "2", ...}."""
-    return dict(re.findall(r'<td id="count-([a-z-]+)">(?:<a [^>]+>)?(\d+)(?:</a>)?</td>',
+    """The dashboard's counts, e.g. {"data-bite-draft": "2", ...}. Four since
+    T24, each type published and drafts, with no totals (spec #25)."""
+    return dict(re.findall(r'<div id="count-([a-z-]+)">.*?<dd class="text-mono">(\d+)</dd></div>',
                            c.get("/admin").text))
 
 
@@ -34,8 +35,8 @@ def dashboard_counts(c: TestClient) -> dict[str, str]:
 
 def test_dashboard_starts_at_zero(client_as):
     assert dashboard_counts(client_as("editor")) == {
-        "data-bite-draft": "0", "data-bite-published": "0", "data-bite-total": "0",
-        "report-draft": "0", "report-published": "0", "report-total": "0",
+        "data-bite-draft": "0", "data-bite-published": "0",
+        "report-draft": "0", "report-published": "0",
     }
 
 
@@ -49,8 +50,8 @@ def test_dashboard_counts_each_type_by_status(client_as):
     publish(director, "reports", create(director, "reports", "survey-calendar"))
 
     expected = {
-        "data-bite-draft": "3", "data-bite-published": "1", "data-bite-total": "4",
-        "report-draft": "1", "report-published": "2", "report-total": "3",
+        "data-bite-draft": "3", "data-bite-published": "1",
+        "report-draft": "1", "report-published": "2",
     }
     assert dashboard_counts(analyst) == expected
     assert dashboard_counts(director) == expected
@@ -68,12 +69,14 @@ def test_dashboard_counts_follow_unpublish_and_delete(client_as):
 
     counts = dashboard_counts(director)
     assert (counts["data-bite-draft"], counts["data-bite-published"]) == ("1", "0")
-    assert counts["report-total"] == "0"
+    assert (counts["report-draft"], counts["report-published"]) == ("0", "0")
 
 
 def test_dashboard_uses_the_glossary_labels(client_as):
+    # The counts say "Data Bites published" and "Report drafts" since T24.
     page = client_as("editor").get("/admin").text
-    for label in ("Data Bites", "Reports", "Draft", "Published"):
+    for label in ("Data Bites published", "Data Bite drafts", "Reports published",
+                  "Report drafts"):
         assert label in page
 
 
@@ -168,8 +171,10 @@ def test_content_list_rejects_an_unknown_filter_value(client_as):
 
 
 def test_dashboard_counts_link_to_the_filtered_list(client_as):
+    # To the type's own list, filtered by State, since T24: the lists have
+    # filtered by State since T22.
     page = client_as("editor").get("/admin").text
-    assert 'href="/admin/content?type=report&amp;status=draft"' in page
+    assert 'href="/admin/reports?status=draft"' in page
 
 
 # --- Markdown preview ---------------------------------------------------------

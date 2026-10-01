@@ -109,7 +109,7 @@ class ContentTable:
     def _select(self, where: str, order: str, params: tuple = ()) -> list[sqlite3.Row]:
         with db.connect() as conn:
             return conn.execute(
-                f"SELECT c.*, u.name AS author_name FROM {self.table} c"
+                f"SELECT c.*, u.name AS author_name, u.role AS author_role FROM {self.table} c"
                 f" JOIN users u ON u.id = c.author_id WHERE {where} ORDER BY {order}",
                 params,
             ).fetchall()

@@ -1,26 +1,73 @@
 {% extends "base.html" %}
+{#- The Dashboard (spec #25, T24): the counts, what is waiting for the user,
+    what changed lately, and where publishing goes. #}
+{%- macro iso_date(stamp) %}<time class="text-mono" datetime="{{ stamp | replace(" ", "T") }}">{{ stamp[:10] }}</time>{% endmacro %}
+{%- macro state_badge(item) %}<span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span>{% endmacro %}
 {% block content %}
-  <div class="head-page"><div>
-    <h1>Dashboard</h1>
-    <p class="head-page-lede">Signed in as {{ user.email }} ({{ user.role | role_label }}).</p>
-  </div></div>
+  <div class="head-page">
+    <div>
+      <h1>Dashboard</h1>
+      <dl class="facts-page text-label"><div><dt>Today</dt><dd class="text-mono"><time datetime="{{ today }}">{{ today }}</time></dd></div><div><dt>Signed in as</dt><dd>{{ user.role | role_label }}</dd></div></dl>
+    </div>
+    <div class="actions-page"><a class="button-secondary" href="{{ path_for('new_report_form') }}">New Report</a><a class="button-primary" href="{{ path_for('new_bite_form') }}">New Data Bite</a></div>
+  </div>
 
-  <section class="section-console" aria-labelledby="counts-title">
-    <div class="head-section"><span class="text-mono">01</span><h2 id="counts-title">Content</h2><a class="head-section-end" href="{{ path_for('content_list') }}">All content</a></div>
-    <table class="table-items">
-      <thead><tr><th>Content</th>{% for label in status_labels.values() %}<th>{{ label }}</th>{% endfor %}<th>Total</th></tr></thead>
-      <tbody>
-      {% for ctype in content_types %}
-        {% set by_status = counts[ctype.key] %}
-        <tr>
-          <th scope="row"><a href="{{ path_for(ctype.list_route) }}">{{ ctype.plural }}</a></th>
-          {% for status in status_labels %}
-          <td id="count-{{ ctype.key }}-{{ status }}"><a href="{{ path_for('content_list') }}?type={{ ctype.key }}&amp;status={{ status }}">{{ by_status[status] }}</a></td>
-          {% endfor %}
-          <td id="count-{{ ctype.key }}-total">{{ by_status.values() | sum }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </section>
+  <dl class="figures-console">
+  {%- for ctype, by_status in counts.items() %}
+    {%- for status, label in (("published", ctype.plural ~ " published"), ("draft", ctype.noun ~ " drafts")) %}
+    <div id="count-{{ ctype.key }}-{{ status }}"><dt><a href="{{ path_for(ctype.list_route) }}?status={{ status }}">{{ label }}</a></dt><dd class="text-mono">{{ by_status[status] }}</dd></div>
+    {%- endfor %}
+  {%- endfor %}
+  </dl>
+
+  <div class="grid-dashboard">
+    <div>
+      <section class="section-console" aria-labelledby="waiting-title">
+        <div class="head-section"><span class="text-mono">01</span><h2 id="waiting-title">Waiting for you</h2>
+          {%- if user.role == "admin" %}<span class="head-section-note">Only the Director can publish a Report</span>{% endif %}</div>
+        {%- if waiting %}
+        <ul class="list-console list-console-items">
+        {%- for row in waiting %}{% set item = row.item %}
+          <li id="waiting-{{ row.ctype.key }}-{{ item.id }}"><span class="list-console-title"><a href="{{ row.edit_path }}">{{ item.title }}</a></span>{{ state_badge(item) }}
+            {%- if user.role == "admin" %}<a class="button-secondary" href="{{ row.edit_path }}">Review</a>
+            <span class="list-console-meta">Drafted by {{ item.author_name }} ({{ item.author_role | role_label }}) · updated {{ iso_date(item.updated_at) }}</span>
+            {%- else %}<a class="button-secondary" href="{{ row.edit_path }}">Edit</a>
+            <span class="list-console-meta">{{ row.ctype.noun }} · updated {{ iso_date(item.updated_at) }}</span>
+            {%- endif %}</li>
+        {%- endfor %}
+        </ul>
+        {%- else %}
+        <p class="empty-console">{{ "No draft Reports are waiting." if user.role == "admin" else "You have no drafts." }}</p>
+        {%- endif %}
+      </section>
+
+      <section class="section-console" aria-labelledby="recent-title">
+        <div class="head-section"><span class="text-mono">02</span><h2 id="recent-title">Recently changed</h2><a class="head-section-end text-label" href="{{ path_for('content_list') }}">All content</a></div>
+        {%- if recent %}
+        <ul class="list-console list-console-items">
+        {%- for row in recent %}{% set item = row.item %}
+          <li id="recent-{{ row.ctype.key }}-{{ item.id }}"><span class="list-console-title"><a href="{{ row.edit_path }}">{{ item.title }}</a></span>{{ state_badge(item) }}{{ iso_date(item.updated_at) }}
+            <span class="list-console-meta">{{ row.ctype.noun }} · {{ item.author_name }}</span></li>
+        {%- endfor %}
+        </ul>
+        {%- else %}
+        <p class="empty-console">Nothing yet.</p>
+        {%- endif %}
+      </section>
+    </div>
+
+    <aside aria-label="The site">
+      <div class="panel-console"><h2>The public site</h2>
+        <p>Publishing marks an item as Published here. It reaches the public site at the next export:</p>
+        <code>uv run cms publish</code>
+        <p class="panel-console-end"><a href="{{ path_for('home') }}">View the site ↗</a></p>
+      </div>
+      {%- if homepage_saved %}
+      <div class="panel-console"><h2>Homepage</h2>
+        <p>Headline, intro, and Key figures. Last saved {{ iso_date(homepage_saved) }}.</p>
+        <a class="button-secondary" href="{{ path_for('edit_homepage') }}">Edit homepage</a>
+      </div>
+      {%- endif %}
+    </aside>
+  </div>
 {% endblock %}

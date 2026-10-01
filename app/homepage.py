@@ -75,6 +75,13 @@ def get() -> Homepage:
                     tuple(KeyFigure(**figure) for figure in json.loads(row["key_figures"])))
 
 
+def last_saved() -> str:
+    """When the settings were last saved (UTC, as SQLite's datetime('now')),
+    or seeded, if they never have been."""
+    with db.connect() as conn:
+        return conn.execute("SELECT updated_at FROM homepage WHERE id = 1").fetchone()[0]
+
+
 def _text(form: Mapping[str, str], field: str, limit: str, what: str) -> str:
     """A field's text as saved, its runs of whitespace as single spaces."""
     text = one_line(str(form.get(field, "")))

@@ -147,6 +147,13 @@ the Director, 04 Homepage and 05 Users), who is signed in, "View site ↗",
 and Log out (spec #25, T21). Its home page is the **Dashboard**.
 _Avoid_: back end, dashboard (that is its home page only)
 
+**Dashboard**:
+The Console's home page: counts of each type by State, then "Waiting for
+you" and "Recently changed" (spec #25, T24). What is waiting is derived from
+what is stored, with no review step: for the Director, every Draft Report
+(only they can publish one); for an Analyst, their own Drafts.
+_Avoid_: home, overview, inbox
+
 **Factbook**:
 A specific Report: the office's running reference document of admissions,
 enrollment, diversity, and academic program statistics.

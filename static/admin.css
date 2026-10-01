@@ -180,6 +180,40 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 /* A list of items to act on. */
 .list-console { list-style: none; margin: 0; padding: 0; }
 .list-console li { border-bottom: 1px solid var(--color-line); padding: 0.75rem 0; }
+/* The Dashboard's lists (T24): title, state, then a Review/Edit or a date;
+   its facts under the title. On a phone, the button drops under the title. */
+.list-console-items > li { align-items: center; display: grid; gap: 0.2rem 1.25rem; grid-template-columns: minmax(0, 1fr) auto auto; padding: 0.9rem 0; }
+.list-console-title { font-weight: 700; overflow-wrap: anywhere; }
+.list-console-title a { color: var(--color-ink); text-decoration: none; }
+.list-console-title a:hover { color: var(--color-purple); text-decoration: underline; }
+.list-console-items > li > time { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
+.list-console-meta { color: var(--color-muted); font-size: 0.85rem; grid-column: 1; }
+.list-console-meta time { font-size: 0.8rem; }
+@media (max-width: 40rem) {
+  .list-console-items > li { grid-template-columns: minmax(0, 1fr) auto; }
+  .list-console-items > li > .button-secondary { grid-column: 1 / -1; justify-self: start; }
+}
+
+/* The Dashboard's counts: the public Key figures, smaller; two by two on a phone. */
+.figures-console { border-bottom: 1px solid var(--color-line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+.figures-console > div { border-left: 1px solid var(--color-line); display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: 1.1rem 1.1rem 1.25rem; }
+.figures-console > div:first-child { border-left: 0; padding-left: 0; }
+.figures-console dd { font: 500 2.4rem/1 var(--font-mono); letter-spacing: -0.04em; margin: 0 0 0.5rem; }
+.figures-console dt { color: var(--color-muted); font-size: 0.9rem; }
+.figures-console dt a { color: inherit; }
+.figures-console dt a:hover { color: var(--color-ink); }
+@media (max-width: 40rem) {
+  .figures-console { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures-console > div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .figures-console > div:nth-child(n+3) { border-top: 1px solid var(--color-line); }
+}
+.grid-dashboard { display: grid; gap: 0 3rem; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); }
+@media (max-width: 60rem) { .grid-dashboard { grid-template-columns: minmax(0, 1fr); } }
+.panel-console { border: 1px solid var(--color-line); margin-top: 2.25rem; padding: 1.1rem 1.25rem; }
+.panel-console > h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+.panel-console > p { color: var(--color-muted); font-size: 0.92rem; margin: 0 0 0.75rem; }
+.panel-console > code { background: var(--color-tint); display: block; font: 500 0.85rem var(--font-mono); overflow-wrap: anywhere; padding: 0.55rem 0.7rem; }
+.panel-console > .panel-console-end { margin: 0.75rem 0 0; }
 
 /* Items in a table: hairlines, mono column heads. */
 .table-items { border-collapse: collapse; margin-top: 0.75rem; width: 100%; }

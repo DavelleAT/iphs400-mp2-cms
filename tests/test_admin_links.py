@@ -29,8 +29,9 @@ def test_generated_admin_links_lead_where_they_did(client_as):
     assert post_with_file(director, f"/admin/reports/{rid}", REPORT, pdf()).status_code == 303
 
     home = director.get("/admin").text
+    # A count links to its type's own list, filtered by State, since T24.
     assert {"/admin/content", "/admin/users",
-            "/admin/content?type=data-bite&amp;status=draft"} <= hrefs(home)
+            "/admin/data-bites?status=draft"} <= hrefs(home)
     assert "/admin" in hrefs(director.get("/admin/content").text)
     assert f"/admin/data-bites/{bid}" in hrefs(director.get("/admin/data-bites").text)
     assert "/admin/data-bites" in hrefs(director.get(f"/admin/data-bites/{bid}").text)

@@ -26,8 +26,11 @@ def _deactivate(client_as, email):
 def test_seeded_user_logs_in_and_reaches_admin(client_as, role, label):
     response = client_as(role).get("/admin", follow_redirects=False)
     assert response.status_code == 200
-    assert DEMO_USERS[role]["email"] in response.text
-    assert label in response.text
+    # Who is signed in is in the bar, by name (the email's local part for a
+    # seeded user), since the Dashboard's head shows the role only (T24).
+    name = DEMO_USERS[role]["email"].split("@")[0]
+    assert (f'<span class="user-console-name">{name} <span class="text-label">{label}</span>'
+            in response.text)
 
 
 def test_login_redirects_to_admin(client):

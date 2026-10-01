@@ -3,15 +3,20 @@ add new admin routes here (or to a router built the same way) and they are
 protected without further work."""
 from __future__ import annotations
 
+import sqlite3
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import settings
+from app import homepage, settings
 from app.auth import current_user, signed_in_user
 from app.content import STATUS_LABELS
-from app.routes.listing import CONTENT_TYPES, item_row, status_filter, type_filter
+from app.routes.listing import (CONTENT_TYPES, REPORT, ContentType, ItemRow, item_row,
+                                status_filter, type_filter)
+from app.users import is_director
 from app.templating import templates
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(current_user)])
@@ -29,13 +34,45 @@ async def refused_page(request: Request, exc: StarletteHTTPException):
     )
 
 
+# How many items the Dashboard's "Recently changed" shows.
+RECENT_COUNT = 8
+
+
+def newest_first(request: Request, user: sqlite3.Row, ctypes=CONTENT_TYPES,
+                 status: str | None = None) -> list[ItemRow]:
+    """Every item of `ctypes`, or only those in `status`, as rows for `user`,
+    most recently updated first."""
+    rows = [item_row(request, ctype, item, user)
+            for ctype in ctypes for item in ctype.module.list_all(status)]
+    rows.sort(key=lambda row: row.item["updated_at"], reverse=True)
+    return rows
+
+
+def waiting_for(request: Request, user: sqlite3.Row) -> list[ItemRow]:
+    """The Dashboard's "Waiting for you", derived from what is stored (spec
+    #25): for the Director, every draft Report, oldest update first, as only
+    they can publish one; for an Analyst, their own drafts of both kinds,
+    newest first, where they left off."""
+    if is_director(user):
+        return newest_first(request, user, (REPORT,), "draft")[::-1]
+    return [row for row in newest_first(request, user, status="draft")
+            if row.item["author_id"] == user["id"]]
+
+
 @router.get("")
 def admin_home(request: Request, user=Depends(current_user)):
-    counts = {ctype.key: ctype.module.count_by_status() for ctype in CONTENT_TYPES}
+    """The Dashboard: what needs the user's attention (spec #25, T24)."""
+    counts: dict[ContentType, dict[str, int]] = {
+        ctype: ctype.module.count_by_status() for ctype in CONTENT_TYPES}
     return templates.TemplateResponse(
         request, "admin/home.html",
         {"title": "Dashboard", "user": user,
-         "content_types": CONTENT_TYPES, "counts": counts,
+         # The day as the stored times have it, UTC, so it agrees with their dates.
+         "today": datetime.now(timezone.utc).date().isoformat(),
+         "counts": counts,
+         "waiting": waiting_for(request, user),
+         "recent": newest_first(request, user)[:RECENT_COUNT],
+         "homepage_saved": homepage.last_saved() if is_director(user) else None,
          "status_labels": STATUS_LABELS},
     )
 
@@ -46,9 +83,8 @@ def content_list(request: Request, user=Depends(current_user),
                  status: str = Depends(status_filter)):
     """Data Bites and Reports together, most recently updated first,
     optionally narrowed to one type and/or one status."""
-    rows = [item_row(request, ctype, item, user) for ctype in CONTENT_TYPES
-            if content_type in ("", ctype.key) for item in ctype.module.list_all(status or None)]
-    rows.sort(key=lambda row: row.item["updated_at"], reverse=True)
+    rows = newest_first(request, user, [ctype for ctype in CONTENT_TYPES
+                                        if content_type in ("", ctype.key)], status or None)
     return templates.TemplateResponse(
         request, "admin/content.html",
         {"title": "All content", "user": user,
