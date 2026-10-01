@@ -83,11 +83,11 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .bar-console-home { align-items: center; color: #fff; display: flex; flex: none; gap: 0.6rem; padding-block: 0.7rem; text-decoration: none; }
 .bar-console-mark { background: var(--color-citron); color: var(--color-field); display: grid; font: 700 0.85rem/1 var(--font-mono); height: 1.9rem; place-items: center; width: 1.9rem; }
 .bar-console-home b { font-size: 0.98rem; }
-.bar-console-home .text-label { color: var(--color-field-text); }
+.bar-console-home .text-label { color: var(--color-bright); }
 .nav-console { align-self: stretch; display: flex; flex: 1; min-width: 0; }
 .nav-console ul { display: flex; gap: 0 1.5rem; list-style: none; margin: 0; overflow-x: auto; padding: 0; scrollbar-width: none; }
 .nav-console a { align-items: center; border-bottom: 3px solid transparent; color: #fff; display: flex; font-size: 0.92rem; font-weight: 600; gap: 0.45rem; height: 100%; padding-top: 3px; text-decoration: none; white-space: nowrap; }
-.nav-console a .text-mono { color: var(--color-field-text); font-size: 0.75rem; font-weight: 500; }
+.nav-console a .text-mono { color: var(--color-bright); font-size: 0.75rem; font-weight: 500; }
 .nav-console a:hover { border-color: var(--color-field-line); }
 .nav-console a[aria-current] { border-color: var(--color-citron); }
 .nav-console a:focus-visible { outline-offset: -3px; }
