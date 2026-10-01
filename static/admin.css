@@ -86,6 +86,7 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 :where(.page-console) :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--color-danger); }
 :where(.page-console) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
 :where(.page-console) button:hover { border-color: var(--color-ink); }
+:where(.page-console) input[type="file"]::file-selector-button { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-ink); cursor: pointer; font: 600 0.85rem var(--font-text); margin-right: 0.75rem; padding: 0.4rem 0.75rem; }
 
 /* The slim bar: the field, its grid, the mark, numbered nav, who's signed in. */
 .bar-console { background-color: var(--color-field); background-image: linear-gradient(var(--color-field-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-field-grid) 1px, transparent 1px); background-size: 2rem 2rem; color: #fff; }
@@ -248,7 +249,7 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .grid-edit { align-items: start; display: grid; gap: 2rem 2.5rem; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); margin-top: 1.5rem; }
 @media (max-width: 64rem) { .grid-edit { grid-template-columns: minmax(0, 1fr); } }
 .grid-edit .field-console { max-width: none; }
-.grid-edit .field-console:first-of-type { margin-top: 0; }
+.grid-edit .field-console-title { margin-top: 0; }
 .page-console:has(.bar-save) { padding-bottom: 9rem; }
 .facts-page { display: flex; flex-wrap: wrap; gap: 0.35rem 1.75rem; margin: 0.75rem 0 0; }
 .facts-page div { align-items: center; display: flex; gap: 0.5rem; }
@@ -315,6 +316,8 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .bar-save-dirty::before { color: var(--color-bright); content: "● " / ""; }
 .bar-save-dirty[hidden] { display: none; }
 .bar-save form { margin: 0; }
+/* A phone: the State on its own line, the actions together under it. */
+@media (max-width: 40rem) { .bar-save-state { flex-basis: 100%; } }
 
 /* Form controls inside the Chart builder, which is a dialog outside the page. */
 :where(.admin-chart-builder) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
@@ -373,12 +376,14 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .admin-editor-area a[data-link-mark]::after { background: var(--color-tint); border: 1px dashed var(--color-line-strong); color: var(--color-muted); content: attr(data-link-mark); display: inline-block; font: 500 0.7rem/1.5 var(--font-mono); letter-spacing: 0.03em; margin-left: 0.35em; padding: 0 0.4em; text-decoration: none; }
 /* A part of the body the Editor can't edit, shown read-only. */
 .admin-editor-locked { background: var(--color-tint); border: 1px dashed var(--color-line-strong); margin-block: 1rem; padding: 0 0.9rem; }
-.admin-editor-locked-note { color: var(--color-muted); font-size: 0.85rem; margin: 0.5rem 0; }
+.admin-editor-area .admin-editor-locked-note { color: var(--color-muted); font-size: 0.85rem; margin: 0.5rem 0; }
 .admin-editor-locked pre { overflow-x: auto; }
 .admin-editor-locked-remove { font-size: 0.82rem; padding: 0.2rem 0.5rem; }
-/* A Chart in the body, as a card: "Chart", then Edit and Remove. */
+/* A Chart in the body, as a card: "Chart", then Edit and Remove. The card's
+   head and a locked block's note are paragraphs, so they are named with
+   .admin-editor-area, which would otherwise give them a paragraph's margins. */
 .admin-editor-chart { border: 1px solid var(--color-line); margin-block: 1.25rem; max-width: 44rem; padding: 0 1rem 0.25rem; }
-.admin-editor-chart-tools { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0 -1rem; padding: 0.3rem 0.5rem 0.3rem 1rem; }
+.admin-editor-area .admin-editor-chart-tools { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0 -1rem; padding: 0.3rem 0.5rem 0.3rem 1rem; }
 .admin-editor-chart-tools::before { color: var(--color-muted); content: "Chart" / ""; font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; margin-right: auto; text-transform: uppercase; }
 .admin-editor-chart-tools button { background: none; border: 1px solid transparent; color: var(--color-purple); font: 700 0.85rem var(--font-text); padding: 0.35rem 0.5rem; }
 .admin-editor-chart-tools button:hover { border-color: transparent; text-decoration: underline; }
@@ -408,6 +413,8 @@ code { font-family: var(--font-mono); font-size: 0.9em; }
 .admin-chart-builder-cell input { font-family: var(--font-mono); font-size: 0.88rem; width: 8.5rem; }
 .admin-chart-builder-name { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; }
 .admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
+.admin-chart-builder-cell button { background: none; border-color: transparent; color: var(--color-danger); font-size: 0.82rem; padding: 0.35rem 0.5rem; }
+.admin-chart-builder-cell button:hover { border-color: transparent; text-decoration: underline; }
 @media (max-width: 30rem) { .admin-chart-builder { padding: 1rem; } .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
 .admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .admin-chart-builder-actions { border-top: 1px solid var(--color-line); margin: 1.25rem 0 0; padding-top: 1rem; }
