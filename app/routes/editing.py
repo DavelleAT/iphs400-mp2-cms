@@ -70,6 +70,6 @@ def confirm_delete(request: Request, user: sqlite3.Row, item: sqlite3.Row, kind:
     noun = site_links.NOUNS[kind]
     return templates.TemplateResponse(
         request, "admin/confirm_delete.html",
-        {"title": f"Delete {noun}", "home_path": "/admin", "user": user, "noun": noun,
+        {"title": f"Delete {noun}", "user": user, "noun": noun,
          "item": item, "action": request.url.path, "back": back,
          "linked_from": site_links.linked_from(site_links.reference(kind, item["ref"]))})

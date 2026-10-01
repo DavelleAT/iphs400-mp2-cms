@@ -19,7 +19,7 @@ def _page(request: Request, user: sqlite3.Row, form: dict[str, str], *,
           error: homepage.SettingsError | None = None, status_code: int = 200):
     return templates.TemplateResponse(
         request, "admin/homepage.html",
-        {"title": "Homepage", "home_path": "/admin", "user": user, "form": form,
+        {"title": "Homepage", "user": user, "form": form,
          "limits": homepage.LIMITS, "figures_max": homepage.FIGURES_MAX,
          "error": None if error is None else str(error),
          "error_field": None if error is None else error.field},

@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import data_bites, reports, settings
-from app.auth import current_user
+from app.auth import current_user, signed_in_user
 from app.content import STATUS_LABELS
 from app.templating import templates
 
@@ -27,8 +27,7 @@ async def refused_page(request: Request, exc: StarletteHTTPException):
         return await http_exception_handler(request, exc)
     return templates.TemplateResponse(
         request, "admin/forbidden.html",
-        {"title": "Not allowed", "home_path": request.app.url_path_for("admin_home"),
-         "reason": exc.detail},
+        {"title": "Not allowed", "user": signed_in_user(request), "reason": exc.detail},
         status_code=403,
     )
 
@@ -56,7 +55,7 @@ def admin_home(request: Request, user=Depends(current_user)):
     counts = {ctype.key: ctype.module.count_by_status() for ctype in CONTENT_TYPES}
     return templates.TemplateResponse(
         request, "admin/home.html",
-        {"title": "Admin", "home_path": "/admin", "user": user,
+        {"title": "Admin", "user": user,
          "content_types": CONTENT_TYPES, "counts": counts,
          "status_labels": STATUS_LABELS},
     )
@@ -73,7 +72,7 @@ def content_list(request: Request, user=Depends(current_user),
     items.sort(key=lambda pair: pair[1]["updated_at"], reverse=True)
     return templates.TemplateResponse(
         request, "admin/content.html",
-        {"title": "All content", "home_path": "/admin", "user": user,
+        {"title": "All content", "user": user,
          "items": items, "content_types": CONTENT_TYPES,
          "status_labels": STATUS_LABELS,
          "chosen": {"type": content_type, "status": status}},

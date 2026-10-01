@@ -6,7 +6,7 @@
   {% endif %}
   {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
   {% if reports %}
-  <table>
+  <table class="table-items">
     <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th>{% if user.role == "admin" %}<th></th>{% endif %}</tr></thead>
     <tbody>
     {% for r in reports %}

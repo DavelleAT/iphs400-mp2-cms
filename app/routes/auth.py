@@ -16,7 +16,7 @@ LOGIN_FAILED = "Invalid email or password."
 def _login_page(request: Request, error: str | None = None, status_code: int = 200):
     return templates.TemplateResponse(
         request, "login.html",
-        {"title": "Log in", "home_path": "/login", "error": error},
+        {"title": "Log in", "error": error},
         status_code=status_code,
     )
 

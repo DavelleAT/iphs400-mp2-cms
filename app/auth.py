@@ -19,10 +19,15 @@ class LoginRequired(Exception):
     """Raised by current_user; main.py turns it into a redirect to /login."""
 
 
+def signed_in_user(request: Request) -> sqlite3.Row | None:
+    """The logged-in, still-active user, or None."""
+    user_id = request.session.get("user_id")
+    return users.get_active_user(user_id) if user_id is not None else None
+
+
 def current_user(request: Request) -> sqlite3.Row:
     """Dependency: the logged-in, still-active user, or LoginRequired."""
-    user_id = request.session.get("user_id")
-    user = users.get_active_user(user_id) if user_id is not None else None
+    user = signed_in_user(request)
     if user is None:
         request.session.clear()
         raise LoginRequired

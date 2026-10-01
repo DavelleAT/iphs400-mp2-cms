@@ -40,7 +40,7 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: ContentError | Non
     body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/data_bites.html",
-        {"title": "Data Bites", "home_path": "/admin", "user": user,
+        {"title": "Data Bites", "user": user,
          "bites": data_bites.list_all(), "status_labels": STATUS_LABELS,
          **editing.error_for(error), "form": form,
          "editor_html": editor.editor_html(form["body"], "", None),
@@ -100,7 +100,7 @@ def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
     links, names = _images(request, bite["id"]), list(data_bites.images(bite["id"]))
     return templates.TemplateResponse(
         request, "admin/data_bite_edit.html",
-        {"title": "Edit Data Bite", "home_path": "/admin", "user": user,
+        {"title": "Edit Data Bite", "user": user,
          "bite": bite, "status_labels": STATUS_LABELS,
          **editing.error_for(error), "form": form,
          "editor_html": editor.editor_html(form["body"], bite["body"], links.src),

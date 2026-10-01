@@ -1,21 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-  <p><a href="{{ back }}">All {{ noun }}s</a></p>
-  <h1>Delete {{ noun }}</h1>
-  <p>Delete <strong>{{ item.title }}</strong>? This can't be undone.</p>
-  {% if linked_from %}
-  <p>These link to it. Once it is deleted, each of those links shows as plain text:</p>
-  <ul class="admin-linked-from">
-    {% for found in linked_from %}
-    <li>{{ found.noun }}: <a href="{{ path_for('edit_bite_form', bite_id=found.id) if found.kind == 'data-bite' else path_for('edit_report_form', report_id=found.id) }}">{{ found.title }}</a></li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>No other Report or Data Bite links to it.</p>
-  {% endif %}
-  <form method="post" action="{{ action }}">
+  <div class="head-page"><div>
+    <span class="head-page-crumbs text-label"><a href="{{ back }}">All {{ noun }}s</a></span>
+    <h1>Delete {{ noun }}</h1>
+    <p class="head-page-lede">Delete <strong>{{ item.title }}</strong>? This can't be undone.</p>
+  </div></div>
+  <section class="section-console" aria-labelledby="linked-title">
+    <div class="head-section"><span class="text-mono">01</span><h2 id="linked-title">What links to it</h2></div>
+    {% if linked_from %}
+    <p>These link to it. Once it is deleted, each of those links shows as plain text:</p>
+    <ul class="list-console">
+      {% for found in linked_from %}
+      <li><span class="text-label text-muted">{{ found.noun }}</span> <a href="{{ path_for('edit_bite_form', bite_id=found.id) if found.kind == 'data-bite' else path_for('edit_report_form', report_id=found.id) }}">{{ found.title }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No other Report or Data Bite links to it.</p>
+    {% endif %}
+  </section>
+  <form class="actions-form" method="post" action="{{ action }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-    <button type="submit">Delete {{ noun }}</button>
-    <a href="{{ back }}">Cancel</a>
+    <button class="button-secondary button-danger" type="submit">Delete {{ noun }}</button>
+    <a class="button-quiet" href="{{ back }}">Cancel</a>
   </form>
 {% endblock %}

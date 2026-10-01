@@ -90,11 +90,13 @@ def test_an_admin_page_links_only_the_consoles_stylesheet(client_as, path):
     assert stylesheets(page) == ["/admin.css"]
 
 
-def test_the_consoles_stylesheet_keeps_todays_look_and_the_sites_has_no_admin_rules(client):
+def test_the_consoles_stylesheet_has_the_editors_rules_and_the_sites_has_no_admin_rules(client):
+    # T21 (spec #25) gave the console the site's fonts, copied into its own
+    # stylesheet (tests/test_t21_console_shell.py); the Editor's rules stay.
     admin = client.get("/admin.css")
     assert admin.status_code == 200 and admin.headers["content-type"].startswith("text/css")
     assert ".admin-editor-toolbar" in admin.text and ".chart-svg-phone" in admin.text
-    assert "Atkinson" not in admin.text and "site-preview-banner" not in admin.text
+    assert "site-preview-banner" not in admin.text
     site = client.get("/style.css").text
     assert ".admin-" not in site and "body:has(" not in site
 

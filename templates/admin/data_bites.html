@@ -3,7 +3,7 @@
   <h1>Data Bites</h1>
   {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
   {% if bites %}
-  <table>
+  <table class="table-items">
     <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th><th></th></tr></thead>
     <tbody>
     {% for b in bites %}

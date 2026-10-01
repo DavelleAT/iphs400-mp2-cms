@@ -44,7 +44,7 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: ContentError | Non
     body = editor.full_body(form["body"], "")
     return templates.TemplateResponse(
         request, "admin/reports.html",
-        {"title": "Reports", "home_path": "/admin", "user": user,
+        {"title": "Reports", "user": user,
          "reports": reports.list_all(), "status_labels": STATUS_LABELS,
          **editing.error_for(error), "form": form, "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], "", None),
@@ -107,7 +107,7 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
     links, names = _images(request, report["id"]), list(reports.images(report["id"]))
     return templates.TemplateResponse(
         request, "admin/report_edit.html",
-        {"title": "Edit Report", "home_path": "/admin", "user": user,
+        {"title": "Edit Report", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
          "status_labels": STATUS_LABELS, **editing.error_for(error), "form": form,
          "max_file_mb": _MAX_FILE_MB,

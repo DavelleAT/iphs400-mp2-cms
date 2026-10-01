@@ -19,7 +19,7 @@ LIVE_NOTE = " The public site updates at the next cms publish."
 
 
 def confirmations(html: str) -> list[str]:
-    return re.findall(r'<p class="admin-confirmation" role="status">([^<]*)</p>', html)
+    return re.findall(r'<p class="confirmation-console" role="status">([^<]*)</p>', html)
 
 
 def assert_confirmed(c: TestClient, response, message: str) -> None:

@@ -3,17 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {%- block head %}{% endblock %}
-  <title>{% block title %}{{ title }}{% endblock %}</title>
+  <title>{{ title }} · Console</title>
   <link rel="stylesheet" href="{{ path_for('admin_stylesheet') }}">
 </head>
 <body>
-  {%- block banner %}{% endblock %}
-  <header><a class="header-home" href="{{ home_path | default('index.html') }}">{{ title }}</a>{% block nav %}{% endblock %}</header>
-  <main>
-    {%- if user is defined and user %}{% set message = confirmation() %}
-    {%- if message %}<p class="admin-confirmation" role="status">{{ message }}</p>{% endif %}{% endif %}
+  <a class="link-skip" href="#main">Skip to content</a>
+  {#- The slim bar (spec #25). Signed in: the numbered nav, who, the public
+      site, and Log out. Signed out (the login page): the mark only. #}
+  <header class="bar-console"><div class="bar-console-inner">
+    <a class="bar-console-home" href="{{ path_for('admin_home') }}"><span class="bar-console-mark" aria-hidden="true">IR</span><b>Console</b><span class="text-label">Institutional Research</span></a>
+    {%- if user %}
+    <nav class="nav-console" aria-label="Console"><ul>
+      {%- for item in console_nav(user) %}
+      <li><a href="{{ item.path }}"{% if item.current %} aria-current="page"{% endif %}><span class="text-mono">{{ item.number }}</span>{{ item.label }}</a></li>
+      {%- endfor %}
+    </ul></nav>
+    <div class="user-console">
+      <a class="user-console-site" href="{{ path_for('home') }}">View site ↗</a>
+      <span class="user-console-name">{{ user.name }} <span class="text-label">{{ user.role | role_label }}</span></span>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <button type="submit">Log out</button>
+      </form>
+    </div>
+    {%- endif %}
+  </div></header>
+  <main id="main" class="page-console">
+    {%- if user %}{% set message = confirmation() %}
+    {%- if message %}<p class="confirmation-console" role="status">{{ message }}</p>{% endif %}{% endif %}
     {%- block content %}{% endblock %}</main>
-  <footer><small>IPHS 400 Mini-Project #2</small></footer>
 </body>
 </html>

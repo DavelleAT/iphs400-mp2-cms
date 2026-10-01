@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Not allowed</h1>
-  <p role="alert">{{ reason }}</p>
-  <p><a href="{{ path_for('admin_home') }}">Back to the dashboard</a></p>
+  <div class="head-page"><div>
+    <span class="head-page-crumbs text-label">403</span>
+    <h1>Not allowed</h1>
+  </div></div>
+  <p class="alert-console" role="alert">{{ reason }}</p>
+  <p><a class="button-secondary" href="{{ path_for('admin_home') }}">Back to the dashboard</a></p>
 {% endblock %}

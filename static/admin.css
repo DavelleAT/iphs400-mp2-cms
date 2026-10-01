@@ -1,13 +1,198 @@
-/* The admin console's stylesheet (ADR-007): the look the console had before
-   the public site's redesign. Never linked from a public page; the public
-   site's is static/site.css. The .content-body and .chart-* rules are here
+/* The admin console's stylesheet (ADR-007, spec #25): "same family, calmer".
+   The public site's fonts and tokens, copied here rather than linked: no
+   public rule reaches the console, and this file is never exported. Light
+   paper throughout; the deep purple field only as the slim top bar, the one
+   place citron appears. Square corners, hairlines, mono labels, ISO dates,
+   numbered sections.
+
+   Served at /admin.css, so the fonts' relative url()s resolve to /fonts/,
+   the public site's own font route. Text contrast, both themes, is listed in
+   the closing comment of T21 (#26). The .content-body and .chart-* rules are
    for the Editor's body and the Chart builder's preview. */
-:root { color-scheme: light dark; }
-body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; }
-.header-home { font-weight: 700; text-decoration: none; }
-main { margin-block: 2rem; }
-/* Admin only: the message after a successful save (app.flash). */
-.admin-confirmation { background: color-mix(in srgb, #2e7d32 12%, transparent); border-left: 4px solid #2e7d32; margin: 0 0 1.5rem; padding: 0.6rem 0.9rem; }
+@font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-italic.woff2") format("woff2"); font-weight: 200 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Atkinson Mono"; src: url("fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: light dark;
+  --font-text: "Atkinson Next", system-ui, sans-serif;
+  --font-mono: "Atkinson Mono", ui-monospace, monospace;
+  --color-paper: #fbfafd;
+  --color-surface: #ffffff;        /* fields and the Editor, a step off the paper */
+  --color-ink: #17131f;
+  --color-muted: #5d5870;
+  --color-line: #e2dfe9;
+  --color-line-strong: #c9c4d6;
+  --color-tint: #f0edf8;
+  --color-field: #231443;          /* the deep purple field: the top bar only */
+  --color-field-line: rgb(255 255 255 / 0.16);
+  --color-field-grid: rgb(255 255 255 / 0.045);
+  --color-field-text: #d9d3f0;
+  --color-kenyon: #4b2e84;         /* Kenyon purple, in both themes */
+  --color-purple: var(--color-kenyon);  /* links and marks; a lighter step in dark mode */
+  --color-bright: #8f80ff;         /* Kenyon bright purple */
+  --color-citron: #d6f550;         /* only ever on --color-field */
+  --color-danger: #b3261e;
+  --width-page: 84rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #110e17;
+    --color-surface: #18141f;
+    --color-ink: #ebe8f2;
+    --color-muted: #a39db3;
+    --color-line: #2b2737;
+    --color-line-strong: #3d3750;
+    --color-tint: #1b1726;
+    --color-field: #1a0f33;
+    --color-purple: #a99cff;
+    --color-bright: #7d6ef0;
+    --color-danger: #ff8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+body { background: var(--color-paper); color: var(--color-ink); font: 400 1rem/1.6 var(--font-text); margin: 0; }
+a { color: var(--color-purple); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--color-bright); outline-offset: 2px; }
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+code { font-family: var(--font-mono); font-size: 0.9em; }
+.text-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+.text-label { font: 500 0.75rem/1.3 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; }
+.text-muted { color: var(--color-muted); }
+.text-hidden { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+.link-skip { background: var(--color-citron); color: var(--color-field); font-weight: 700; left: 1rem; padding: 0.6rem 0.9rem; position: absolute; top: -10rem; z-index: 3; }
+.link-skip:focus { top: 0.5rem; }
+.link-skip:focus-visible { outline-color: var(--color-ink); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* Form controls inside a console page: square, on the surface. :where()
+   keeps these at an element's weight, so any class (.button-primary, the
+   Editor's own) wins over them. */
+:where(.page-console) :is(button, input, select, textarea) { border-radius: 0; color: var(--color-ink); font: inherit; }
+:where(.page-console) :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) { background: var(--color-surface); border: 1px solid var(--color-line-strong); padding: 0.45rem 0.6rem; }
+:where(.page-console) :is(input, select, textarea):focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
+:where(.page-console) button { background: var(--color-surface); border: 1px solid var(--color-line-strong); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.45rem 0.8rem; }
+:where(.page-console) button:hover { border-color: var(--color-ink); }
+
+/* The slim bar: the field, its grid, the mark, numbered nav, who's signed in. */
+.bar-console { background-color: var(--color-field); background-image: linear-gradient(var(--color-field-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-field-grid) 1px, transparent 1px); background-size: 2rem 2rem; color: #fff; }
+.bar-console :focus-visible { outline-color: var(--color-citron); }
+.bar-console-inner { align-items: center; display: flex; gap: 0 1.75rem; margin-inline: auto; max-width: var(--width-page); padding-inline: clamp(1rem, 3vw, 2rem); }
+.bar-console-home { align-items: center; color: #fff; display: flex; flex: none; gap: 0.6rem; padding-block: 0.7rem; text-decoration: none; }
+.bar-console-mark { background: var(--color-citron); color: var(--color-field); display: grid; font: 700 0.85rem/1 var(--font-mono); height: 1.9rem; place-items: center; width: 1.9rem; }
+.bar-console-home b { font-size: 0.98rem; }
+.bar-console-home .text-label { color: var(--color-field-text); }
+.nav-console { align-self: stretch; display: flex; flex: 1; min-width: 0; }
+.nav-console ul { display: flex; gap: 0 1.5rem; list-style: none; margin: 0; overflow-x: auto; padding: 0; scrollbar-width: none; }
+.nav-console a { align-items: center; border-bottom: 3px solid transparent; color: #fff; display: flex; font-size: 0.92rem; font-weight: 600; gap: 0.45rem; height: 100%; padding-top: 3px; text-decoration: none; white-space: nowrap; }
+.nav-console a .text-mono { color: var(--color-field-text); font-size: 0.75rem; font-weight: 500; }
+.nav-console a:hover { border-color: var(--color-field-line); }
+.nav-console a[aria-current] { border-color: var(--color-citron); }
+.nav-console a:focus-visible { outline-offset: -3px; }
+.user-console { align-items: center; display: flex; flex: none; font-size: 0.88rem; gap: 1rem; margin-left: auto; white-space: nowrap; }
+.user-console .text-label { color: var(--color-field-text); margin-left: 0.25rem; }
+.user-console a { color: var(--color-field-text); }
+.user-console form { margin: 0; }
+.user-console button { background: none; border: 1px solid var(--color-field-line); color: #fff; cursor: pointer; font: 600 0.82rem var(--font-text); padding: 0.35rem 0.7rem; }
+.user-console button:hover { border-color: #fff; }
+/* Narrower: the nav takes its own row under the bar and scrolls sideways.
+   A grid, so the bar's first row never wraps Log out onto a line of its own. */
+@media (max-width: 56rem) {
+  .bar-console-inner { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .nav-console { border-top: 1px solid var(--color-field-line); grid-column: 1 / -1; grid-row: 2; margin-inline: calc(-1 * clamp(1rem, 3vw, 2rem)); padding-inline: clamp(1rem, 3vw, 2rem); }
+  .nav-console ul { mask-image: linear-gradient(90deg, #000 85%, transparent); padding-right: 2rem; }
+  .nav-console a { padding-block: 0.7rem 0.55rem; }
+}
+/* A phone: the mark and "Console", View site, and Log out. The name and
+   role stay for a screen reader. */
+@media (max-width: 40rem) {
+  .bar-console-home .text-label { display: none; }
+  .user-console { gap: 0.75rem; }
+  .user-console-name { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; width: 1px; }
+}
+
+/* A page: its head (breadcrumb, title, facts, its main action), then sections. */
+.page-console { margin-inline: auto; max-width: var(--width-page); padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3vw, 2rem) 6rem; }
+.head-page { align-items: end; border-bottom: 2px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; padding-bottom: 1rem; }
+.head-page h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.03em; margin: 0; }
+.head-page-crumbs { color: var(--color-muted); display: block; margin-bottom: 0.5rem; }
+.head-page-crumbs a { color: inherit; }
+.head-page-lede { color: var(--color-muted); margin: 0.6rem 0 0; max-width: 44rem; }
+.facts-page { display: flex; flex-wrap: wrap; gap: 0.25rem 1.75rem; margin: 0.75rem 0 0; }
+.facts-page div { display: flex; gap: 0.5rem; }
+.facts-page dt { color: var(--color-muted); }
+.facts-page dd { margin: 0; }
+.actions-page { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* Buttons: square, one solid action per view. */
+.button-primary, .button-secondary, .button-quiet { align-items: center; border-radius: 0; cursor: pointer; display: inline-flex; font: 700 0.9rem/1 var(--font-text); gap: 0.45rem; padding: 0.7rem 1rem; text-decoration: none; }
+.button-primary { background: var(--color-kenyon); border: 1px solid var(--color-kenyon); color: #fff; }
+.button-primary:hover { background: var(--color-field); border-color: var(--color-field); }
+.button-secondary { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-ink); }
+.button-secondary:hover { border-color: var(--color-ink); }
+.button-quiet { background: none; border: 1px solid transparent; color: var(--color-purple); padding-inline: 0.4rem; }
+.button-quiet:hover { text-decoration: underline; }
+.button-danger { border-color: var(--color-danger); color: var(--color-danger); }
+.button-danger:hover { border-color: var(--color-danger); box-shadow: inset 0 0 0 1px var(--color-danger); }
+.actions-form { align-items: center; display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.5rem 0 0; }
+
+/* The Confirmation (app.flash), once, after a save; and a refusal. */
+.confirmation-console, .alert-console { border-left: 3px solid var(--color-kenyon); margin: 0 0 1.25rem; padding: 0.7rem 1rem; }
+.confirmation-console { background: var(--color-tint); }
+.alert-console { background: color-mix(in srgb, var(--color-danger) 10%, var(--color-paper)); border-color: var(--color-danger); }
+
+/* Numbered sections, as on the public site. */
+.section-console { padding-top: 2.25rem; }
+.head-section { align-items: baseline; border-bottom: 1px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; padding-bottom: 0.5rem; }
+.head-section > .text-mono { color: var(--color-purple); font-size: 0.8rem; }
+.head-section h2 { font-size: 1.25rem; margin: 0; }
+.head-section-note { color: var(--color-muted); }
+.head-section-end { margin-left: auto; }
+
+/* A form's fields: label above, its hint or its refusal below. */
+.field-console { margin: 1.25rem 0 0; max-width: 40rem; }
+.field-console label, .field-console .field-console-label { display: block; font-size: 0.92rem; font-weight: 700; margin-bottom: 0.35rem; }
+.field-console label .text-label { color: var(--color-muted); font-weight: 500; margin-left: 0.4rem; }
+.field-console input, .field-console select, .field-console textarea { font-size: 1rem; line-height: 1.5; padding: 0.55rem 0.75rem; width: 100%; }
+.field-console select { width: auto; }
+.field-console-hint { color: var(--color-muted); display: block; font-size: 0.82rem; margin-top: 0.35rem; }
+.field-console-hint.admin-field-error { color: var(--color-danger); }
+.fieldset-console { border: 0; margin: 2.25rem 0 0; min-width: 0; padding: 0; }
+.fieldset-console > legend { padding: 0; width: 100%; }
+
+/* A list of items to act on. */
+.list-console { list-style: none; margin: 0; padding: 0; }
+.list-console li { border-bottom: 1px solid var(--color-line); padding: 0.75rem 0; }
+
+/* Items in a table: hairlines, mono column heads. */
+.table-items { border-collapse: collapse; margin-top: 0.75rem; width: 100%; }
+.table-items th { border-bottom: 1px solid var(--color-ink); color: var(--color-muted); font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; padding: 0.6rem 1rem 0.5rem 0; text-align: left; text-transform: uppercase; }
+.table-items tbody th { color: var(--color-ink); font: 700 0.95rem var(--font-text); letter-spacing: 0; text-transform: none; }
+.table-items td, .table-items tbody th { border-bottom: 1px solid var(--color-line); padding: 0.85rem 1rem 0.85rem 0; vertical-align: top; }
+.table-items tbody tr:hover { background: var(--color-tint); }
+.table-items form { align-items: center; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; }
+.table-items-name { font-weight: 700; }
+.table-items-mono { color: var(--color-muted); font-family: var(--font-mono); font-size: 0.85rem; overflow-wrap: anywhere; }
+/* On a phone, a stacked table's rows become blocks; it keeps its semantics. */
+@media (max-width: 48rem) {
+  .table-items-stack thead { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; width: 1px; }
+  .table-items-stack tr { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.4rem; padding-block: 0.85rem; }
+  .table-items-stack td { border: 0; padding: 0; }
+}
+
+/* The login page: one narrow panel. */
+.panel-login { margin: clamp(1rem, 6vh, 4rem) auto 0; max-width: 26rem; }
+.panel-login .button-primary { margin-top: 1.5rem; }
+
+/* Homepage settings (app.homepage): each Key figure's three fields side by
+   side where there is room. */
+.fieldset-figure { border: 0; border-top: 1px solid var(--color-line); display: grid; gap: 0 1.25rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: 1.25rem 0 0; min-width: 0; padding: 0.5rem 0 0; }
+.fieldset-figure > legend { color: var(--color-purple); float: left; grid-column: 1 / -1; padding: 0.75rem 0 0; width: 100%; }
+.fieldset-figure .field-console { margin-top: 0.75rem; }
+
+/* The Editor and the Chart builder, as they were: T23 restyles them by class. */
 /* Markdown tables, in a Data Bite's or Report's body. A wide one scrolls
    sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
    the page; on a phone, rather than squeezing its text to a word a line. */
@@ -47,13 +232,11 @@ main { margin-block: 2rem; }
 }
 /* Admin only: an edit form's fields beside its Site preview, stacked below
    them on a narrow screen. */
-body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-content-fields textarea { box-sizing: border-box; width: 100%; }
 /* A form field's Summary count, and a refusal shown beside its field. */
-.admin-summary-field label, .admin-summary-field small,
-.admin-homepage-field label, .admin-homepage-field small { display: block; }
-.admin-summary-field small, .admin-homepage-field small { font-size: 0.875rem; }
-.admin-summary-over .admin-summary-count, .admin-field-error { color: #b3261e; font-weight: 600; }
+.admin-summary-field label, .admin-summary-field small { display: block; }
+.admin-summary-field small { font-size: 0.875rem; }
+.admin-summary-over .admin-summary-count, .admin-field-error { color: var(--color-danger); font-weight: 600; }
 .admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
 .admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
 /* Admin only: the Editor (static/editor.js), its toolbar, and the parts of a
@@ -92,9 +275,9 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-chart-builder-hint { margin: 0 0 0.5rem; }
 .admin-chart-builder-suggestion { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; padding: 0.4rem 0.8rem; }
 .admin-chart-builder-suggestion[hidden] { display: none; }
-.admin-chart-builder-error { color: #b3261e; display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
+.admin-chart-builder-error { color: var(--color-danger); display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
 .admin-chart-builder-error:empty { display: none; }
-.admin-chart-builder [aria-invalid="true"] { border-color: #b3261e; outline: 2px solid #b3261e; outline-offset: -1px; }
+.admin-chart-builder [aria-invalid="true"] { border-color: var(--color-danger); outline: 2px solid #b3261e; outline-offset: -1px; }
 .admin-chart-builder-grid-scroll { overflow-x: auto; }
 .admin-chart-builder-grid { border-collapse: collapse; }
 .admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
@@ -129,8 +312,3 @@ body:has(.admin-site-preview) { max-width: 90rem; }
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }
 }
-/* Admin only: Homepage settings (app.homepage), each Key figure's three
-   fields side by side where there is room. */
-.admin-homepage-field input, .admin-homepage-field textarea { box-sizing: border-box; max-width: 40rem; width: 100%; }
-.admin-homepage-figures { border: 0; margin: 1.5rem 0; padding: 0; }
-.admin-homepage-figure { display: grid; gap: 0 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: 0 0 1rem; }

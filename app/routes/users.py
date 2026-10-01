@@ -18,7 +18,7 @@ def _users_page(request: Request, user: sqlite3.Row, *, error: str | None = None
                 form: dict | None = None, status_code: int = 200):
     return templates.TemplateResponse(
         request, "admin/users.html",
-        {"title": "Users", "home_path": "/admin", "user": user,
+        {"title": "Users", "user": user,
          "users": users.list_users(), "role_labels": users.ROLE_LABELS,
          "min_password_length": users.MIN_PASSWORD_LENGTH,
          "error": error, "form": form or {}},

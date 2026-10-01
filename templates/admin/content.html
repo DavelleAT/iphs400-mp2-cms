@@ -22,7 +22,7 @@
     <button type="submit">Filter</button>
   </form>
   {% if items %}
-  <table>
+  <table class="table-items">
     <thead><tr><th>Type</th><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th></tr></thead>
     <tbody>
     {% for ctype, item in items %}
