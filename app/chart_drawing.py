@@ -1,0 +1,478 @@
+"""Drawing a Chart (spec #14, ADR-006): a parsed app.charts.Chart as an
+inline SVG figure with its "Show the data" table.
+
+What this returns is inserted *after* nh3 (app.rendering), so it is safe
+because of how it's built, not by filtering. Every element goes through
+_element, which refuses any element or attribute outside the spec's fixed
+vocabulary, and any attribute value that isn't one of:
+  - a number this module formatted (and checked with math.isfinite),
+  - a palette constant (fill, stroke), a fixed class name, or a fixed token,
+  - the title's id, `chart-<key>-<n>-title`.
+Writer strings (title, labels, units, source, category and series names,
+cell text) are only ever text content, escaped by _text.
+
+Layout is in the SVG's own units: the stylesheet (app.public_site.CSS) sets
+its text to FONT units and scales the SVG to the column.
+"""
+from __future__ import annotations
+
+import math
+import re
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from html import escape
+
+from app.charts import PREFIX, Chart, Unit
+
+# The palette (dataviz reference palette, slots 1 to 4, light steps). The
+# stylesheet swaps in the dark steps by class in dark mode.
+SERIES = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")
+INK = "#52514e"       # labels, values, legend, axis titles
+MUTED = "#898781"     # tick labels
+GRID = "#e1e0d9"
+BASELINE = "#a3a29b"
+SURFACE = "#ffffff"   # the ring around a marker
+NONE = "none"         # a line's fill
+PALETTE = frozenset({*SERIES, INK, MUTED, GRID, BASELINE, SURFACE, NONE})
+
+ELEMENTS = frozenset({"figure", "figcaption", "svg", "g", "title", "rect", "line", "polyline",
+                      "circle", "text", "p", "small", "details", "summary", "table", "thead",
+                      "tbody", "tr", "th", "td"})
+ATTRIBUTES = frozenset({"class", "viewBox", "role", "aria-labelledby", "aria-hidden", "id", "x",
+                        "y", "x1", "y1", "x2", "y2", "width", "height", "cx", "cy", "r",
+                        "points", "fill", "stroke", "stroke-width", "text-anchor", "scope"})
+_SERIES_CLASSES = tuple(f"chart-series-{i}" for i in range(1, len(SERIES) + 1))
+_LINE_CLASSES = tuple(f"chart-line-{i}" for i in range(1, len(SERIES) + 1))
+_MARKER_CLASSES = tuple(f"chart-marker-{i}" for i in range(1, len(SERIES) + 1))
+CLASSES = frozenset({"chart-figure", "chart-title", "chart-svg", "chart-grid", "chart-baseline",
+                     "chart-tick", "chart-category", "chart-value", "chart-axis-title",
+                     "chart-legend", "chart-note", "chart-source", "chart-data",
+                     *_SERIES_CLASSES, *_LINE_CLASSES, *_MARKER_CLASSES})
+_NUMERIC = frozenset({"x", "y", "x1", "y1", "x2", "y2", "width", "height", "cx", "cy", "r",
+                      "stroke-width"})
+_TOKENS = {"role": {"img"}, "text-anchor": {"start", "middle", "end"}, "scope": {"row", "col"},
+           "aria-hidden": {"true"}}
+TITLE_ID = re.compile(r"chart-[0-9a-f]{32}-[0-9]+-title")
+
+PRIVACY_NOTE = "Some values are suppressed for privacy."
+DATA_SUMMARY = "Show the data"
+
+WIDTH = 520
+FONT = 13            # the stylesheet's size for the SVG's text
+_CHAR = FONT * 0.6   # an estimate of one character's width
+_LINE = 18           # a line of text
+_PLOT_HEIGHT = 220
+_BAR = 24            # the thickest a bar is
+_GAP = 2             # between touching bars
+
+
+class ChartDrawError(RuntimeError):
+    """The drawing broke its own rules: a bug, never a writer's mistake."""
+
+
+# Building elements.
+
+def _number(value: float) -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ChartDrawError(f"not a finite number: {value!r}")
+    text = f"{value:.2f}".rstrip("0").rstrip(".")
+    return "0" if text == "-0" else text
+
+
+def _value(name: str, value: object) -> str:
+    """An attribute's value, if the vocabulary allows it."""
+    if name == "viewBox":
+        return " ".join(map(_number, value))
+    if name == "points":
+        return " ".join(f"{_number(x)},{_number(y)}" for x, y in value)
+    if name in _NUMERIC:
+        return _number(value)
+    allowed = (name == "class" and value in CLASSES
+               or name in ("fill", "stroke") and value in PALETTE
+               or name in ("id", "aria-labelledby") and TITLE_ID.fullmatch(str(value))
+               or value in _TOKENS.get(name, ()))
+    if not allowed:
+        raise ChartDrawError(f"{name}={value!r} is not in the vocabulary")
+    return str(value)
+
+
+def _element(name: str, attributes: dict | None = None, *content: str) -> str:
+    """An element of the vocabulary. `content` is elements from here, or
+    _text: never a writer's string as it is."""
+    if name not in ELEMENTS:
+        raise ChartDrawError(f"<{name}> is not in the vocabulary")
+    parts = []
+    for key, value in (attributes or {}).items():
+        if key not in ATTRIBUTES:
+            raise ChartDrawError(f"{key} is not in the vocabulary")
+        parts.append(f' {key}="{_value(key, value)}"')
+    return f"<{name}{''.join(parts)}>{''.join(content)}</{name}>"
+
+
+def _text(text: str) -> str:
+    return escape(text, quote=True)
+
+
+def _width(text: str) -> float:
+    return len(text) * _CHAR
+
+
+def _fit(text: str, room: float) -> str:
+    """`text`, shortened with an ellipsis to fit `room` units."""
+    if _width(text) <= room:
+        return text
+    keep = max(1, int(room // _CHAR) - 1)
+    return text[:keep].rstrip() + "…"
+
+
+def _label(x: float, y: float, text: str, css: str, anchor: str = "middle",
+           fill: str = INK) -> str:
+    return _element("text", {"class": css, "x": x, "y": y, "text-anchor": anchor, "fill": fill},
+                    _text(text))
+
+
+# Scales and ticks.
+
+@dataclass(frozen=True)
+class Scale:
+    low: float
+    high: float
+    step: float
+
+    @property
+    def ticks(self) -> list[float]:
+        count = round((self.high - self.low) / self.step)
+        return [round(self.low + i * self.step, 10) for i in range(count + 1)]
+
+    def at(self, value: float, start: float, length: float) -> float:
+        """Where `value` falls along an axis from `start`, `length` long."""
+        return start + length * (value - self.low) / (self.high - self.low)
+
+
+def _scale(values: Sequence[float], *, from_zero: bool) -> Scale:
+    """A scale with round ticks over `values`. A bar chart's (`from_zero`)
+    always takes in zero; a line chart's does when its values come close."""
+    low, high = (min(values), max(values)) if values else (0.0, 1.0)
+    if from_zero or (low > 0 and low <= high / 3):
+        low = min(low, 0.0)
+    if from_zero or (high < 0 and high >= low / 3):
+        high = max(high, 0.0)
+    span = high - low or abs(high) or 1.0
+    raw = span / 5
+    magnitude = 10 ** math.floor(math.log10(raw))
+    step = next(m * magnitude for m in (1, 2, 2.5, 5, 10) if m * magnitude >= raw)
+    low, high = math.floor(low / step) * step, math.ceil(high / step) * step
+    if high == low:
+        high = low + step
+    return Scale(low, high, step)
+
+
+def _tick_text(value: float, step: float, unit: Unit | None) -> str:
+    """A tick's label: a round number, with the units if they are $ or %."""
+    decimals = max(0, -math.floor(math.log10(step) + 1e-9))
+    if round(step * 10 ** decimals, 6) % 1:
+        decimals += 1
+    digits = f"{abs(value):,.{decimals}f}"
+    sign = "-" if value < 0 and digits.strip("0.,") else ""
+    if unit and unit.text == "$":
+        return f"{sign}${digits}"
+    if unit and unit.text == "%":
+        return f"{sign}{digits}%"
+    return sign + digits
+
+
+def _value_title(chart: Chart) -> str | None:
+    """The value axis's title: the y label, or else units that are a word."""
+    unit = chart.effective_unit
+    if chart.y_label:
+        return chart.y_label
+    return unit.text if unit and unit.text not in ("$", "%") else None
+
+
+# The legend.
+
+def _legend(chart: Chart, top: float) -> tuple[str, float]:
+    """The legend for two or more series, from `top`, and its height."""
+    if len(chart.series) < 2:
+        return "", 0.0
+    items, x, y = [], 0.0, top + FONT
+    for index, series in enumerate(chart.series):
+        name = _fit(series.name, WIDTH - 20)
+        width = 18 + _width(name) + 16
+        if x and x + width > WIDTH:
+            x, y = 0.0, y + _LINE
+        if chart.type == "line":
+            swatch = _element("line", {"class": _LINE_CLASSES[index], "x1": x, "y1": y - 4,
+                                       "x2": x + 14, "y2": y - 4, "stroke": SERIES[index],
+                                       "stroke-width": 2})
+        else:
+            swatch = _element("rect", {"class": _SERIES_CLASSES[index], "x": x, "y": y - 10,
+                                       "width": 12, "height": 12, "fill": SERIES[index]})
+        items.append(swatch + _label(x + 18, y, name, "chart-legend", "start"))
+        x += width
+    return _element("g", {"class": "chart-legend"}, *items), y - top + 10
+
+
+def _mark_title(chart: Chart, series_name: str, category: str, text: str) -> str:
+    """A mark's tooltip: what it is, and its value as typed."""
+    named = f"{series_name}, {category}" if len(chart.series) > 1 else category
+    return _element("title", None, _text(f"{named}: {text}"))
+
+
+# Bar and line charts: categories along the bottom.
+
+def _category_labels(categories: Sequence[str], centre, step: float, y: float) -> list[str]:
+    """The categories under the plot, every k-th if they're crowded, each
+    shortened to the room it has."""
+    least = 4 * _CHAR + 4
+    every = max(1, math.ceil(least / step)) if step < least else 1
+    room = every * step - 4
+    labels = []
+    for index, category in enumerate(categories):
+        if index % every:
+            continue
+        # Centred, so it has as much room to each side as the SVG leaves it.
+        at = centre(index)
+        fits = min(room, 2 * min(at, WIDTH - at))
+        labels.append(_label(at, y, _fit(category, fits), "chart-category"))
+    return labels
+
+
+def _vertical(chart: Chart) -> tuple[str, float, Scale]:
+    unit = chart.effective_unit
+    numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
+    scale = _scale(numbers, from_zero=chart.type == "bar")
+    ticks = [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
+    single = len(chart.series) == 1
+    legend, legend_height = _legend(chart, 0)
+    value_title = _value_title(chart)
+    top = legend_height + (_LINE if value_title else 0) + 10
+    left = max(_width(text) for _, text in ticks) + 10
+    end_label = ""
+    if chart.type == "line" and single:
+        last = [cell for cell in chart.series[0].cells if cell.kind == "number"]
+        end_label = last[-1].text if last else ""
+    right = 12 + (_width(end_label) + 8 if end_label else 0)
+    plot_width = WIDTH - left - right
+    bottom = top + _PLOT_HEIGHT
+
+    def y(value: float) -> float:
+        return scale.at(value, bottom, -_PLOT_HEIGHT)
+
+    parts = [legend]
+    if value_title:
+        parts.append(_label(0, legend_height + FONT, _fit(value_title, WIDTH), "chart-axis-title",
+                            "start"))
+    grid = []
+    for tick, text in ticks:
+        grid.append(_element("line", {"class": "chart-grid", "x1": left, "y1": y(tick),
+                                      "x2": left + plot_width, "y2": y(tick), "stroke": GRID,
+                                      "stroke-width": 1}))
+        grid.append(_label(left - 6, y(tick) + 4, text, "chart-tick", "end", MUTED))
+    parts.append(_element("g", None, *grid))
+    base = 0.0 if scale.low <= 0 <= scale.high else scale.low
+    parts.append(_element("line", {"class": "chart-baseline", "x1": left, "y1": y(base),
+                                   "x2": left + plot_width, "y2": y(base), "stroke": BASELINE,
+                                   "stroke-width": 1}))
+    count = len(chart.categories)
+    if chart.type == "bar":
+        step = plot_width / count
+        parts.extend(_bars(chart, left, step, y))
+
+        def centre(index: int) -> float:
+            return left + (index + 0.5) * step
+    else:
+        inset = 12
+        step = (plot_width - 2 * inset) / (count - 1)
+        parts.extend(_lines(chart, lambda index: left + inset + index * step, y, end_label))
+
+        def centre(index: int) -> float:
+            return left + inset + index * step
+    labels_y = bottom + 6 + FONT
+    parts.append(_element("g", None, *_category_labels(chart.categories, centre, step, labels_y)))
+    height = labels_y + 6
+    if chart.x_label:
+        height += _LINE
+        parts.append(_label(left + plot_width / 2, height - 6, _fit(chart.x_label, WIDTH),
+                            "chart-axis-title"))
+    return "".join(parts), height, scale
+
+
+def _bars(chart: Chart, left: float, step: float, y) -> list[str]:
+    count = len(chart.series)
+    group = min(step * 0.7, count * _BAR + (count - 1) * _GAP)
+    width = (group - (count - 1) * _GAP) / count
+    single = count == 1
+    labelled = single and all(_width(cell.text) <= step - 2 for cell in chart.series[0].cells)
+    marks, labels = [], []
+    for index, category in enumerate(chart.categories):
+        x0 = left + index * step + (step - group) / 2
+        for number, series in enumerate(chart.series):
+            cell = series.cells[index]
+            x = x0 + number * (width + _GAP)
+            if cell.kind == "number":
+                top, bottom = y(max(cell.number, 0)), y(min(cell.number, 0))
+                marks.append(_element("rect", {"class": _SERIES_CLASSES[number], "x": x, "y": top,
+                                               "width": width, "height": bottom - top,
+                                               "fill": SERIES[number]},
+                                      _mark_title(chart, series.name, category, cell.text)))
+                if labelled:
+                    at = top - 4 if cell.number >= 0 else bottom + FONT
+                    labels.append(_label(x + width / 2, at, cell.text, "chart-value"))
+            elif cell.kind == "suppressed" and labelled:
+                labels.append(_label(x + width / 2, y(0) - 4, cell.text, "chart-value"))
+    return [_element("g", None, *marks), _element("g", None, *labels)]
+
+
+def _runs(points: Iterable[tuple[float, float] | None]) -> list[list[tuple[float, float]]]:
+    """The unbroken runs of a line's points; a missing or suppressed value
+    breaks it."""
+    runs: list[list[tuple[float, float]]] = [[]]
+    for point in points:
+        if point is None:
+            runs.append([])
+        else:
+            runs[-1].append(point)
+    return [run for run in runs if run]
+
+
+def _lines(chart: Chart, x, y, end_label: str) -> list[str]:
+    marked = len(chart.categories) <= 12
+    parts = []
+    for number, series in enumerate(chart.series):
+        points = [(x(index), y(cell.number)) if cell.kind == "number" else None
+                  for index, cell in enumerate(series.cells)]
+        lines, markers = [], []
+        for run in _runs(points):
+            if len(run) > 1:
+                lines.append(_element("polyline", {"class": _LINE_CLASSES[number], "points": run,
+                                                   "fill": NONE, "stroke": SERIES[number],
+                                                   "stroke-width": 2}))
+        for index, (point, cell) in enumerate(zip(points, series.cells)):
+            alone = point is not None and all(
+                points[i] is None for i in (index - 1, index + 1) if 0 <= i < len(points))
+            if point is not None and (marked or alone):
+                markers.append(_element(
+                    "circle", {"class": _MARKER_CLASSES[number], "cx": point[0], "cy": point[1],
+                               "r": 4, "fill": SERIES[number], "stroke": SURFACE,
+                               "stroke-width": 2},
+                    _mark_title(chart, series.name, chart.categories[index], cell.text)))
+        parts.append(_element("g", None, *lines, *markers))
+    if end_label:
+        last = max(i for i, cell in enumerate(chart.series[0].cells) if cell.kind == "number")
+        number = chart.series[0].cells[last].number
+        parts.append(_label(x(last) + 8, y(number) + 4, end_label, "chart-value", "start"))
+    return parts
+
+
+# Horizontal bar charts: categories down the side.
+
+def _horizontal(chart: Chart) -> tuple[str, float, Scale]:
+    unit = chart.effective_unit
+    numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
+    scale = _scale(numbers, from_zero=True)
+    ticks = [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
+    count = len(chart.series)
+    single = count == 1
+    thickness = 20 if single else 14
+    band = count * thickness + (count - 1) * _GAP + 12
+    legend, legend_height = _legend(chart, 0)
+    top = legend_height + (_LINE if chart.x_label else 0) + 6
+    left = max(min(max(_width(category) for category in chart.categories) + 10, WIDTH * 0.4),
+               _width(ticks[0][1]) / 2 + 2)
+    labels = [cell.text for cell in chart.series[0].cells] if single else []
+    right = max([_width(text) for text in labels] + [_width(ticks[-1][1]) / 2]) + 10
+    plot_width = WIDTH - left - right
+    plot_height = len(chart.categories) * band
+    bottom = top + plot_height
+
+    def x(value: float) -> float:
+        return scale.at(value, left, plot_width)
+
+    parts = [legend]
+    if chart.x_label:
+        parts.append(_label(0, legend_height + FONT, _fit(chart.x_label, WIDTH),
+                            "chart-axis-title", "start"))
+    grid = []
+    for tick, text in ticks:
+        grid.append(_element("line", {"class": "chart-grid", "x1": x(tick), "y1": top,
+                                      "x2": x(tick), "y2": bottom, "stroke": GRID,
+                                      "stroke-width": 1}))
+        grid.append(_label(x(tick), bottom + 6 + FONT, text, "chart-tick", "middle", MUTED))
+    parts.append(_element("g", None, *grid))
+    parts.append(_element("line", {"class": "chart-baseline", "x1": x(0), "y1": top,
+                                   "x2": x(0), "y2": bottom, "stroke": BASELINE,
+                                   "stroke-width": 1}))
+    marks, values, categories = [], [], []
+    for index, category in enumerate(chart.categories):
+        band_top = top + index * band
+        categories.append(_label(left - 8, band_top + band / 2 + 4, _fit(category, left - 10),
+                                 "chart-category", "end"))
+        for number, series in enumerate(chart.series):
+            cell = series.cells[index]
+            bar_y = band_top + 6 + number * (thickness + _GAP)
+            if cell.kind == "number":
+                start, end = x(min(cell.number, 0)), x(max(cell.number, 0))
+                marks.append(_element("rect", {"class": _SERIES_CLASSES[number], "x": start,
+                                               "y": bar_y, "width": end - start,
+                                               "height": thickness, "fill": SERIES[number]},
+                                      _mark_title(chart, series.name, category, cell.text)))
+                if single:
+                    at, anchor = (end + 4, "start") if cell.number >= 0 else (start - 4, "end")
+                    values.append(_label(at, bar_y + thickness / 2 + 4, cell.text,
+                                         "chart-value", anchor))
+            elif cell.kind == "suppressed" and single:
+                values.append(_label(x(0) + 4, bar_y + thickness / 2 + 4, cell.text,
+                                     "chart-value", "start"))
+    parts += [_element("g", None, *categories), _element("g", None, *marks),
+              _element("g", None, *values)]
+    height = bottom + 6 + FONT + 6
+    value_title = _value_title(chart)
+    if value_title:
+        height += _LINE
+        parts.append(_label(left + plot_width / 2, height - 6, _fit(value_title, WIDTH),
+                            "chart-axis-title"))
+    return "".join(parts), height, scale
+
+
+# The figure.
+
+def _note(text: str, css: str = "chart-note") -> str:
+    return _element("p", {"class": css}, _element("small", None, _text(text)))
+
+
+def _data_table(chart: Chart) -> str:
+    """The Chart's data as a table, each value with its original notation."""
+    head = _element("tr", None,
+                    _element("th", {"scope": "col"}, _text(chart.x_label or "Category")),
+                    *(_element("th", {"scope": "col"}, _text(series.name))
+                      for series in chart.series))
+    rows = [_element("tr", None, _element("th", {"scope": "row"}, _text(category)),
+                     *(_element("td", None, _text(series.cells[index].text))
+                       for series in chart.series))
+            for index, category in enumerate(chart.categories)]
+    return _element("details", {"class": "chart-data"},
+                    _element("summary", None, _text(DATA_SUMMARY)),
+                    _element("table", None, _element("thead", None, head),
+                             _element("tbody", None, *rows)))
+
+
+def draw(chart: Chart, key: str, number: int) -> str:
+    """The figure for `chart`, the `number`th in a body whose key (32 hex
+    characters, the same on every render of that body) is `key`."""
+    title_id = f"chart-{key}-{number}-title"
+    body, height, scale = _horizontal(chart) if chart.type == "hbar" else _vertical(chart)
+    svg = _element("svg", {"class": "chart-svg", "viewBox": (0, 0, WIDTH, math.ceil(height)),
+                           "role": "img", "aria-labelledby": title_id}, body)
+    notes = []
+    if chart.type == "line" and scale.low > 0:
+        start = _tick_text(scale.low, scale.step, chart.effective_unit)
+        notes.append(_note(f"The vertical axis starts at {start}, not zero."))
+    if chart.suppressed:
+        notes.append(_note(PRIVACY_NOTE))
+    if chart.source:
+        notes.append(_note(chart.source, "chart-source"))
+    return _element("figure", {"class": "chart-figure"},
+                    _element("figcaption", {"class": "chart-title", "id": title_id},
+                             _text(chart.title)),
+                    svg, *notes, _data_table(chart))

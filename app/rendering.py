@@ -26,10 +26,20 @@ every body, however it was saved, raw HTML in it included:
 nh3 checks a URL's scheme before its attribute filter sees it, so it lets
 these schemes through, and the filter decides. An <a> or <img> the filter
 left with no href or src is then taken out (_Unlinked).
+
+Charts (ADR-006) are the one thing put in *after* nh3, which would strip
+their SVG. Each render takes a fresh nonce once the text is fixed, and each
+valid `chart` fence renders as the placeholder `chart-<nonce>-<n>`. After
+nh3, each placeholder must be there exactly once, as its own paragraph, and
+is swapped for the drawn figure (app.chart_drawing); anything else raises
+ChartPlacementError rather than emit a partial page. An invalid fence renders
+only CHART_NOT_SHOWN.
 """
 from __future__ import annotations
 
+import hashlib
 import re
+import secrets
 from collections.abc import Callable
 from html.parser import HTMLParser
 
@@ -38,6 +48,7 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 from markupsafe import Markup
 
+from app import chart_drawing, charts
 from app.site_links import TABLES as SITE_LINK_SCHEMES
 
 TABLE_SCROLL = "content-table-scroll"
@@ -58,6 +69,45 @@ _MARKDOWN.add_render_rule("table_open", lambda self, tokens, idx, options, env: 
     f'<div class="{TABLE_SCROLL}">\n' + self.renderToken(tokens, idx, options, env)))
 _MARKDOWN.add_render_rule("table_close", lambda self, tokens, idx, options, env: (
     self.renderToken(tokens, idx, options, env) + "</div>\n"))
+
+CHART_NOT_SHOWN = "This chart could not be shown."
+
+
+class ChartPlacementError(RuntimeError):
+    """A Chart's placeholder wasn't where the render left it, exactly once."""
+
+
+def _fence(self, tokens, idx, options, env):
+    """A `chart` fence as its placeholder, if it is valid; any other fence
+    as markdown-it renders it."""
+    token = tokens[idx]
+    if not charts.is_chart(token):
+        return self.fence(tokens, idx, options, env)
+    try:
+        chart = charts.parse(token.content)
+    except charts.ChartError:
+        return f"<p>{CHART_NOT_SHOWN}</p>\n"
+    env["charts"].append(chart)
+    return f"<p>chart-{env['nonce']}-{len(env['charts']) - 1}</p>\n"
+
+
+_MARKDOWN.add_render_rule("fence", _fence)
+
+
+def _placed_charts(html: str, nonce: str, drawn: list[str]) -> str:
+    """`html` with each Chart's placeholder replaced by its figure.
+    ChartPlacementError unless each placeholder is there exactly once, as
+    its own paragraph, and nothing else carries the nonce."""
+    if html.count(nonce) != len(drawn):
+        raise ChartPlacementError("a Chart's placeholder is missing or repeated")
+    for number, figure in enumerate(drawn):
+        placeholder = f"<p>chart-{nonce}-{number}</p>"
+        if html.count(placeholder) != 1:
+            raise ChartPlacementError(f"Chart {number + 1}'s placeholder isn't in place")
+        html = html.replace(placeholder, figure)
+    if nonce in html:
+        raise ChartPlacementError("a Chart's placeholder was left over")
+    return html
 
 
 def _chart_image_name(src: str | None) -> str | None:
@@ -150,12 +200,24 @@ def _unlinked(html: str) -> str:
 def render_markdown(text: str, image_src: ImageSrc | None = None,
                     link_href: LinkHref | None = None) -> Markup:
     """`text` as sanitized HTML, under the link rule: its `image:<name>`
-    references resolved by `image_src`, and its site links by `link_href`."""
-    return Markup(_unlinked(nh3.clean(_MARKDOWN.render(text or ""),
-                                      attributes=_ALLOWED_ATTRIBUTES,
-                                      attribute_filter=_link_rule(image_src, link_href),
-                                      url_schemes=_URL_SCHEMES,
-                                      allowed_classes={"div": {TABLE_SCROLL}})))
+    references resolved by `image_src`, and its site links by `link_href`;
+    its Charts drawn."""
+    text = text or ""
+    # Only after the text is fixed, so nothing in it can know the nonce.
+    env = {"nonce": secrets.token_hex(16), "charts": []}
+    html = _unlinked(nh3.clean(_MARKDOWN.render(text, env),
+                               attributes=_ALLOWED_ATTRIBUTES,
+                               attribute_filter=_link_rule(image_src, link_href),
+                               url_schemes=_URL_SCHEMES,
+                               allowed_classes={"div": {TABLE_SCROLL}}))
+    if not env["charts"]:
+        return Markup(html)
+    # The titles' ids: the same on every render of this text, so the export
+    # is the live site byte for byte (ADR-006).
+    key = hashlib.sha256(text.encode("utf-8")).hexdigest()[:32]
+    drawn = [chart_drawing.draw(chart, key, number)
+             for number, chart in enumerate(env["charts"])]
+    return Markup(_placed_charts(html, env["nonce"], drawn))
 
 
 def parse(text: str) -> list[Token]:

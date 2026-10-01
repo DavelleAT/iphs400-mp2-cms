@@ -19,8 +19,9 @@ it has to put SVG into pages *after* nh3, which would strip it otherwise.
 
 **A Chart is a `chart` fence in the body, holding one strict JSON object,
 drawn by the server as inline SVG.** The body is still Markdown (ADR-005).
-`app.charts` owns the grammar (version 1, spec #14's table), the number,
-unit, missing, and suppressed rules, and the drawing.
+`app.charts` owns the grammar (version 1, spec #14's table) and the number,
+unit, missing, and suppressed rules. `app.chart_drawing` draws a Chart that
+has passed them, and `app.rendering` puts it in the page.
 
 - **Strict, and checked on every save.** The JSON is parsed by stdlib `json`
   with duplicate keys, `NaN`, and `Infinity` refused. Unknown keys, wrong
@@ -64,6 +65,12 @@ unit, missing, and suppressed rules, and the drawing.
   body, not the per-render nonce. So the export stays byte-for-byte the live
   site, and a publish doesn't change every page that has a Chart. The nonce
   stays secret and only ever marks placeholders.
+- **A fixed palette.** Four series colours, the first four slots of the
+  dataviz reference palette, with their dark-mode steps swapped in by class.
+  Both sets pass its validator (colour-blind separation, normal-vision
+  separation, lightness band). In light mode, aqua and yellow are under 3:1
+  against white, so every Chart carries a legend for two or more series and
+  its data table.
 - **No JavaScript on the public site.** The data table is a `<details>`
   element. Bar charts start at zero. A line chart may start above zero, and
   says so.

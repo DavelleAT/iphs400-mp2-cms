@@ -44,6 +44,29 @@ main { margin-block: 2rem; }
 .content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
 .content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
 @media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
+/* Charts (app.chart_drawing): an SVG scaled to the column, its text at the
+   size its layout assumes (FONT, in the SVG's units), and its data in a
+   <details> table that scrolls sideways rather than widen the page. */
+.chart-figure { margin: 1.5rem 0; }
+.chart-title { font-weight: 600; margin-bottom: 0.5rem; }
+.chart-svg { display: block; height: auto; width: 100%; }
+.chart-svg text { font-family: system-ui, sans-serif; font-size: 13px; }
+.chart-svg polyline { stroke-linecap: round; stroke-linejoin: round; }
+.chart-svg circle { stroke: Canvas; }
+.chart-note, .chart-source { margin: 0.25rem 0; }
+.chart-data { margin-top: 0.5rem; overflow-x: auto; }
+.chart-data summary { cursor: pointer; }
+.content-body .chart-data td { font-variant-numeric: tabular-nums; text-align: right; }
+@media (prefers-color-scheme: dark) {
+  .chart-svg text { fill: #c3c2b7; }
+  .chart-svg .chart-tick { fill: #898781; }
+  .chart-svg .chart-grid { stroke: #2c2c2a; }
+  .chart-svg .chart-baseline { stroke: #5c5b57; }
+  .chart-series-1, .chart-marker-1 { fill: #3987e5; } .chart-line-1 { stroke: #3987e5; }
+  .chart-series-2, .chart-marker-2 { fill: #d95926; } .chart-line-2 { stroke: #d95926; }
+  .chart-series-3, .chart-marker-3 { fill: #199e70; } .chart-line-3 { stroke: #199e70; }
+  .chart-series-4, .chart-marker-4 { fill: #c98500; } .chart-line-4 { stroke: #c98500; }
+}
 /* A Site preview's banner (Page.render_preview); never on a published page. */
 .site-preview-banner { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; font-weight: 600; margin: 0 0 1rem; padding: 0.5rem 0.9rem; }
 /* Admin only: an edit form's fields beside its Site preview, stacked below
