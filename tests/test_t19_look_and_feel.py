@@ -81,8 +81,9 @@ def test_a_public_page_links_only_the_sites_stylesheet(client_as, client, path):
 
 
 @pytest.mark.parametrize("path", ["/login", "/admin", "/admin/content", "/admin/users",
-                                  "/admin/data-bites", "/admin/data-bites/{bid}",
-                                  "/admin/reports"])
+                                  "/admin/data-bites", "/admin/data-bites/new",
+                                  "/admin/data-bites/{bid}", "/admin/reports",
+                                  "/admin/reports/new"])
 def test_an_admin_page_links_only_the_consoles_stylesheet(client_as, path):
     director = client_as("admin")
     page = director.get(path.format(bid=create_bite(director))).text

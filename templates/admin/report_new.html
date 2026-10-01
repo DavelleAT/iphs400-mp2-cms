@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="head-page"><div>
+    <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / <a href="{{ path_for('list_reports') }}">Reports</a> / New</span>
+    <h1>New Report</h1>
+    <p class="head-page-lede">Saved as a Draft. {% if user.role == "admin" %}It reaches the public site once you publish it.{% else %}Only the Director can publish it.{% endif %}</p>
+  </div></div>
+  {% if error and not error_field %}<p class="alert-console" role="alert">{{ error }}</p>{% endif %}
+  {% set action = path_for('create_report') %}
+  {% set submit = "Save draft" %}
+  {% set file_label = "Attach PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
+  {% include "admin/_content_fields.html" %}
+{% endblock %}

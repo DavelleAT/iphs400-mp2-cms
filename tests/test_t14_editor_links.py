@@ -37,7 +37,8 @@ def a_site(director: TestClient) -> dict[str, str]:
             "draft bite": create_bite(director, slug="unreleased", title="Unreleased count")}
 
 
-@pytest.mark.parametrize("path", ["/admin/data-bites", "/admin/reports",
+# The create forms are on their own pages since T22.
+@pytest.mark.parametrize("path", ["/admin/data-bites/new", "/admin/reports/new",
                                   "/admin/data-bites/{bite}", "/admin/reports/{report}"])
 def test_the_picker_lists_every_report_and_data_bite_marking_drafts(director, path):
     site = a_site(director)
@@ -57,7 +58,7 @@ def test_the_picker_lists_every_report_and_data_bite_marking_drafts(director, pa
 
 def test_the_picker_escapes_titles(director):
     create_report(director, slug="x", title="</div><script>alert(1)</script> 'q'")
-    page = director.get("/admin/reports").text
+    page = director.get("/admin/reports/new").text
     assert "<script>alert(1)" not in page
     assert data(page, "site-items")[0]["title"] == "</div><script>alert(1)</script> 'q'"
 

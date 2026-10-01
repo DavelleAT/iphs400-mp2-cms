@@ -6,7 +6,7 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.conftest import backdate, post_form, second_analyst
+from tests.conftest import backdate, post_form, second_analyst, stored_id, stored_slugs
 from tests.test_t06_admin_console import preview_of
 
 REPORT = {"title": "Factbook 2026", "slug": "factbook",
@@ -15,8 +15,9 @@ REPORT = {"title": "Factbook 2026", "slug": "factbook",
 
 def report_row(c: TestClient, slug: str) -> str:
     """This Report's row of the admin list, as HTML."""
+    item_id = stored_id("reports", slug)
     for row in c.get("/admin/reports").text.split("<tr")[1:]:
-        if f"<code>{slug}</code>" in row:
+        if row.startswith(f' id="report-{item_id}"'):
             return row
     raise AssertionError(f"{slug} is not listed")
 
@@ -28,7 +29,8 @@ def report_id(c: TestClient, slug: str) -> str:
 def create_report(c: TestClient, **override) -> str:
     response = post_form(c, "/admin/reports", {**REPORT, **override})
     assert response.status_code == 303, response.text
-    return report_id(c, override.get("slug", REPORT["slug"]))
+    # A create lands on the new item's edit page (T22).
+    return response.headers["location"].removeprefix("/admin/reports/")
 
 
 def published_report(director: TestClient, analyst: TestClient) -> str:
@@ -42,7 +44,8 @@ def test_analyst_creates_a_draft_report(client_as):
     analyst = client_as("editor")
     response = post_form(analyst, "/admin/reports", REPORT)
     assert response.status_code == 303
-    assert response.headers["location"] == "/admin/reports"
+    # To the new Report's edit page since T22 (spec #25), not the list.
+    assert response.headers["location"] == f"/admin/reports/{stored_id('reports', REPORT['slug'])}"
     row = report_row(analyst, REPORT["slug"])
     assert REPORT["title"] in row and "Draft" in row
 
@@ -52,7 +55,7 @@ def test_a_report_requires_a_markdown_body(client_as):
     response = post_form(analyst, "/admin/reports", {**REPORT, "body": "   "})
     assert response.status_code == 400
     assert "Enter a body." in response.text
-    assert f"<code>{REPORT['slug']}</code>" not in analyst.get("/admin/reports").text
+    assert REPORT["slug"] not in stored_slugs("reports")
 
 
 def test_any_analyst_edits_any_draft_report_and_author_and_created_at_are_kept(client_as):
@@ -141,7 +144,7 @@ def test_director_publishes_edits_unpublishes_and_deletes_a_report(client_as):
     assert post_form(analyst, f"/admin/reports/{rid}", REPORT).status_code == 303
 
     assert post_form(director, f"/admin/reports/{rid}/delete", {}).status_code == 303
-    assert REPORT["slug"] not in director.get("/admin/reports").text
+    assert f'id="report-{rid}"' not in director.get("/admin/reports").text
     assert post_form(director, f"/admin/reports/{rid}/delete", {}).status_code == 404
 
 
@@ -149,7 +152,7 @@ def test_director_deletes_a_published_report(client_as):
     director, analyst = client_as("admin"), client_as("editor")
     rid = published_report(director, analyst)
     assert post_form(director, f"/admin/reports/{rid}/delete", {}).status_code == 303
-    assert REPORT["slug"] not in director.get("/admin/reports").text
+    assert f'id="report-{rid}"' not in director.get("/admin/reports").text
 
 
 def test_duplicate_report_slug_is_rejected_with_a_validation_error(client_as):
@@ -158,7 +161,7 @@ def test_duplicate_report_slug_is_rejected_with_a_validation_error(client_as):
     response = post_form(analyst, "/admin/reports", {**REPORT, "title": "Another"})
     assert response.status_code == 400
     assert f"Another Report already uses the slug {REPORT['slug']}" in response.text
-    assert analyst.get("/admin/reports").text.count(f"<code>{REPORT['slug']}</code>") == 1
+    assert analyst.get("/admin/reports").text.count('id="report-') == 1
 
 
 def test_editing_to_another_reports_slug_is_rejected(client_as):
@@ -177,8 +180,9 @@ def test_a_data_bite_may_share_a_slug_with_a_report(client_as):
     create_report(analyst)
     bite = {"title": "Factbook is out", "slug": REPORT["slug"], "body": "See the Factbook."}
     assert post_form(analyst, "/admin/data-bites", bite).status_code == 303
-    assert f"<code>{REPORT['slug']}</code>" in analyst.get("/admin/data-bites").text
-    assert f"<code>{REPORT['slug']}</code>" in analyst.get("/admin/reports").text
+    bid = stored_id("data_bites", REPORT["slug"])
+    assert f'id="data-bite-{bid}"' in analyst.get("/admin/data-bites").text
+    assert REPORT["title"] in report_row(analyst, REPORT["slug"])
 
 
 def test_a_draft_report_is_never_shown_publicly(client_as, client):

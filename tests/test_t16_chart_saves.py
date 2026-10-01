@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import data_bites, db, reports
-from tests.conftest import csrf_from, post_form
+from tests.conftest import csrf_from, post_form, stored_slugs
 from tests.test_t03_data_bites import BITE, create_bite
 from tests.test_t04_reports import REPORT, create_report
 from tests.test_t13_editor_routes import edit_page, field, save, textarea
@@ -60,7 +60,7 @@ def test_the_markdown_fallback_refuses_each_invalid_chart_by_name(analyst, text,
     body = "Intro.\n\n" + fence(source()) + "\n" + fence(text)
     page = error_of(post_form(analyst, "/admin/data-bites", {**BITE, "body": body}))
     assert "Chart 2: " in page and message in page
-    assert BITE["slug"] not in analyst.get("/admin/data-bites").text
+    assert BITE["slug"] not in stored_slugs("data_bites")
 
 
 @pytest.mark.parametrize("text, message", VIOLATIONS)

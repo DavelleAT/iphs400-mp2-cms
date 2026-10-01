@@ -1,38 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Data Bites</h1>
-  {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
-  {% if bites %}
-  <table class="table-items">
-    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th><th></th></tr></thead>
-    <tbody>
-    {% for b in bites %}
-      <tr id="data-bite-{{ b.id }}">
-        <td><a href="{{ path_for('edit_bite_form', bite_id=b.id) }}">{{ b.title }}</a></td>
-        <td><code>{{ b.slug }}</code></td>
-        <td>{{ status_labels[b.status] }}</td>
-        <td>{{ b.author_name }}</td>
-        <td>{{ b.updated_at }}</td>
-        <td>
-          {% set action = "unpublish" if b.status == "published" else "publish" %}
-          <form method="post" action="/admin/data-bites/{{ b.id }}/{{ action }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-            <button type="submit">{{ action | capitalize }}</button>
-          </form>
-          {% if user.role == "admin" %}
-          <a href="{{ path_for('confirm_delete_bite', bite_id=b.id) }}">Delete</a>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>No Data Bites yet.</p>
-  {% endif %}
-
-  <h2>New Data Bite</h2>
-  {% set action = "/admin/data-bites" %}
-  {% set submit = "Save draft" %}
-  {% include "admin/_content_fields.html" %}
+  <div class="head-page">
+    <div>
+      <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / Data Bites</span>
+      <h1>Data Bites</h1>
+      <p class="head-page-lede">Short, dated items. An Analyst or the Director may publish one.</p>
+    </div>
+    <div class="actions-page"><a class="button-primary" href="{{ path_for('new_bite_form') }}">New Data Bite</a></div>
+  </div>
+  {% include "admin/_list_filters.html" %}
+  {%- if rows %}
+  {%- set noun, show_type = "Data Bite", false %}
+  {% include "admin/_items_table.html" %}
+  {%- elif status %}
+  <p class="empty-console">{% if status == "published" %}No Data Bite is Published yet.{% else %}No Data Bite is a Draft.{% endif %}</p>
+  {%- else %}
+  <p class="empty-console">No Data Bites yet.</p>
+  {%- endif %}
 {% endblock %}

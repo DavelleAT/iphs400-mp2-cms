@@ -81,20 +81,20 @@ def validate_summary(summary: str) -> str:
 def validate(title: str, slug: str, body: str) -> tuple[str, str, str]:
     title, slug = title.strip(), slug.strip()
     if not title:
-        raise ContentError("Enter a title.")
+        raise ContentError("Enter a title.", field="title")
     if not _SLUG_PATTERN.fullmatch(slug):
         raise ContentError("Slugs use lowercase letters, digits, and single "
-                           "hyphens, e.g. fall-enrollment.")
+                           "hyphens, e.g. fall-enrollment.", field="slug")
     if slug in _RESERVED_SLUGS:
         raise ContentError(f"The slug {slug} is reserved for the list page; "
-                           "choose another.")
+                           "choose another.", field="slug")
     if not body.strip():
-        raise ContentError("Enter a body.")
+        raise ContentError("Enter a body.", field="body")
     try:
         # Every save, from the Editor or not (spec #14, ADR-006).
         charts.check(parse(body))
     except charts.ChartError as exc:
-        raise ContentError(str(exc)) from None
+        raise ContentError(str(exc), field="body") from None
     return title, slug, body
 
 
@@ -118,7 +118,8 @@ class ContentTable:
         """Translate the slug's UNIQUE violation; re-raise any other constraint."""
         if f"{self.table}.slug" not in str(exc):
             raise exc
-        return DuplicateSlug(f"Another {self.noun} already uses the slug {slug}.")
+        return DuplicateSlug(f"Another {self.noun} already uses the slug {slug}.",
+                             field="slug")
 
     def create(self, title: str, slug: str, body: str, author_id: int, *,
                summary: str = "", also: AlsoWrite | None = None) -> int:

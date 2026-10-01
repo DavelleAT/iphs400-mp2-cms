@@ -72,7 +72,7 @@ def test_the_edit_page_gives_the_editor_its_chart_images_by_name_and_admin_src(
 
 @pytest.mark.parametrize("kind, create, upload", KINDS)
 def test_a_create_page_gives_the_editor_no_images_to_list(analyst, kind, create, upload):
-    page = analyst.get(f"/admin/{kind}").text
+    page = analyst.get(f"/admin/{kind}/new").text  # its own page since T22
     assert 'class="admin-editor"' in page
     assert body_images(page) is None
 

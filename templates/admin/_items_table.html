@@ -1,0 +1,36 @@
+{#- The console's item table (spec #25, T22), for the Data Bites, Reports,
+    and All content lists: `rows` (app.routes.listing.ItemRow), and the
+    first column's head, `noun`. With `show_type`, each title says its type.
+    On a phone its rows stack, and it stays a table. #}
+  <table class="table-items table-items-stack">
+    <thead><tr><th scope="col">{{ noun }}</th><th scope="col">State</th><th scope="col">Author</th><th scope="col">Updated</th><th scope="col"><span class="text-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {%- for row in rows %}
+      {%- set item, ctype = row.item, row.ctype %}
+      {%- set edit_path = ctype.list_path ~ "/" ~ item.id %}
+      <tr id="{{ ctype.key }}-{{ item.id }}">
+        <th scope="row" class="table-items-title">
+          {%- if show_type %}<span class="table-items-type text-label">{{ ctype.noun }}</span>{% endif -%}
+          <a href="{{ edit_path }}">{{ item.title }}</a>
+          {%- if item.summary %}<p>{{ item.summary }}</p>{% endif -%}
+        </th>
+        <td><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span></td>
+        <td>{{ item.author_name }}</td>
+        <td class="text-mono"><time datetime="{{ item.updated_at | replace(" ", "T") }}">{{ item.updated_at[:10] }}</time></td>
+        <td class="table-items-actions">
+          <a class="button-quiet" href="{{ edit_path }}">{{ "Edit" if row.may_edit else "View" }}</a>
+          {%- if row.may_publish %}
+          {%- set action = "unpublish" if item.status == "published" else "publish" %}
+          <form method="post" action="{{ edit_path }}/{{ action }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <button class="button-quiet" type="submit">{{ action | capitalize }}</button>
+          </form>
+          {%- endif %}
+          {%- if row.may_delete %}
+          <a class="button-quiet button-danger" href="{{ edit_path }}/delete">Delete</a>
+          {%- endif %}
+        </td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table>

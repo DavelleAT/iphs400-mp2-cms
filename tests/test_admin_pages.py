@@ -10,7 +10,8 @@ from tests.test_t03_data_bites import create_bite
 
 
 @pytest.mark.parametrize("path", ["/login", "/admin", "/admin/content", "/admin/users",
-                                  "/admin/data-bites", "/admin/data-bites/{bid}"])
+                                  "/admin/data-bites", "/admin/data-bites/new",
+                                  "/admin/data-bites/{bid}"])
 def test_every_admin_page_links_a_stylesheet_that_loads(client_as, path):
     director = client_as("admin")
     url = f"http://testserver{path.format(bid=create_bite(director))}"

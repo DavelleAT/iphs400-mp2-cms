@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app import db, settings, uploads, users
 from app.publish import render_site
-from tests.conftest import DEMO_USERS, csrf_from, post_form, second_analyst
+from tests.conftest import DEMO_USERS, csrf_from, post_form, second_analyst, stored_slugs
 from tests.test_t04_reports import REPORT, report_id, report_row
 
 # A minimal, well-formed PDF: the header and the end-of-file marker are what
@@ -66,7 +66,7 @@ def test_a_non_pdf_is_rejected_and_nothing_is_saved(client_as, upload, message):
     response = post_with_file(analyst, "/admin/reports", REPORT, upload)
     assert response.status_code == 400
     assert message in response.text
-    assert f"<code>{REPORT['slug']}</code>" not in analyst.get("/admin/reports").text
+    assert REPORT["slug"] not in stored_slugs("reports")
     assert not list(settings.UPLOADS.rglob("*.*"))
 
 
@@ -77,7 +77,7 @@ def test_a_file_over_the_size_cap_is_rejected_with_a_clear_error(client_as, monk
     response = post_with_file(analyst, "/admin/reports", REPORT, pdf(content=padded))
     assert response.status_code == 400
     assert "That file is over the 1 MB limit." in response.text
-    assert f"<code>{REPORT['slug']}</code>" not in analyst.get("/admin/reports").text
+    assert REPORT["slug"] not in stored_slugs("reports")
 
     # One just under the cap is fine.
     fits = PDF[:-6] + b" " * (uploads.MIB - len(PDF)) + b"%%EOF\n"
@@ -273,7 +273,7 @@ def test_file_posts_without_csrf_token_are_rejected(client_as, method, path):
                               pdf("tampered.pdf", REVISED), with_csrf=False)
     assert response.status_code == 403
     assert reports_file(rid).read_bytes() == PDF
-    assert "new-slug" not in director.get("/admin/reports").text
+    assert "new-slug" not in stored_slugs("reports")
 
 
 PRE_T05_SCHEMA = """
@@ -347,4 +347,4 @@ def test_a_failed_file_write_saves_nothing(client_as, monkeypatch, tmp_path):
                        {**REPORT, "slug": "half-saved"}, pdf())
 
     listing = analyst.get("/admin/reports").text
-    assert "Half-saved title" not in listing and "half-saved" not in listing
+    assert "Half-saved title" not in listing and "half-saved" not in stored_slugs("reports")

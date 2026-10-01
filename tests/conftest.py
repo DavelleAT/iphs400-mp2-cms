@@ -62,6 +62,22 @@ def second_analyst(director: TestClient) -> TestClient:
     return c
 
 
+def stored_id(table: str, slug: str) -> str:
+    """The id of the item stored in `table` with `slug`. The admin lists show
+    titles, not slugs (T22), so tests find an item's row by its id."""
+    with db.connect() as conn:
+        row = conn.execute(f"SELECT id FROM {table} WHERE slug = ?", (slug,)).fetchone()
+    assert row, f"no {table} item has the slug {slug}"
+    return str(row[0])
+
+
+def stored_slugs(table: str) -> set[str]:
+    """Every slug stored in `table`: whether a refused save left an item
+    behind, which the admin lists, showing titles, no longer say (T22)."""
+    with db.connect() as conn:
+        return {row[0] for row in conn.execute(f"SELECT slug FROM {table}")}
+
+
 def backdate(table: str, row_id: str) -> None:
     """Setup only: move a content row's timestamps into the past, so an edit
     made within the same second still visibly changes updated_at."""

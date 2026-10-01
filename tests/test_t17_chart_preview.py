@@ -121,7 +121,7 @@ def test_the_answer_is_json_the_page_can_trust(analyst):
 @pytest.mark.parametrize("path", ["/admin/data-bites", "/admin/reports"])
 def test_the_editor_is_told_where_to_draw_charts(analyst, path):
     from tests.test_t03_data_bites import create_bite
-    pages = [analyst.get(path).text]
+    pages = [analyst.get(f"{path}/new").text]  # the create form's own page (T22)
     if path == "/admin/data-bites":
         pages.append(analyst.get(f"{path}/{create_bite(analyst)}").text)
     for page in pages:

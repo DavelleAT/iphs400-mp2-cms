@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="head-page"><div>
+    <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / <a href="{{ path_for('list_bites') }}">Data Bites</a> / New</span>
+    <h1>New Data Bite</h1>
+    <p class="head-page-lede">Saved as a Draft. Nothing reaches the public site until it is published.</p>
+  </div></div>
+  {% if error and not error_field %}<p class="alert-console" role="alert">{{ error }}</p>{% endif %}
+  {% set action = path_for('create_bite') %}
+  {% set submit = "Save draft" %}
+  {% include "admin/_content_fields.html" %}
+{% endblock %}

@@ -1,43 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-  <p><a href="{{ path_for('admin_home') }}">Dashboard</a></p>
-  <h1>All content</h1>
-  <form method="get" action="/admin/content">
-    <label>Type
-      <select name="type">
+  <div class="head-page"><div>
+    <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / All content</span>
+    <h1>All content</h1>
+    <p class="head-page-lede">Data Bites and Reports together, the most recently updated first.</p>
+  </div></div>
+  <form class="filters-content" method="get" action="{{ path_for('content_list') }}">
+    <p class="field-console"><label for="filter-type">Type</label>
+      <select id="filter-type" name="type">
         <option value="">All</option>
         {% for ctype in content_types %}
         <option value="{{ ctype.key }}"{% if ctype.key == chosen.type %} selected{% endif %}>{{ ctype.plural }}</option>
         {% endfor %}
-      </select>
-    </label>
-    <label>Status
-      <select name="status">
+      </select></p>
+    <p class="field-console"><label for="filter-status">State</label>
+      <select id="filter-status" name="status">
         <option value="">All</option>
         {% for value, label in status_labels.items() %}
         <option value="{{ value }}"{% if value == chosen.status %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select>
-    </label>
-    <button type="submit">Filter</button>
+      </select></p>
+    <p class="field-console"><button class="button-secondary" type="submit">Filter</button></p>
   </form>
-  {% if items %}
-  <table class="table-items">
-    <thead><tr><th>Type</th><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th></tr></thead>
-    <tbody>
-    {% for ctype, item in items %}
-      <tr class="content-row">
-        <td>{{ ctype.noun }}</td>
-        <td><a href="{{ ctype.list_path }}/{{ item.id }}">{{ item.title }}</a></td>
-        <td><code>{{ item.slug }}</code></td>
-        <td>{{ status_labels[item.status] }}</td>
-        <td>{{ item.author_name }}</td>
-        <td>{{ item.updated_at }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>Nothing matches these filters.</p>
-  {% endif %}
+  {%- if rows %}
+  {%- set noun, show_type = "Item", true %}
+  {% include "admin/_items_table.html" %}
+  {%- else %}
+  <p class="empty-console">Nothing matches these filters.</p>
+  {%- endif %}
 {% endblock %}

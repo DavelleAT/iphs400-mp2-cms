@@ -21,11 +21,13 @@ from tests.test_t04_reports import create_report
 
 FONTS = sorted(path.name for path in (settings.STATIC / "fonts").glob("*.woff2"))
 
-DIRECTOR_PAGES = ["/admin", "/admin/content", "/admin/data-bites", "/admin/data-bites/{bid}",
-                  "/admin/data-bites/{bid}/delete", "/admin/reports", "/admin/reports/{rid}",
+DIRECTOR_PAGES = ["/admin", "/admin/content", "/admin/data-bites", "/admin/data-bites/new",
+                  "/admin/data-bites/{bid}", "/admin/data-bites/{bid}/delete",
+                  "/admin/reports", "/admin/reports/new", "/admin/reports/{rid}",
                   "/admin/reports/{rid}/delete", "/admin/users", "/admin/homepage"]
-ANALYST_PAGES = ["/admin", "/admin/content", "/admin/data-bites", "/admin/data-bites/{bid}",
-                 "/admin/reports", "/admin/reports/{rid}",
+ANALYST_PAGES = ["/admin", "/admin/content", "/admin/data-bites", "/admin/data-bites/new",
+                 "/admin/data-bites/{bid}", "/admin/reports", "/admin/reports/new",
+                 "/admin/reports/{rid}",
                  "/admin/users", "/admin/homepage"]  # the last two: "Not allowed" (403)
 
 

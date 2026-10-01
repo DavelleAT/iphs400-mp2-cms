@@ -1,42 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Reports</h1>
-  {% if user.role != "admin" %}
-  <p>Only the Director can publish a Report, or change one once it is published.</p>
-  {% endif %}
-  {% if error and not error_field %}<p role="alert">{{ error }}</p>{% endif %}
-  {% if reports %}
-  <table class="table-items">
-    <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Author</th><th>Updated</th>{% if user.role == "admin" %}<th></th>{% endif %}</tr></thead>
-    <tbody>
-    {% for r in reports %}
-      <tr id="report-{{ r.id }}">
-        <td><a href="{{ path_for('edit_report_form', report_id=r.id) }}">{{ r.title }}</a></td>
-        <td><code>{{ r.slug }}</code></td>
-        <td>{{ status_labels[r.status] }}</td>
-        <td>{{ r.author_name }}</td>
-        <td>{{ r.updated_at }}</td>
-        {% if user.role == "admin" %}
-        <td>
-          {% set action = "unpublish" if r.status == "published" else "publish" %}
-          <form method="post" action="/admin/reports/{{ r.id }}/{{ action }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-            <button type="submit">{{ action | capitalize }}</button>
-          </form>
-          <a href="{{ path_for('confirm_delete_report', report_id=r.id) }}">Delete</a>
-        </td>
-        {% endif %}
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>No Reports yet.</p>
-  {% endif %}
-
-  <h2>New Report</h2>
-  {% set action = "/admin/reports" %}
-  {% set submit = "Save draft" %}
-  {% set file_label = "Attach PDF (optional, up to " ~ max_file_mb ~ " MB)" %}
-  {% include "admin/_content_fields.html" %}
+  <div class="head-page">
+    <div>
+      <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / Reports</span>
+      <h1>Reports</h1>
+      <p class="head-page-lede">Durable, cite-able documents. {% if user.role == "admin" -%}
+        Only you can publish a Report, or change one once it is published.
+        {%- else -%}
+        Only the Director can publish a Report, or change one once it is published.
+        {%- endif %}</p>
+    </div>
+    <div class="actions-page"><a class="button-primary" href="{{ path_for('new_report_form') }}">New Report</a></div>
+  </div>
+  {% include "admin/_list_filters.html" %}
+  {%- if rows %}
+  {%- set noun, show_type = "Report", false %}
+  {% include "admin/_items_table.html" %}
+  {%- elif status %}
+  <p class="empty-console">{% if status == "published" %}No Report is Published yet.{% else %}No Report is a Draft.{% endif %}</p>
+  {%- else %}
+  <p class="empty-console">No Reports yet.</p>
+  {%- endif %}
 {% endblock %}

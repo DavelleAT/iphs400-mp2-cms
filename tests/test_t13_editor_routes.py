@@ -190,7 +190,7 @@ def test_the_fallback_textarea_saves_markdown_and_keeps_locked_blocks(
 
 @pytest.mark.parametrize("kind, item, create, module", KINDS)
 def test_the_create_page_saves_the_editors_html(director, kind, item, create, module):
-    page = director.get(f"/admin/{kind}").text
+    page = director.get(f"/admin/{kind}/new").text  # its own page since T22
     assert editor_content(page).strip() == ""
     response = director.post(f"/admin/{kind}", data={
         "title": "New", "slug": "new", "body": "", "body_html": "<p>Made in the <b>Editor</b></p>",

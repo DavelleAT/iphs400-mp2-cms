@@ -16,8 +16,8 @@ def create(c: TestClient, kind: str, slug: str, *, body: str = "Some **Markdown*
     """Create a draft of `kind` ("data-bites" or "reports"); its id."""
     response = post_form(c, f"/admin/{kind}", {"title": slug.title(), "slug": slug, "body": body})
     assert response.status_code == 303, response.text
-    return re.search(rf'<tr id="[a-z-]+-(\d+)">\s*<td><a href="/admin/{kind}/\d+">'
-                     rf'{slug.title()}</a>', c.get(f"/admin/{kind}").text).group(1)
+    # A create lands on the new item's edit page (T22).
+    return response.headers["location"].removeprefix(f"/admin/{kind}/")
 
 
 def publish(director: TestClient, kind: str, item_id: str) -> None:
@@ -80,11 +80,14 @@ def test_dashboard_uses_the_glossary_labels(client_as):
 # --- Content list ------------------------------------------------------------
 
 def listed(c: TestClient, query: str = "") -> list[tuple[str, str, str]]:
-    """The content list's rows as (type, title, status), top to bottom."""
+    """The content list's rows as (type, title, status), top to bottom. The
+    list is the console's item table since T22: the type above the title, and
+    the state as a badge."""
     response = c.get(f"/admin/content{query}")
     assert response.status_code == 200, response.text
-    return re.findall(r'<tr class="content-row">\s*<td>([^<]+)</td>\s*<td><a href="[^"]+">'
-                      r'([^<]+)</a></td>.*?<td>(Draft|Published)</td>', response.text, re.S)
+    return re.findall(r'<tr id="[a-z-]+-\d+">.*?<span class="table-items-type text-label">([^<]+)'
+                      r'</span><a href="[^"]+">([^<]+)</a>.*?<span class="badge-state [a-z-]+">'
+                      r'(Draft|Published)</span>', response.text, re.S)
 
 
 def mixed_content(director: TestClient, analyst: TestClient) -> None:
@@ -154,13 +157,14 @@ def test_content_list_says_when_nothing_matches(client_as):
     analyst = client_as("editor")
     create(analyst, "data-bites", "only-a-draft")
     page = analyst.get("/admin/content?status=published").text
-    assert "Nothing matches" in page and "content-row" not in page
+    assert "Nothing matches" in page and "<tr id=" not in page
 
 
 def test_content_list_rejects_an_unknown_filter_value(client_as):
+    # 400 since T22, as on the Data Bites and Reports lists (spec #25).
     analyst = client_as("editor")
-    assert analyst.get("/admin/content?type=page").status_code == 422
-    assert analyst.get("/admin/content?status=live").status_code == 422
+    assert analyst.get("/admin/content?type=page").status_code == 400
+    assert analyst.get("/admin/content?status=live").status_code == 400
 
 
 def test_dashboard_counts_link_to_the_filtered_list(client_as):
@@ -228,7 +232,7 @@ def test_editing_a_report_shows_its_rendered_markdown(client_as):
 
 def test_the_new_item_forms_have_a_preview_too(client_as):
     analyst = client_as("editor")
-    for path in ("/admin/data-bites", "/admin/reports"):
+    for path in ("/admin/data-bites/new", "/admin/reports/new"):
         assert preview_of(analyst.get(path).text).strip() == ""
 
 
@@ -237,7 +241,7 @@ def test_the_preview_follows_the_text_as_it_is_typed(client_as):
     assert response.status_code == 200
     assert body_of(response.text).strip() == "<p>Draft <em>two</em></p>"
     # Nothing was saved: previewing is not creating.
-    assert client_as("editor").get("/admin/content").text.count("content-row") == 0
+    assert '<tr id="' not in client_as("editor").get("/admin/content").text
 
 
 def test_a_failed_save_previews_what_was_typed(client_as):

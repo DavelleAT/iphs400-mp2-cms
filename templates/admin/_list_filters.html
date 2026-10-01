@@ -1,0 +1,4 @@
+{#- A list's state filters (app.routes.listing.filters), each with its count. #}
+  <nav class="filters-console" aria-label="Filter by state">
+    {%- for f in filters %}<a href="{{ f.href }}"{% if f.current %} aria-current="page"{% endif %}>{{ f.label }}<span class="text-mono">{{ f.count }}</span></a>{% endfor -%}
+  </nav>

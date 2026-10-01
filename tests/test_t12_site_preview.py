@@ -276,7 +276,7 @@ def test_an_analyst_sees_a_locked_reports_saved_page_but_cannot_preview_edits(cl
 @pytest.mark.parametrize("kind, item, create, publish", KINDS)
 def test_the_create_page_has_a_site_preview_without_chart_images(client_as, kind, item, create, publish):
     analyst = client_as("editor")
-    page = analyst.get(f"/admin/{kind}").text
+    page = analyst.get(f"/admin/{kind}/new").text  # its own page since T22
     shown = framed(page)
     assert BANNER in shown and '<link rel="stylesheet" href="../style.css">' in shown
     assert base_of(shown).startswith(f"/admin/{kind}/preview/")

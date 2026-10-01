@@ -1,19 +1,26 @@
+{#- A refused save's message, beside the field it is about (error_field), and
+    the field marked invalid and described by it. Any other refusal is shown
+    above the form by the page. #}
+{%- macro invalid(name) %}{% if error_field == name %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}{% endmacro %}
+{%- macro field_error(name) %}{% if error_field == name %}
+      <small id="{{ name }}-error" class="admin-field-error" role="alert">{{ error }}</small>{% endif %}{% endmacro %}
   <form class="admin-content-editing" method="post" action="{{ action }}"{% if file_label %} enctype="multipart/form-data"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     {%- if form.item_base %}
     <input type="hidden" name="item_base" value="{{ form.item_base }}">
     {%- endif %}
     <div class="admin-content-fields">
-    <p><label>Title <input type="text" name="title" value="{{ form.title }}" required></label></p>
+    <p class="field-console"><label for="title">Title</label><input type="text" id="title" name="title" value="{{ form.title }}" required{{ invalid("title") }}>
+      {{- field_error("title") }}</p>
     {#- The Summary (spec #22): plain text, counted as the server counts it,
         its runs of whitespace as one space, by character. Over the limit,
         the count says so; the server refuses it, by this field. #}
     {%- set summary_error = error if error_field == "summary" %}
-    <p class="admin-summary-field" data-summary-max="{{ summary_max }}"><label for="summary">Summary (optional)</label>
+    <p class="field-console admin-summary-field" data-summary-max="{{ summary_max }}"><label for="summary">Summary (optional)</label>
       <textarea id="summary" name="summary" rows="2" cols="60"
         aria-describedby="summary-hint{% if summary_error %} summary-error{% endif %}"
         {%- if summary_error %} aria-invalid="true"{% endif %}>{{ form.summary }}</textarea>
-      <small id="summary-hint">One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.
+      <small id="summary-hint" class="field-console-hint">One or two sentences, shown under the title, in lists, and in link previews. Up to {{ summary_max }} characters.
         <span class="admin-summary-count" aria-live="polite"></span></small>
       {%- if summary_error %}
       <small id="summary-error" class="admin-field-error" role="alert">{{ summary_error }}</small>
@@ -33,9 +40,11 @@
         show();
       })();
     </script>
-    <p><label>Slug <input type="text" name="slug" value="{{ form.slug }}" required
-      pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint"></label>
-      <small id="slug-hint">Lowercase letters, digits, and hyphens.</small></p>
+    <p class="field-console"><label for="slug">Slug</label><input type="text" id="slug" name="slug" value="{{ form.slug }}" required
+      pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-hint{% if error_field == "slug" %} slug-error{% endif %}"
+      {%- if error_field == "slug" %} aria-invalid="true"{% endif %}>
+      <small id="slug-hint" class="field-console-hint">Lowercase letters, digits, and hyphens.</small>
+      {{- field_error("slug") }}</p>
     {#- The Editor (app.editor, static/editor.js) takes over the textarea, and
         shows the body from the template below, which a browser never renders
         itself. If its script doesn't run, the textarea posts Markdown, each
@@ -46,14 +55,17 @@
       data-site-items='{{ site_items | tojson }}' data-link-states='{{ link_states | tojson }}'
       {%- if body_images is defined %} data-images='{{ body_images | tojson }}'{% endif %}
       data-chart-preview="{{ path_for('preview_chart') }}">
-    <p><label>Body (Markdown)<br><textarea name="body" rows="16" cols="60" required>{{ form.body }}</textarea></label></p>
+    <p><label>Body (Markdown)<br><textarea name="body" rows="16" cols="60" required{{ invalid("body") }}>{{ form.body }}</textarea></label></p>
     <template class="admin-editor-content">{{ editor_html }}</template>
     </div>
+    {#- Outside the Editor, which replaces the textarea's paragraph. #}
+    {%- if error_field == "body" %}<p>{{ field_error("body") }}</p>{% endif %}
     {% if file_label %}
     <p><label>{{ file_label }}
-      <input type="file" name="file" accept="application/pdf,.pdf"></label></p>
+      <input type="file" name="file" accept="application/pdf,.pdf"{{ invalid("file") }}></label>
+      {{- field_error("file") }}</p>
     {% endif %}
-    <p><button type="submit">{{ submit }}</button></p>
+    <p class="actions-form"><button class="button-primary" type="submit">{{ submit }}</button></p>
     </div>
     {#- After the save button, so Enter in a field still saves: the form's
         first submit button is the one Enter presses. #}

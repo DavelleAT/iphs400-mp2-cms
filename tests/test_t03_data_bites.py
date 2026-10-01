@@ -6,7 +6,7 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.conftest import backdate, post_form, second_analyst
+from tests.conftest import backdate, post_form, second_analyst, stored_id
 
 BITE = {"title": "Fall enrollment snapshot", "slug": "fall-enrollment",
         "body": "Enrollment is **1,745** this fall."}
@@ -14,8 +14,9 @@ BITE = {"title": "Fall enrollment snapshot", "slug": "fall-enrollment",
 
 def bite_row(c: TestClient, slug: str) -> str:
     """This Data Bite's row of the admin list, as HTML."""
+    item_id = stored_id("data_bites", slug)
     for row in c.get("/admin/data-bites").text.split("<tr")[1:]:
-        if f"<code>{slug}</code>" in row:
+        if row.startswith(f' id="data-bite-{item_id}"'):
             return row
     raise AssertionError(f"{slug} is not listed")
 
@@ -27,14 +28,16 @@ def bite_id(c: TestClient, slug: str) -> str:
 def create_bite(c: TestClient, **override) -> str:
     response = post_form(c, "/admin/data-bites", {**BITE, **override})
     assert response.status_code == 303, response.text
-    return bite_id(c, override.get("slug", BITE["slug"]))
+    # A create lands on the new item's edit page (T22).
+    return response.headers["location"].removeprefix("/admin/data-bites/")
 
 
 def test_analyst_creates_a_data_bite_as_a_draft(client_as):
     analyst = client_as("editor")
     response = post_form(analyst, "/admin/data-bites", BITE)
     assert response.status_code == 303
-    assert response.headers["location"] == "/admin/data-bites"
+    # To the new Data Bite's edit page since T22 (spec #25), not the list.
+    assert response.headers["location"] == f"/admin/data-bites/{stored_id('data_bites', BITE['slug'])}"
 
     row = bite_row(analyst, BITE["slug"])
     assert BITE["title"] in row and "Draft" in row
@@ -68,7 +71,7 @@ def test_director_deletes_a_data_bite(client_as):
     bid = create_bite(analyst)
     response = post_form(director, f"/admin/data-bites/{bid}/delete", {})
     assert response.status_code == 303
-    assert BITE["slug"] not in director.get("/admin/data-bites").text
+    assert f'id="data-bite-{bid}"' not in director.get("/admin/data-bites").text
     assert post_form(director, f"/admin/data-bites/{bid}/delete", {}).status_code == 404
 
 
@@ -80,7 +83,7 @@ def test_duplicate_slug_is_rejected_with_a_validation_error(client_as):
     assert response.status_code == 400
     assert f"already uses the slug {BITE['slug']}" in response.text
     assert "A different title" not in bite_row(analyst, BITE["slug"])
-    assert analyst.get("/admin/data-bites").text.count("<code>fall-enrollment</code>") == 1
+    assert analyst.get("/admin/data-bites").text.count('id="data-bite-') == 1
 
 
 def test_any_analyst_edits_any_data_bite_and_author_and_created_at_are_kept(client_as):

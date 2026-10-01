@@ -67,12 +67,12 @@ def read_pdf(upload: UploadFile | None) -> Pdf | None:
         return None
     stem, extension = split_filename(upload.filename)
     if extension != "pdf" or upload.content_type not in _DECLARED_TYPES:
-        raise ContentError("Only PDF files can be attached.")
+        raise ContentError("Only PDF files can be attached.", field="file")
     data = upload.file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
-        raise ContentError(f"That file is over the {MAX_BYTES // MIB} MB limit.")
+        raise ContentError(f"That file is over the {MAX_BYTES // MIB} MB limit.", field="file")
     if not (data.startswith(_HEADER) and _EOF_MARKER in data[-_EOF_WINDOW:]):
-        raise ContentError("That file is not a valid PDF.")
+        raise ContentError("That file is not a valid PDF.", field="file")
     return Pdf(sanitize_filename(stem), data)
 
 

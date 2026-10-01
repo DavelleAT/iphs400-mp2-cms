@@ -17,7 +17,7 @@ from app.flash import SITE_NOTE, confirm
 from app.auth import current_user, require_csrf, require_director
 from app.content import STATUS_LABELS, ContentError
 from app.rendering import images_without_description
-from app.routes import editing
+from app.routes import editing, listing
 from app.routes.site_preview import site_file
 from app.templating import templates
 
@@ -38,14 +38,28 @@ def _images(request: Request, report_id: int) -> editor.ImageLinks:
     return editing.image_links(request, "serve_image", report_id=report_id)
 
 
-def _list_page(request: Request, user: sqlite3.Row, *, error: ContentError | None = None,
-               form: dict | None = None, status_code: int = 200):
-    form = form or {"title": "", "slug": "", "summary": "", "body": ""}
-    body = editor.full_body(form["body"], "")
+@router.get("")
+def list_reports(request: Request, user=Depends(current_user),
+                 status: str = Depends(listing.status_filter)):
     return templates.TemplateResponse(
         request, "admin/reports.html",
         {"title": "Reports", "user": user,
-         "reports": reports.list_all(), "status_labels": STATUS_LABELS,
+         "rows": [listing.item_row(listing.REPORT, report, user)
+                  for report in reports.list_all(status or None)],
+         "filters": listing.filters(request.url.path, reports.count_by_status(), status),
+         "status": status, "status_labels": STATUS_LABELS},
+    )
+
+
+def _new_page(request: Request, user: sqlite3.Row, *, error: ContentError | None = None,
+              form: dict | None = None, status_code: int = 200):
+    """The create form, on its own page; again, with what was typed, after a
+    refused create (a chosen file is not kept)."""
+    form = form or {"title": "", "slug": "", "summary": "", "body": ""}
+    body = editor.full_body(form["body"], "")
+    return templates.TemplateResponse(
+        request, "admin/report_new.html",
+        {"title": "New Report", "user": user,
          **editing.error_for(error), "form": form, "max_file_mb": _MAX_FILE_MB,
          "editor_html": editor.editor_html(form["body"], "", None),
          **editing.site_links_for(body),
@@ -55,11 +69,6 @@ def _list_page(request: Request, user: sqlite3.Row, *, error: ContentError | Non
     )
 
 
-@router.get("")
-def list_reports(request: Request, user=Depends(current_user)):
-    return _list_page(request, user)
-
-
 @router.post("", dependencies=[Depends(require_csrf)])
 def create_report(request: Request, user=Depends(current_user), title: str = Form(""),
                   slug: str = Form(""), summary: str = Form(""),
@@ -67,19 +76,25 @@ def create_report(request: Request, user=Depends(current_user), title: str = For
                   file: UploadFile | None = File(None)):
     try:
         pdf = uploads.read_pdf(file)
-        reports.create(title, slug, editor.saved_body(posted, None, None), user["id"],
-                       summary=summary, pdf=pdf)
+        report_id = reports.create(title, slug, editor.saved_body(posted, None, None),
+                                   user["id"], summary=summary, pdf=pdf)
     except ContentError as exc:
-        return _list_page(request, user, error=exc, status_code=400,
-                          form=editor.form_after(posted, title, slug, "", None, None,
-                                                 summary=summary))
+        return _new_page(request, user, error=exc, status_code=400,
+                         form=editor.form_after(posted, title, slug, "", None, None,
+                                                summary=summary))
     confirm(request, "Report created as a Draft, with its attached file." if pdf
             else "Report created as a Draft.")
-    return RedirectResponse("/admin/reports", status_code=303)
+    return RedirectResponse(request.app.url_path_for("edit_report_form", report_id=report_id),
+                            status_code=303)
 
 
-# A new Report's Site preview. Before the /{report_id} routes, which would
-# otherwise take "preview" for an id.
+# The create page and a new Report's Site preview. Before the /{report_id}
+# routes, which would otherwise take "new" or "preview" for an id.
+
+@router.get("/new")
+def new_report_form(request: Request, user=Depends(current_user)):
+    return _new_page(request, user)
+
 
 @router.post("/preview", dependencies=[Depends(require_csrf)])
 def preview_new_report(request: Request, title: str = Form(""), summary: str = Form(""),
