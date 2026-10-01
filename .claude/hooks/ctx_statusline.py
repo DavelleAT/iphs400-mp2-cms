@@ -68,7 +68,8 @@ def main() -> None:
     def show(v):
         return f"{v:.0f}%" if isinstance(v, (int, float)) else "n/a"
 
-    flag = "  ⚠ compact at next green test" if pct >= 60 else ""
+    compact_at = float(os.environ.get("CTX_COMPACT_PCT", 60))
+    flag = "  ⚠ compact at next green test" if pct >= compact_at else ""
     tag = f"{model}·{effort}" if effort else model
     if provider != "anthropic":
         tag += f"@{provider}"

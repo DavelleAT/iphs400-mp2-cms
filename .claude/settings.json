@@ -1,11 +1,12 @@
 {
+  "env": { "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "40" },
   "statusLine": {
     "type": "command",
-    "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ctx_statusline.py\""
+    "command": "CTX_COMPACT_PCT=40 python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ctx_statusline.py\""
   },
   "hooks": {
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/ctx_guard.py\"", "timeout": 10 } ] }
+      { "hooks": [ { "type": "command", "command": "CTX_WARN_PCT=30 CTX_COMPACT_PCT=40 python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/ctx_guard.py\"", "timeout": 10 } ] }
     ],
     "PreCompact": [
       { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/ctx_compact_log.py\"", "timeout": 10 } ] }
