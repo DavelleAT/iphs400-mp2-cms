@@ -21,7 +21,7 @@
     <div class="user-console">
       <a class="user-console-site" href="{{ path_for('home') }}">View site ↗</a>
       <span class="user-console-name">{{ user.name }} <span class="text-label">{{ user.role | role_label }}</span></span>
-      <form method="post" action="/logout">
+      <form method="post" action="{{ path_for('logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
         <button type="submit">Log out</button>
       </form>

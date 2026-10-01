@@ -55,7 +55,7 @@ def admin_home(request: Request, user=Depends(current_user)):
     counts = {ctype.key: ctype.module.count_by_status() for ctype in CONTENT_TYPES}
     return templates.TemplateResponse(
         request, "admin/home.html",
-        {"title": "Admin", "user": user,
+        {"title": "Dashboard", "user": user,
          "content_types": CONTENT_TYPES, "counts": counts,
          "status_labels": STATUS_LABELS},
     )

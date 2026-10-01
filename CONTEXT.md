@@ -126,6 +126,14 @@ never a title, email, filename, or password. A refused action gets an error,
 not a Confirmation.
 _Avoid_: flash, toast, notification, success message
 
+**Console**:
+The admin console: the local, signed-in app where the Director and Analysts
+write and publish content, never on the public internet. Every page has the
+same bar: numbered nav (01 Dashboard, 02 Data Bites, 03 Reports, and, for
+the Director, 04 Homepage and 05 Users), who is signed in, "View site ↗",
+and Log out (spec #25, T21). Its home page is the **Dashboard**.
+_Avoid_: back end, dashboard (that is its home page only)
+
 **Factbook**:
 A specific Report: the office's running reference document of admissions,
 enrollment, diversity, and academic program statistics.

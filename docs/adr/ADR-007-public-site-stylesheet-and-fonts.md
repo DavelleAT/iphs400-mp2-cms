@@ -74,3 +74,19 @@ The site is served from a GitHub Pages subfolder with relative paths only
 It changes how every page gets its styles and where the site's files come
 from, and the `<base>` in `404.html` is the one exception to ADR-001's
 relative-links rule. That is surprising without the reason.
+
+## Amended by spec #25 (T21, 2026-10-01)
+
+The console now has its own design ("same family, calmer"), so two lines
+above no longer hold: `static/admin.css` is no longer "the old rules
+unchanged", and the console no longer looks as it did before spec #22.
+
+- `static/admin.css` **copies** the public site's tokens and `@font-face`
+  rules. It never links or imports `site.css`, and no rule crosses either
+  way: two stylesheets, as decided above.
+- The fonts are the one thing the two sides share, as files. `admin.css`
+  is served at `/admin.css`, so its `url("fonts/…")` resolves to `/fonts/…`,
+  the route that serves the public site's fonts. There is no second copy and
+  no new route.
+- The Editor's and Chart builder's rules stay in `admin.css` until T23
+  restyles them by class.

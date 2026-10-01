@@ -1,6 +1,8 @@
 """The Jinja environment the admin console and the public site render with."""
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 
@@ -21,10 +23,16 @@ def path_for(context, name: str, **path_params) -> str:
     return str(context["request"].app.url_path_for(name, **path_params))
 
 
-# The console's numbered nav (spec #25): label, route name, Director only.
-CONSOLE_NAV = (("Dashboard", "admin_home", False), ("Data Bites", "list_bites", False),
-               ("Reports", "list_reports", False), ("Homepage", "edit_homepage", True),
-               ("Users", "list_users", True))
+class NavItem(NamedTuple):
+    label: str
+    route: str           # the admin route's name, for path_for
+    director_only: bool
+
+
+# The console's numbered nav (spec #25), in order.
+CONSOLE_NAV = (NavItem("Dashboard", "admin_home", False), NavItem("Data Bites", "list_bites", False),
+               NavItem("Reports", "list_reports", False), NavItem("Homepage", "edit_homepage", True),
+               NavItem("Users", "list_users", True))
 
 
 @pass_context
@@ -35,14 +43,14 @@ def console_nav(context, user) -> list[dict]:
     (an Analyst's "Not allowed" at /admin/users) marks none."""
     request = context["request"]
     page = request.url.path
-    items = [{"number": f"{n:02d}", "label": label,
-              "path": str(request.app.url_path_for(route)), "director_only": director_only}
-             for n, (label, route, director_only) in enumerate(CONSOLE_NAV, start=1)]
-    within = [item for item in items
+    items = [(nav, {"number": f"{n:02d}", "label": nav.label,
+                    "path": str(request.app.url_path_for(nav.route))})
+             for n, nav in enumerate(CONSOLE_NAV, start=1)]
+    within = [item for _, item in items
               if page == item["path"] or page.startswith(item["path"] + "/")]
     here = max(within, key=lambda item: len(item["path"]), default=None)
-    return [{**item, "current": item is here} for item in items
-            if is_director(user) or not item["director_only"]]
+    return [{**item, "current": item is here} for nav, item in items
+            if is_director(user) or not nav.director_only]
 
 
 templates = Jinja2Templates(directory=str(settings.TEMPLATES))
