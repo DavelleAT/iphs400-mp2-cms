@@ -1,4 +1,5 @@
-"""SQLite access. Every table's schema lives here, so init_db() builds them all."""
+"""SQLite access. Every content table's schema lives here, and init_db() builds
+them all, with the homepage settings' one-row table (app.homepage)."""
 from __future__ import annotations
 
 import sqlite3
@@ -90,11 +91,12 @@ def connect() -> Iterator[sqlite3.Connection]:
 
 
 def init_db() -> None:
-    # Imported here: app.site_links reads the database through this module.
-    from app import site_links
+    # Imported here: these read the database through this module.
+    from app import homepage, site_links
 
     with connect() as conn:
         conn.executescript(SCHEMA)
+        homepage.seed(conn)
         for table, column, definition in ADDED_COLUMNS:
             existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
             if column not in existing:

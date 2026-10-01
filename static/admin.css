@@ -128,3 +128,10 @@ body:has(.admin-site-preview) { max-width: 90rem; }
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }
 }
+/* Admin only: Homepage settings (app.homepage), each Key figure's three
+   fields side by side where there is room. */
+.admin-homepage-field label, .admin-homepage-field small { display: block; }
+.admin-homepage-field small { font-size: 0.875rem; }
+.admin-homepage-field input, .admin-homepage-field textarea { box-sizing: border-box; max-width: 40rem; width: 100%; }
+.admin-homepage-figures { border: 0; margin: 1.5rem 0; padding: 0; }
+.admin-homepage-figure { display: grid; gap: 0 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin: 0 0 1rem; }

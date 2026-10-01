@@ -23,6 +23,7 @@
 
   {% if user.role == "admin" %}
     <p><a href="{{ path_for('list_users') }}">Manage users</a></p>
+    <p><a href="{{ path_for('edit_homepage') }}">Homepage settings</a></p>
   {% endif %}
   <form method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">

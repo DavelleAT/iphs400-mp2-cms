@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{#- Homepage settings (app.homepage): Director only. A refused field shows
+    its message beside it, and the form keeps what was typed. #}
+{% macro field(name, label, limit, hint="", rows=0) %}
+  {%- set invalid = error_field == name %}
+  {%- set describedby = (name ~ "-error") if invalid else (name ~ "-hint") %}
+  <p class="admin-homepage-field"><label for="{{ name }}">{{ label }}</label>
+    {%- if rows %}
+    <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}" cols="60"{% if invalid %} aria-invalid="true"{% endif %} aria-describedby="{{ describedby }}">{{ form[name] }}</textarea>
+    {%- else %}
+    <input type="text" id="{{ name }}" name="{{ name }}" value="{{ form[name] }}"{% if invalid %} aria-invalid="true"{% endif %} aria-describedby="{{ describedby }}">
+    {%- endif %}
+    {%- if invalid %}
+    <small id="{{ name }}-error" class="admin-field-error" role="alert">{{ error }}</small>
+    {%- else %}
+    <small id="{{ name }}-hint">{{ hint }}{% if hint %} {% endif %}Up to {{ limit }} characters.</small>
+    {%- endif %}</p>
+{%- endmacro %}
+{% block content %}
+  <p><a href="{{ path_for('admin_home') }}">Admin console</a></p>
+  <h1>Homepage settings</h1>
+  <p>What the public homepage shows above the latest Data Bite. Saved here, it reaches the site at the next <code>cms publish</code>; it has no Draft.</p>
+  <form class="admin-homepage" method="post" action="{{ path_for('save_homepage') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    {{ field("headline", "Headline", limits.headline, "Required.") }}
+    {{ field("headline_accent", "Headline accent (optional)", limits.headline_accent,
+             "Shown after the headline, in bright purple.") }}
+    {{ field("intro", "Intro (optional)", limits.intro, "A sentence under the headline.", rows=3) }}
+    <fieldset class="admin-homepage-figures">
+      <legend>Key figures</legend>
+      <p id="figures-hint">Up to {{ figures_max }}, shown in this order. Each needs its figure and what it counts; leave a row blank to drop it.</p>
+      {%- for n in range(1, figures_max + 1) %}
+      <fieldset class="admin-homepage-figure">
+        <legend>Key figure {{ n }}</legend>
+        {{ field("figure_value_" ~ n, "Figure", limits.value, "e.g. 1,805 or 91%.") }}
+        {{ field("figure_label_" ~ n, "What it counts", limits.label, "e.g. Students enrolled.") }}
+        {{ field("figure_note_" ~ n, "Note (optional)", limits.note, "When or of whom, e.g. Fall 2026 census.") }}
+      </fieldset>
+      {%- endfor %}
+    </fieldset>
+    <p><button type="submit">Save homepage</button></p>
+  </form>
+{% endblock %}
