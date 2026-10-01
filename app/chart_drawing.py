@@ -23,7 +23,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from html import escape
 
-from app.charts import PREFIX, Chart, Unit
+from app.charts import Chart, Unit
 
 # The palette (dataviz reference palette, slots 1 to 4, light steps). The
 # stylesheet swaps in the dark steps by class in dark mode.
@@ -187,11 +187,26 @@ def _tick_text(value: float, step: float, unit: Unit | None) -> str:
 
 
 def _value_title(chart: Chart) -> str | None:
-    """The value axis's title: the y label, or else units that are a word."""
+    """The value axis's title: the y label, with the units if they are a
+    word (the ticks show only $ and %), e.g. "Exports (tonnes)"."""
     unit = chart.effective_unit
-    if chart.y_label:
-        return chart.y_label
-    return unit.text if unit and unit.text not in ("$", "%") else None
+    word = unit.text if unit and unit.text not in ("$", "%") else None
+    if chart.y_label and word:
+        return f"{chart.y_label} ({word})"
+    return chart.y_label or word
+
+
+def _axis(chart: Chart) -> tuple[Scale, list[tuple[float, str]]]:
+    """The value axis: its scale, and each tick with its label."""
+    numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
+    scale = _scale(numbers, from_zero=chart.type != "line")
+    unit = chart.effective_unit
+    return scale, [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
+
+
+def _negative(chart: Chart) -> list[str]:
+    """The text of each negative value, as typed."""
+    return [cell.text for cell in chart.cells() if cell.kind == "number" and cell.number < 0]
 
 
 # The legend.
@@ -245,14 +260,10 @@ def _category_labels(categories: Sequence[str], centre, step: float, y: float,
 
 
 def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
-    unit = chart.effective_unit
-    numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
-    scale = _scale(numbers, from_zero=chart.type == "bar")
-    ticks = [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
+    scale, ticks = _axis(chart)
     single = len(chart.series) == 1
     legend, legend_height = _legend(chart, 0, full)
     value_title = _value_title(chart)
-    top = legend_height + (_LINE if value_title else 0) + 10
     left = max(_width(text) for _, text in ticks) + 10
     end_label = ""
     if chart.type == "line" and single:
@@ -260,6 +271,15 @@ def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
         end_label = last[-1].text if last else ""
     right = 12 + (_width(end_label) + 8 if end_label else 0)
     plot_width = full - left - right
+    count = len(chart.categories)
+    step = plot_width / count
+    # A single series' bars carry their values, if each fits its bar's
+    # room: above a bar, or below a negative one, outside the plot.
+    labelled = chart.type == "bar" and single and all(
+        _width(cell.text) <= step - 2 for cell in chart.series[0].cells)
+    above = FONT + 6 if labelled else 0
+    below = FONT + 4 if labelled and _negative(chart) else 0
+    top = legend_height + (_LINE if value_title else 0) + 10 + above
     bottom = top + _PLOT_HEIGHT
 
     def y(value: float) -> float:
@@ -280,10 +300,8 @@ def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
     parts.append(_element("line", {"class": "chart-baseline", "x1": left, "y1": y(base),
                                    "x2": left + plot_width, "y2": y(base), "stroke": BASELINE,
                                    "stroke-width": 1}))
-    count = len(chart.categories)
     if chart.type == "bar":
-        step = plot_width / count
-        parts.extend(_bars(chart, left, step, y))
+        parts.extend(_bars(chart, left, step, y, labelled))
 
         def centre(index: int) -> float:
             return left + (index + 0.5) * step
@@ -294,7 +312,7 @@ def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
 
         def centre(index: int) -> float:
             return left + inset + index * step
-    labels_y = bottom + 6 + FONT
+    labels_y = bottom + below + 6 + FONT
     parts.append(_element("g", None, *_category_labels(chart.categories, centre, step, labels_y, full)))
     height = labels_y + 6
     if chart.x_label:
@@ -304,12 +322,10 @@ def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
     return "".join(parts), height, scale
 
 
-def _bars(chart: Chart, left: float, step: float, y) -> list[str]:
+def _bars(chart: Chart, left: float, step: float, y, labelled: bool) -> list[str]:
     count = len(chart.series)
     group = min(step * 0.7, count * _BAR + (count - 1) * _GAP)
     width = (group - (count - 1) * _GAP) / count
-    single = count == 1
-    labelled = single and all(_width(cell.text) <= step - 2 for cell in chart.series[0].cells)
     marks, labels = [], []
     for index, category in enumerate(chart.categories):
         x0 = left + index * step + (step - group) / 2
@@ -374,18 +390,19 @@ def _lines(chart: Chart, x, y, end_label: str) -> list[str]:
 # Horizontal bar charts: categories down the side.
 
 def _horizontal(chart: Chart, full: float) -> tuple[str, float, Scale]:
-    unit = chart.effective_unit
-    numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
-    scale = _scale(numbers, from_zero=True)
-    ticks = [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
+    scale, ticks = _axis(chart)
     count = len(chart.series)
     single = count == 1
     thickness = 20 if single else 14
     band = count * thickness + (count - 1) * _GAP + 12
     legend, legend_height = _legend(chart, 0, full)
     top = legend_height + (_LINE if chart.x_label else 0) + 6
-    left = max(min(max(_width(category) for category in chart.categories) + 10, full * 0.4),
-               _width(ticks[0][1]) / 2 + 2)
+    # The category names' column, then room for a negative bar's value, left
+    # of the bar, before the plot.
+    names = min(max(_width(category) for category in chart.categories) + 10, full * 0.4)
+    before = max(map(_width, _negative(chart)), default=-6) + 6 if single else 0
+    left = max(names + before, _width(ticks[0][1]) / 2 + 2)
+    names = left - before
     labels = [cell.text for cell in chart.series[0].cells] if single else []
     right = max([_width(text) for text in labels] + [_width(ticks[-1][1]) / 2]) + 10
     plot_width = full - left - right
@@ -412,7 +429,7 @@ def _horizontal(chart: Chart, full: float) -> tuple[str, float, Scale]:
     marks, values, categories = [], [], []
     for index, category in enumerate(chart.categories):
         band_top = top + index * band
-        categories.append(_label(left - 8, band_top + band / 2 + 4, _fit(category, left - 10),
+        categories.append(_label(names - 8, band_top + band / 2 + 4, _fit(category, names - 10),
                                  "chart-category", "end"))
         for number, series in enumerate(chart.series):
             cell = series.cells[index]

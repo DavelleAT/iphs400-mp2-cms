@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from html import unescape
 from html.parser import HTMLParser
 
 import pytest
@@ -362,3 +363,50 @@ def test_the_editor_shows_a_chart_as_a_locked_block_drawn(client_as):
     content = editor_content(page)
     assert 'data-locked="locked-0"' in content and "chart-figure" in content
     assert '"version"' not in page and "locked-0" in textarea(page)
+
+
+# Room for value labels (review of T16).
+
+def _texts(svg: str, css: str) -> list[tuple[float, float, str]]:
+    return [(float(x), float(y), unescape(text)) for x, y, text in re.findall(
+        rf'<text class="{css}" x="([-\d.]+)" y="([-\d.]+)"[^>]*>([^<]*)<', svg)]
+
+
+def _height(svg: str) -> float:
+    return float(re.search(r'viewBox="0 0 [\d.]+ ([\d.]+)"', svg)[1])
+
+
+@pytest.mark.parametrize("values", [("100", "50"), ("-10", "5"), ("-100", "-50"), ("<10", "40")])
+def test_a_vertical_bars_value_label_stays_in_the_svg_and_off_the_category_labels(values):
+    for svg in drawings(drawn(series=[series(*values)])):
+        labels, categories = _texts(svg, "chart-value"), _texts(svg, "chart-category")
+        assert len(labels) == 2
+        for _, y, _ in labels:
+            assert y - chart_drawing.FONT >= 0 and y <= _height(svg)
+            assert y <= min(cy for _, cy, _ in categories) - chart_drawing.FONT
+
+
+@pytest.mark.parametrize("values", [("-10", "5"), ("-1,000.5", "-3"), ("12", "5")])
+def test_a_horizontal_bars_value_label_stays_in_the_svg_and_off_the_category_names(values):
+    for svg in drawings(drawn(type="hbar", series=[series(*values)])):
+        names_end = max(x for x, _, _ in _texts(svg, "chart-category"))
+        for x, _, text in _texts(svg, "chart-value"):
+            width = len(text) * chart_drawing._CHAR
+            if text.startswith("-"):
+                assert x - width >= names_end
+            assert x + width <= float(re.search(r'viewBox="0 0 ([\d.]+)', svg)[1])
+
+
+def test_a_word_unit_shows_beside_the_value_axis_label():
+    html = drawn(y_label="Exports", unit={"text": "tonnes", "position": "suffix"},
+                 series=[series("20", "40", name="A"), series("1", "2", name="B")])
+    assert ">Exports (tonnes)<" in html
+    assert ">tonnes<" in drawn(unit={"text": "tonnes", "position": "suffix"})
+
+
+def test_label_errors_name_the_axis_by_its_role():
+    from tests.test_t16_charts import source
+    with pytest.raises(charts.ChartError, match="the category axis label must be at most 60"):
+        charts.parse(source(type="hbar", x_label="x" * 61))
+    with pytest.raises(charts.ChartError, match="the value axis label must be at most 60"):
+        charts.parse(source(y_label="y" * 61))

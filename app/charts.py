@@ -16,6 +16,7 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import cached_property
 
 from markdown_it.token import Token
 
@@ -38,8 +39,10 @@ _LENGTHS = {"title": (1, 120), "x_label": (0, 60), "y_label": (0, 60),
             "source": (0, 200), "unit": (1, 20), "category": (1, 60),
             "series": (1, 40), "value": (0, 20)}
 # What a message calls each string.
-_NAMES = {"title": "the title", "x_label": "the horizontal axis label",
-          "y_label": "the vertical axis label", "source": "the source",
+# The labels are named by their axis's role, not its direction: a horizontal
+# bar chart's categories run down its side.
+_NAMES = {"title": "the title", "x_label": "the category axis label",
+          "y_label": "the value axis label", "source": "the source",
           "unit": "the units"}
 
 PREFIX, SUFFIX = "prefix", "suffix"
@@ -98,7 +101,7 @@ class Chart:
     unit: Unit | None = None
     source: str | None = None
 
-    @property
+    @cached_property
     def effective_unit(self) -> Unit | None:
         """The units the Chart is drawn in: as stored, or else the first in
         its data."""

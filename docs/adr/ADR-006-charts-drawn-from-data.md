@@ -38,11 +38,13 @@ has passed them, and `app.rendering` puts it in the page.
   Chart with no stated unit takes the first one in its data, which isn't
   written back into the block. A cell in another unit, or any other
   currency, is refused.
-- **Canonical form, only when edited.** A Chart saved from an edited body is
-  rewritten in one form: keys in the grammar's order, absent optional keys
+- **Canonical form, only when edited.** A top-level Chart saved from an
+  edited body is rewritten in one form: keys in the grammar's order, absent optional keys
   left out, `json.dumps(..., ensure_ascii=False, indent=2)`, NFC strings. An
   untouched body, or a Chart the Editor shows as a locked block, keeps its
-  bytes (ADR-005).
+  bytes (ADR-005). A Chart inside a list or quote is checked and drawn but
+  kept as typed: rewriting it would mean rewriting the list's or quote's
+  own markers.
 - **The trusted SVG boundary.** Nothing inserted after nh3 is sanitized
   again, so a Chart is safe because of how it's built, not by filtering:
   - Each render takes a fresh `secrets.token_hex(16)` nonce *after* the body
