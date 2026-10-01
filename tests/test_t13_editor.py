@@ -4,6 +4,7 @@ routes are tested in test_t13_editor_routes.py."""
 from __future__ import annotations
 
 import importlib.util
+import re
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -160,7 +161,10 @@ def canonical(html: str) -> list[tuple]:
 
 
 def rendered(body: str) -> list[tuple]:
-    return canonical(str(render_markdown(body, site_image_src)))
+    """`body` as rendered, its Charts' ids without the hash of the body they
+    are keyed on (ADR-006), which any edit to its text changes."""
+    html = re.sub(r"chart-[0-9a-f]{32}-", "chart-KEY-", str(render_markdown(body, site_image_src)))
+    return canonical(html)
 
 
 def unaligned(found: list[tuple]) -> list[tuple]:
@@ -171,7 +175,7 @@ def unaligned(found: list[tuple]) -> list[tuple]:
 
 
 FIXTURES = {
-    **{f"seed:{slug}": body for _, _, slug, body, _, _ in seed_demo.DEMO_CONTENT},
+    **{f"seed:{slug}": body for _, _, slug, body, *_ in seed_demo.DEMO_CONTENT},
     "t09:table": test_t09_tables.TABLE,
     "t09:styles": ('<p style="position:fixed;top:0">cover</p>\n\n'
                    '<table><tr><td style="text-align:right;background:url(https://evil.test/x);'
@@ -207,7 +211,8 @@ def test_a_no_change_round_trip_renders_the_same(body):
 
 
 def test_editing_one_block_changes_only_that_block():
-    body = seed_demo.DEMO_CONTENT[0][3]
+    body = next(item[3] for item in seed_demo.DEMO_CONTENT
+                if item[2] == "fall-enrollment-snapshot")
     html = edited(body).replace("Headcount by class", "Headcount by class and year")
     before, after = unaligned(rendered(body)), unaligned(rendered(save(body, html=html)))
     changed = [i for i, (old, new) in enumerate(zip(before, after)) if old != new]

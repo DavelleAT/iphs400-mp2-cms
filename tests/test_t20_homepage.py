@@ -131,3 +131,101 @@ def test_settings_are_plain_text_and_escaped_on_the_form(client_as):
     assert homepage.get().headline == '<b>Bold</b> "claims"'
     page = director.get("/admin/homepage").text
     assert "<b>Bold</b>" not in page and "&lt;b&gt;Bold&lt;/b&gt;" in page
+
+
+# The home page
+
+from tests.test_t03_data_bites import BITE  # noqa: E402
+from tests.test_t07_public_site import published_bite, published_report  # noqa: E402
+from tests.test_t16_charts import fence, source  # noqa: E402
+from tests.conftest import backdate  # noqa: E402
+
+CHART_BODY = ("Headcount by class.\n\n" + fence(source(title="Headcount by class"))
+              + "\nMore prose.\n\n" + fence(source(title="A second chart")))
+
+
+def section(page: str, heading: str) -> str:
+    """A home section's HTML, from its heading to the next section."""
+    start = page.index(f">{heading}</h2>")
+    end = page.find('<section class="section-home"', start)
+    return page[start:end if end != -1 else len(page)]
+
+
+def test_the_home_page_shows_the_homepage_settings(client_as, client):
+    director = client_as("admin")
+    assert saved(director).status_code == 303
+    page = client.get("/").text
+    assert re.search(r'<h1 id="intro-home-title">Kenyon, by the numbers,\s*'
+                     r'<span class="intro-home-accent">checked twice\.</span></h1>', page)
+    assert '<p class="intro-home-lede">Enrollment and outcomes from the census.</p>' in page
+    figures = re.findall(r"<div><dt>([^<]+)(?:<small>([^<]*)</small>)?</dt><dd>([^<]+)</dd></div>", page)
+    assert figures == [("Students enrolled", "Fall 2026 census", "1,805"),
+                       ("Student–faculty ratio", "", "10:1")]
+    # Its intro is the page's description too.
+    assert '<meta name="description" content="Enrollment and outcomes from the census.">' in page
+
+
+def test_the_home_page_escapes_the_settings(client_as, client):
+    director = client_as("admin")
+    assert saved(director, headline="<i>Numbers</i>", figure_value_1="<b>1</b>").status_code == 303
+    page = client.get("/").text
+    assert "<i>Numbers</i>" not in page and "&lt;i&gt;Numbers&lt;/i&gt;" in page
+    assert "<b>1</b>" not in page and "&lt;b&gt;1&lt;/b&gt;" in page
+
+
+def test_no_key_figures_leaves_out_their_list(client_as, client):
+    director = client_as("admin")
+    blank = {f"figure_{part}_{n}": "" for part in ("value", "label", "note") for n in (1, 2)}
+    assert saved(director, **blank).status_code == 303
+    assert "figures-home" not in client.get("/").text
+
+
+def test_the_home_sections_are_latest_reports_then_data_bites(client_as, client):
+    director = client_as("admin")
+    older = published_bite(director, slug="older", title="Older bite", summary="An older one.")
+    backdate("data_bites", older)
+    published_bite(director, summary="The newest one.")
+    published_report(director, summary="What the Factbook covers.")
+    page = client.get("/").text
+    numbers = re.findall(r'<div class="section-head"><span class="text-mono">(\d\d)</span><h2 [^>]*>([^<]+)</h2>', page)
+    assert numbers == [("01", "Latest"), ("02", "Reports"), ("03", "Data Bites")]
+
+    latest = section(page, "Latest")
+    assert BITE["title"] in latest and "The newest one." in latest
+    assert 'href="data-bites/fall-enrollment.html"' in latest
+    # The rest of the Data Bites, without the one featured above them.
+    rest = section(page, "Data Bites")
+    assert "Older bite" in rest and BITE["title"] not in rest
+    assert "What the Factbook covers." in section(page, "Reports")
+
+
+def test_the_latest_data_bite_shows_its_first_chart(client_as, client):
+    published_bite(client_as("editor"), body=CHART_BODY, summary="With a chart.")
+    latest = section(client.get("/").text, "Latest")
+    assert latest.count('<figure class="chart-figure"') == 1
+    assert "Headcount by class</figcaption>" in latest
+    assert "A second chart" not in latest and "More prose." not in latest
+    # The same Chart the Data Bite's page draws.
+    page = client.get("/data-bites/fall-enrollment.html").text
+    assert 'class="chart-svg"' in latest and "Headcount by class</figcaption>" in page
+
+
+def test_the_latest_data_bite_without_a_chart_shows_its_title_summary_and_link(client_as, client):
+    published_bite(client_as("editor"), summary="No chart here.")
+    latest = section(client.get("/").text, "Latest")
+    assert "chart-figure" not in latest and "No chart here." in latest
+    assert BITE["title"] in latest and "Read the Data Bite" in latest
+    # Its body isn't shown here, only its first Chart would be.
+    assert "1,745" not in latest
+
+
+def test_a_chart_inside_a_quote_is_not_cut_out_for_the_home_page(client_as, client):
+    quoted = "> " + fence(source(title="Quoted chart")).replace("\n", "\n> ").rstrip("> ")
+    published_bite(client_as("editor"), body="Intro.\n\n" + quoted)
+    assert "chart-figure" not in section(client.get("/").text, "Latest")
+
+
+def test_with_nothing_published_the_home_page_says_so(client):
+    page = client.get("/").text
+    assert "Nothing published yet." in page
+    assert "No Reports published yet." in page

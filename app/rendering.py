@@ -235,6 +235,20 @@ def render_markdown(text: str, image_src: ImageSrc | None = None,
     return Markup(_placed_charts(html, env["nonce"], drawn))
 
 
+def first_chart(text: str) -> str | None:
+    """The first Chart in `text` that stands on its own (not inside a quote
+    or a list), as the Markdown of its fence alone, which render_markdown
+    draws as the item's page does; None if there is none. For the home
+    page's latest Data Bite (spec #22)."""
+    for token in parse(text):
+        if token.level == 0 and charts.is_chart(token) and token.map:
+            start, end = token.map
+            # Lines as markdown-it counts them: it reads \r\n and \r as \n.
+            lines = (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+            return "\n".join(lines[start:end]) + "\n"
+    return None
+
+
 def parse(text: str) -> list[Token]:
     """`text`'s block tokens, parsed as render_markdown parses it."""
     return _MARKDOWN.parse(text or "")

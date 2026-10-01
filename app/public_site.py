@@ -25,7 +25,8 @@ from types import ModuleType
 
 from markupsafe import Markup
 
-from app import data_bites, reports, settings, site_links
+from app import data_bites, homepage, reports, settings, site_links
+from app.rendering import first_chart
 from app.templating import templates
 
 # The site's stylesheet and the fonts it loads, with their licences (ADR-007).
@@ -34,7 +35,8 @@ FONTS = settings.STATIC / "fonts"
 # What each kind of asset is served as, by extension; never sniffed.
 ASSET_TYPES = {".css": "text/css; charset=utf-8", ".woff2": "font/woff2",
                ".txt": "text/plain; charset=utf-8"}
-RECENT_DATA_BITES = 5  # on the home page; the rest are on the Data Bites list
+# On the home page, after the latest one; the rest are on the Data Bites list.
+RECENT_DATA_BITES = 5
 # A new item's slug in its Site preview, which only its paths use.
 _UNSAVED_SLUG = "untitled"
 
@@ -127,8 +129,16 @@ def _linked_as_published(page: Page, kind: str, item: Mapping) -> Page:
 
 
 def home() -> Page:
+    """The home page: the Homepage settings, then the latest Data Bite with
+    its first Chart if it has one, the Reports, and the Data Bites before
+    the latest."""
+    bites = data_bites.list_published()
+    latest = bites[0] if bites else None
+    shown = homepage.get()
     return Page("index.html", "public/home.html",
-                {"data_bites": data_bites.list_published()[:RECENT_DATA_BITES]})
+                {"homepage": shown, "description": shown.intro, "latest": latest,
+                 "latest_chart": latest and first_chart(latest["body"]),
+                 "data_bites": bites[1:RECENT_DATA_BITES + 1]})
 
 
 def data_bite_list() -> Page:

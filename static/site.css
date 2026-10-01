@@ -93,9 +93,41 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   .nav-site ul { gap: 0 1.4rem; mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 2.5rem; }
 }
 
-/* The home intro. */
+/* The home intro: the Homepage settings' headline, its accent in bright
+   purple, the intro, and the Key figures in mono, four across, two on a
+   phone. */
 .intro-home { border-top: 1px solid var(--color-field-line); padding-block: clamp(2.5rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem); }
-.intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; }
+.intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; overflow-wrap: break-word; }
+.intro-home-accent { color: var(--color-bright); }
+.intro-home-lede { color: var(--color-field-text); font-size: 1.2rem; margin: 1.25rem 0 0; max-width: 36rem; }
+.figures-home { border-top: 1px solid var(--color-field-line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: clamp(2.5rem, 6vw, 4rem) 0 0; }
+.figures-home div { border-left: 1px solid var(--color-field-line); display: flex; flex-direction: column-reverse; justify-content: flex-end; min-width: 0; padding: 1.5rem 1.25rem 0; }
+.figures-home div:first-child { border-left: 0; padding-left: 0; }
+.figures-home dd { font: 500 clamp(2.2rem, 5vw, 3.9rem)/1 var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.04em; margin: 0 0 0.75rem; overflow-wrap: anywhere; }
+.figures-home dt { color: var(--color-field-text); font-size: 0.95rem; line-height: 1.35; }
+.figures-home dt small { color: var(--color-bright); display: block; font: 500 0.75rem var(--font-mono); letter-spacing: 0.04em; margin-top: 0.3rem; text-transform: uppercase; }
+@media (max-width: 48rem) {
+  .figures-home { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures-home div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .figures-home div:nth-child(n+3) { border-top: 1px solid var(--color-field-line); margin-top: 1.5rem; }
+}
+
+/* 01 Latest: the newest Data Bite beside its first Chart, stacked on a
+   narrow screen; alone, at the body's measure. */
+.latest-home { align-items: start; display: grid; gap: 2rem 3.5rem; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); padding-top: 1.5rem; }
+.latest-home-text:only-child { grid-column: 1 / -1; max-width: var(--width-measure); }
+@media (max-width: 56rem) { .latest-home { grid-template-columns: minmax(0, 1fr); } }
+.latest-home-text > .text-label { color: var(--color-muted); }
+.latest-home h3 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); letter-spacing: -0.03em; margin: 0.6rem 0 0.9rem; overflow-wrap: break-word; }
+.latest-home h3 a { color: inherit; text-decoration: none; }
+.latest-home h3 a:hover { color: var(--color-purple); text-decoration: underline; }
+.latest-home p { color: var(--color-muted); margin: 0 0 1.5rem; }
+.latest-home .chart-figure { margin: 0; }
+.button-read { background: var(--color-field); color: #fff; display: inline-flex; font-weight: 700; gap: 0.6rem; padding: 0.7rem 1.1rem; text-decoration: none; }
+/* Kenyon purple itself on hover, in both themes: dark mode's --color-purple
+   is a light step that white text can't sit on. */
+.button-read:hover { background: #4b2e84; color: #fff; }
+@media (prefers-color-scheme: dark) { .button-read { box-shadow: inset 0 0 0 1px var(--color-bright); } }
 
 /* A page's title on the field: breadcrumb, title, its Summary, and its
    facts row. */
@@ -227,6 +259,9 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   body { font-size: 11pt; }
   .field-site { background: none; color: #000; }
   .field-site a, .nav-breadcrumb, .nav-breadcrumb a, .meta-item dt, .meta-item dd, .meta-item a { color: #000; }
+  .summary-item, .intro-home-accent, .intro-home-lede, .figures-home dt, .figures-home dt small { color: #000; }
+  .figures-home, .figures-home div { border-color: #000; }
+  .button-read { display: none; }
   .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back { display: none; }
   .header-site { padding-block: 0 0.5rem; }
   .header-mark { background: none; border: 1px solid #000; color: #000; }

@@ -1,16 +1,41 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import data_bite_list, report_table, section_head with context %}
+{% from "public/_lists.html" import created_date, data_bite_list, report_table, section_head with context %}
+{#- The Homepage settings on the field (app.homepage), then 01 Latest, the
+    newest Data Bite with its first Chart, 02 Reports, and 03 the Data
+    Bites before it. #}
 {% block field %}
     <div class="field-site"><div class="layout-wrap"><section class="intro-home" aria-labelledby="intro-home-title">
-      <h1 id="intro-home-title">{{ title }}</h1>
-      {#- T20 adds the intro and Key figures, as Homepage settings. #}
+      <h1 id="intro-home-title">{{ homepage.headline }}
+        {%- if homepage.headline_accent %} <span class="intro-home-accent">{{ homepage.headline_accent }}</span>{% endif %}</h1>
+      {%- if homepage.intro %}
+      <p class="intro-home-lede">{{ homepage.intro }}</p>
+      {%- endif %}
+      {%- if homepage.key_figures %}
+      <dl class="figures-home">
+        {%- for figure in homepage.key_figures %}
+        <div><dt>{{ figure.label }}{% if figure.note %}<small>{{ figure.note }}</small>{% endif %}</dt><dd>{{ figure.value }}</dd></div>
+        {%- endfor %}
+      </dl>
+      {%- endif %}
     </section></div></div>
 {%- endblock %}
 {% block content %}
     <section class="section-home" aria-labelledby="latest-home-title">
-      {{- section_head(1, "latest-home-title", "Latest Data Bites", root ~ "data-bites/index.html", "All Data Bites") }}
-      {%- if data_bites %}
-      {{ data_bite_list(data_bites) }}
+      {{- section_head(1, "latest-home-title", "Latest") }}
+      {%- if latest %}{% set href = root ~ data_bite_path(latest.slug) %}
+      <div class="latest-home">
+        <div class="latest-home-text">
+          <span class="text-label text-mono">{{ created_date(latest) }} · Data Bite</span>
+          <h3><a href="{{ href }}">{{ latest.title }}</a></h3>
+          {%- if latest.summary %}
+          <p>{{ latest.summary }}</p>
+          {%- endif %}
+          <a class="button-read" href="{{ href }}">Read the Data Bite <span aria-hidden="true">→</span></a>
+        </div>
+        {%- if latest_chart %}
+        <div class="content-body">{{ latest_chart | markdown }}</div>
+        {%- endif %}
+      </div>
       {%- else %}
       <p>Nothing published yet.</p>
       {%- endif %}
@@ -21,6 +46,14 @@
       {{ report_table(nav_reports) }}
       {%- else %}
       <p>No Reports published yet.</p>
+      {%- endif %}
+    </section>
+    <section class="section-home" aria-labelledby="bites-home-title">
+      {{- section_head(3, "bites-home-title", "Data Bites", root ~ "data-bites/index.html", "All Data Bites") }}
+      {%- if data_bites %}
+      {{ data_bite_list(data_bites) }}
+      {%- else %}
+      <p>No earlier Data Bites yet.</p>
       {%- endif %}
     </section>
 {%- endblock %}

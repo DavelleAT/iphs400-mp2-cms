@@ -7,9 +7,11 @@
 {#- A nav entry's or a section's number: 01, 02, … #}
 {% macro index_number(n) %}<span class="text-mono">{{ "%02d" | format(n) }}</span>{% endmacro %}
 
-{#- A numbered section's heading row: its number, heading, and a link. #}
-{% macro section_head(n, id, heading, href, link) %}
-  <div class="section-head">{{ index_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2><a class="text-label" href="{{ href }}">{{ link }}</a></div>
+{#- A numbered section's heading row: its number, heading, and a link, if
+   it has one. #}
+{% macro section_head(n, id, heading, href=none, link=none) %}
+  <div class="section-head">{{ index_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2>
+    {%- if href %}<a class="text-label" href="{{ href }}">{{ link }}</a>{% endif %}</div>
 {%- endmacro %}
 
 {#- Each Data Bite by the date it was published, with its Summary if it has
