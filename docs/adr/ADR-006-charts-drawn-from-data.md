@@ -71,6 +71,11 @@ has passed them, and `app.rendering` puts it in the page.
   separation, lightness band). In light mode, aqua and yellow are under 3:1
   against white, so every Chart carries a legend for two or more series and
   its data table.
+- **Drawn twice, for the column and for a phone.** An SVG scales its text
+  with it, so one drawing wide enough for the desktop column puts its text
+  near 9 px on a phone. Each Chart is drawn 520 and 360 units wide, and the
+  stylesheet shows the narrow one below 30rem (`display: none` takes the
+  other out of the accessibility tree). Both name the same title.
 - **No JavaScript on the public site.** The data table is a `<details>`
   element. Bar charts start at zero. A line chart may start above zero, and
   says so.

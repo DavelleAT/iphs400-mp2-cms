@@ -67,6 +67,13 @@ def drawn(**override) -> str:
     return str(render_markdown(fence(json.dumps(chart_data(**override)))))
 
 
+def drawings(html: str) -> list[str]:
+    """The figure's two SVGs, wide and phone, each as HTML."""
+    found = re.findall(r'<svg class="(chart-svg(?:-phone)?)".*?</svg>', html, re.S)
+    assert found == ["chart-svg", "chart-svg-phone"], found
+    return re.findall(r'<svg class="chart-svg(?:-phone)?".*?</svg>', html, re.S)
+
+
 def figure_of(**override) -> Figure:
     html = drawn(**override).strip()
     assert html.startswith('<figure class="chart-figure">') and html.endswith("</figure>"), html
@@ -228,34 +235,38 @@ def test_the_privacy_note_appears_once_however_many_values_are_suppressed():
 
 
 def test_missing_and_suppressed_values_draw_no_mark():
-    figure = figure_of(categories=["A", "B", "C", "D"], series=[series("1", "", "<10", "n/a")])
-    assert figure.named("rect") == 1
+    html = drawn(categories=["A", "B", "C", "D"], series=[series("1", "", "<10", "n/a")])
+    for svg in drawings(html):
+        assert Figure(svg).named("rect") == 1
 
 
 def test_a_missing_value_breaks_a_line_into_runs():
     html = drawn(type="line", categories=list("ABCDEF"),
                  series=[series("1", "2", "—", "4", "5", "*")])
-    assert html.count("<polyline") == 2
-    assert html.count("<circle") == 4
+    for svg in drawings(html):
+        assert svg.count("<polyline") == 2
+        assert svg.count("<circle") == 4
 
 
 def test_a_lone_point_between_gaps_gets_a_marker_on_a_crowded_line():
     values = ["5"] * 30
     values[10:13] = ["", "7", ""]
     html = drawn(type="line", categories=[str(i) for i in range(30)], series=[series(*values)])
-    assert html.count("<circle") == 1
+    for svg in drawings(html):
+        assert svg.count("<circle") == 1
 
 
 def test_values_are_labelled_as_typed():
     html = drawn(series=[series("1,200.50", "$5")], unit={"text": "$", "position": "prefix"})
-    labels = re.findall(r'class="chart-value"[^>]*>([^<]*)<', html)
-    assert labels == ["1,200.50", "$5"]
+    for svg in drawings(html):
+        assert re.findall(r'class="chart-value"[^>]*>([^<]*)<', svg) == ["1,200.50", "$5"]
 
 
 def test_a_legend_only_for_two_or_more_series():
     assert "chart-legend" not in drawn()
     two = drawn(series=[series("1", "2", name="Fall"), series("3", "4", name="Spring")])
-    assert two.count('class="chart-legend"') == 3
+    for svg in drawings(two):
+        assert svg.count('class="chart-legend"') == 3
 
 
 def test_show_the_data_keeps_the_original_notation():
@@ -270,11 +281,28 @@ def test_show_the_data_keeps_the_original_notation():
     assert figure.named("th", scope="col") == 2 and figure.named("th", scope="row") == 7
 
 
+def test_each_chart_is_drawn_wide_and_for_a_phone_and_the_stylesheet_swaps_them(client):
+    wide, phone = drawings(drawn())
+    assert 'viewBox="0 0 520 ' in wide and 'viewBox="0 0 360 ' in phone
+    css = client.get("/style.css").text
+    assert re.search(r"\.chart-svg-phone\s*\{\s*display:\s*none;\s*\}", css)
+    assert re.search(r"@media \(max-width: 30rem\) \{ \.chart-svg \{ display: none; \} "
+                     r"\.chart-svg-phone \{ display: block; \} \}", css)
+
+
+def test_a_phone_drawing_shortens_long_labels_to_fit():
+    long = "A category name of exactly sixty characters, to be shortened"
+    wide, phone = drawings(drawn(type="hbar", categories=[long, "Senior"]))
+    shown = [re.findall(r'class="chart-category"[^>]*>([^<]*)<', svg)[0] for svg in (wide, phone)]
+    assert all(label.endswith("…") and long.startswith(label[:-1]) for label in shown)
+    assert len(shown[1]) < len(shown[0])
+
+
 def test_the_svg_is_an_image_named_by_the_title():
     html = drawn(title="Fall enrollment")
     [title_id] = re.findall(r'<figcaption class="chart-title" id="([^"]+)">Fall enrollment<', html)
     assert TITLE_ID.fullmatch(title_id)
-    assert f'role="img" aria-labelledby="{title_id}"' in html
+    assert html.count(f'role="img" aria-labelledby="{title_id}"') == 2
 
 
 def test_the_drawing_refuses_anything_outside_its_vocabulary():

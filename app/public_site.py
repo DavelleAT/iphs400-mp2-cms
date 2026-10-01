@@ -46,22 +46,26 @@ main { margin-block: 2rem; }
 @media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
 /* Charts (app.chart_drawing): an SVG scaled to the column, its text at the
    size its layout assumes (FONT, in the SVG's units), and its data in a
-   <details> table that scrolls sideways rather than widen the page. */
+   <details> table that scrolls sideways rather than widen the page. Each is
+   drawn twice; the narrow drawing replaces the wide one on a phone, and
+   display: none takes the hidden one out of the accessibility tree. */
 .chart-figure { margin: 1.5rem 0; }
 .chart-title { font-weight: 600; margin-bottom: 0.5rem; }
-.chart-svg { display: block; height: auto; width: 100%; }
-.chart-svg text { font-family: system-ui, sans-serif; font-size: 13px; }
-.chart-svg polyline { stroke-linecap: round; stroke-linejoin: round; }
-.chart-svg circle { stroke: Canvas; }
+.chart-svg, .chart-svg-phone { display: block; height: auto; width: 100%; }
+.chart-svg-phone { display: none; }
+@media (max-width: 30rem) { .chart-svg { display: none; } .chart-svg-phone { display: block; } }
+.chart-figure text { font-family: system-ui, sans-serif; font-size: 13px; }
+.chart-figure polyline { stroke-linecap: round; stroke-linejoin: round; }
+.chart-figure circle { stroke: Canvas; }
 .chart-note, .chart-source { margin: 0.25rem 0; }
 .chart-data { margin-top: 0.5rem; overflow-x: auto; }
 .chart-data summary { cursor: pointer; }
 .content-body .chart-data td { font-variant-numeric: tabular-nums; text-align: right; }
 @media (prefers-color-scheme: dark) {
-  .chart-svg text { fill: #c3c2b7; }
-  .chart-svg .chart-tick { fill: #898781; }
-  .chart-svg .chart-grid { stroke: #2c2c2a; }
-  .chart-svg .chart-baseline { stroke: #5c5b57; }
+  .chart-figure text { fill: #c3c2b7; }
+  .chart-figure .chart-tick { fill: #898781; }
+  .chart-figure .chart-grid { stroke: #2c2c2a; }
+  .chart-figure .chart-baseline { stroke: #5c5b57; }
   .chart-series-1, .chart-marker-1 { fill: #3987e5; } .chart-line-1 { stroke: #3987e5; }
   .chart-series-2, .chart-marker-2 { fill: #d95926; } .chart-line-2 { stroke: #d95926; }
   .chart-series-3, .chart-marker-3 { fill: #199e70; } .chart-line-3 { stroke: #199e70; }

@@ -12,7 +12,8 @@ Writer strings (title, labels, units, source, category and series names,
 cell text) are only ever text content, escaped by _text.
 
 Layout is in the SVG's own units: the stylesheet (app.public_site.CSS) sets
-its text to FONT units and scales the SVG to the column.
+its text to FONT units and scales the SVG to the column. Both drawings share
+the scale, so the phone one starts its axis where the wide one does.
 """
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ ATTRIBUTES = frozenset({"class", "viewBox", "role", "aria-labelledby", "aria-hid
 _SERIES_CLASSES = tuple(f"chart-series-{i}" for i in range(1, len(SERIES) + 1))
 _LINE_CLASSES = tuple(f"chart-line-{i}" for i in range(1, len(SERIES) + 1))
 _MARKER_CLASSES = tuple(f"chart-marker-{i}" for i in range(1, len(SERIES) + 1))
-CLASSES = frozenset({"chart-figure", "chart-title", "chart-svg", "chart-grid", "chart-baseline",
+CLASSES = frozenset({"chart-figure", "chart-title", "chart-svg", "chart-svg-phone", "chart-grid", "chart-baseline",
                      "chart-tick", "chart-category", "chart-value", "chart-axis-title",
                      "chart-legend", "chart-note", "chart-source", "chart-data",
                      *_SERIES_CLASSES, *_LINE_CLASSES, *_MARKER_CLASSES})
@@ -57,7 +58,11 @@ TITLE_ID = re.compile(r"chart-[0-9a-f]{32}-[0-9]+-title")
 PRIVACY_NOTE = "Some values are suppressed for privacy."
 DATA_SUMMARY = "Show the data"
 
+# Each Chart is drawn twice: WIDTH units wide, and PHONE_WIDTH for a narrow
+# screen, which the stylesheet shows in its place, so its text stays near
+# FONT pixels on a phone rather than shrinking with a wide drawing.
 WIDTH = 520
+PHONE_WIDTH = 360
 FONT = 13            # the stylesheet's size for the SVG's text
 _CHAR = FONT * 0.6   # an estimate of one character's width
 _LINE = 18           # a line of text
@@ -191,15 +196,15 @@ def _value_title(chart: Chart) -> str | None:
 
 # The legend.
 
-def _legend(chart: Chart, top: float) -> tuple[str, float]:
+def _legend(chart: Chart, top: float, full: float) -> tuple[str, float]:
     """The legend for two or more series, from `top`, and its height."""
     if len(chart.series) < 2:
         return "", 0.0
     items, x, y = [], 0.0, top + FONT
     for index, series in enumerate(chart.series):
-        name = _fit(series.name, WIDTH - 20)
+        name = _fit(series.name, full - 20)
         width = 18 + _width(name) + 16
-        if x and x + width > WIDTH:
+        if x and x + width > full:
             x, y = 0.0, y + _LINE
         if chart.type == "line":
             swatch = _element("line", {"class": _LINE_CLASSES[index], "x1": x, "y1": y - 4,
@@ -221,7 +226,8 @@ def _mark_title(chart: Chart, series_name: str, category: str, text: str) -> str
 
 # Bar and line charts: categories along the bottom.
 
-def _category_labels(categories: Sequence[str], centre, step: float, y: float) -> list[str]:
+def _category_labels(categories: Sequence[str], centre, step: float, y: float,
+                     full: float) -> list[str]:
     """The categories under the plot, every k-th if they're crowded, each
     shortened to the room it has."""
     least = 4 * _CHAR + 4
@@ -233,18 +239,18 @@ def _category_labels(categories: Sequence[str], centre, step: float, y: float) -
             continue
         # Centred, so it has as much room to each side as the SVG leaves it.
         at = centre(index)
-        fits = min(room, 2 * min(at, WIDTH - at))
+        fits = min(room, 2 * min(at, full - at))
         labels.append(_label(at, y, _fit(category, fits), "chart-category"))
     return labels
 
 
-def _vertical(chart: Chart) -> tuple[str, float, Scale]:
+def _vertical(chart: Chart, full: float) -> tuple[str, float, Scale]:
     unit = chart.effective_unit
     numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
     scale = _scale(numbers, from_zero=chart.type == "bar")
     ticks = [(tick, _tick_text(tick, scale.step, unit)) for tick in scale.ticks]
     single = len(chart.series) == 1
-    legend, legend_height = _legend(chart, 0)
+    legend, legend_height = _legend(chart, 0, full)
     value_title = _value_title(chart)
     top = legend_height + (_LINE if value_title else 0) + 10
     left = max(_width(text) for _, text in ticks) + 10
@@ -253,7 +259,7 @@ def _vertical(chart: Chart) -> tuple[str, float, Scale]:
         last = [cell for cell in chart.series[0].cells if cell.kind == "number"]
         end_label = last[-1].text if last else ""
     right = 12 + (_width(end_label) + 8 if end_label else 0)
-    plot_width = WIDTH - left - right
+    plot_width = full - left - right
     bottom = top + _PLOT_HEIGHT
 
     def y(value: float) -> float:
@@ -261,7 +267,7 @@ def _vertical(chart: Chart) -> tuple[str, float, Scale]:
 
     parts = [legend]
     if value_title:
-        parts.append(_label(0, legend_height + FONT, _fit(value_title, WIDTH), "chart-axis-title",
+        parts.append(_label(0, legend_height + FONT, _fit(value_title, full), "chart-axis-title",
                             "start"))
     grid = []
     for tick, text in ticks:
@@ -289,11 +295,11 @@ def _vertical(chart: Chart) -> tuple[str, float, Scale]:
         def centre(index: int) -> float:
             return left + inset + index * step
     labels_y = bottom + 6 + FONT
-    parts.append(_element("g", None, *_category_labels(chart.categories, centre, step, labels_y)))
+    parts.append(_element("g", None, *_category_labels(chart.categories, centre, step, labels_y, full)))
     height = labels_y + 6
     if chart.x_label:
         height += _LINE
-        parts.append(_label(left + plot_width / 2, height - 6, _fit(chart.x_label, WIDTH),
+        parts.append(_label(left + plot_width / 2, height - 6, _fit(chart.x_label, full),
                             "chart-axis-title"))
     return "".join(parts), height, scale
 
@@ -367,7 +373,7 @@ def _lines(chart: Chart, x, y, end_label: str) -> list[str]:
 
 # Horizontal bar charts: categories down the side.
 
-def _horizontal(chart: Chart) -> tuple[str, float, Scale]:
+def _horizontal(chart: Chart, full: float) -> tuple[str, float, Scale]:
     unit = chart.effective_unit
     numbers = [cell.number for cell in chart.cells() if cell.kind == "number"]
     scale = _scale(numbers, from_zero=True)
@@ -376,13 +382,13 @@ def _horizontal(chart: Chart) -> tuple[str, float, Scale]:
     single = count == 1
     thickness = 20 if single else 14
     band = count * thickness + (count - 1) * _GAP + 12
-    legend, legend_height = _legend(chart, 0)
+    legend, legend_height = _legend(chart, 0, full)
     top = legend_height + (_LINE if chart.x_label else 0) + 6
-    left = max(min(max(_width(category) for category in chart.categories) + 10, WIDTH * 0.4),
+    left = max(min(max(_width(category) for category in chart.categories) + 10, full * 0.4),
                _width(ticks[0][1]) / 2 + 2)
     labels = [cell.text for cell in chart.series[0].cells] if single else []
     right = max([_width(text) for text in labels] + [_width(ticks[-1][1]) / 2]) + 10
-    plot_width = WIDTH - left - right
+    plot_width = full - left - right
     plot_height = len(chart.categories) * band
     bottom = top + plot_height
 
@@ -391,7 +397,7 @@ def _horizontal(chart: Chart) -> tuple[str, float, Scale]:
 
     parts = [legend]
     if chart.x_label:
-        parts.append(_label(0, legend_height + FONT, _fit(chart.x_label, WIDTH),
+        parts.append(_label(0, legend_height + FONT, _fit(chart.x_label, full),
                             "chart-axis-title", "start"))
     grid = []
     for tick, text in ticks:
@@ -430,7 +436,7 @@ def _horizontal(chart: Chart) -> tuple[str, float, Scale]:
     value_title = _value_title(chart)
     if value_title:
         height += _LINE
-        parts.append(_label(left + plot_width / 2, height - 6, _fit(value_title, WIDTH),
+        parts.append(_label(left + plot_width / 2, height - 6, _fit(value_title, full),
                             "chart-axis-title"))
     return "".join(parts), height, scale
 
@@ -457,13 +463,18 @@ def _data_table(chart: Chart) -> str:
                              _element("tbody", None, *rows)))
 
 
+def _svg(chart: Chart, title_id: str, full: float, css: str) -> tuple[str, Scale]:
+    body, height, scale = (_horizontal if chart.type == "hbar" else _vertical)(chart, full)
+    return _element("svg", {"class": css, "viewBox": (0, 0, full, math.ceil(height)),
+                            "role": "img", "aria-labelledby": title_id}, body), scale
+
+
 def draw(chart: Chart, key: str, number: int) -> str:
     """The figure for `chart`, the `number`th in a body whose key (32 hex
     characters, the same on every render of that body) is `key`."""
     title_id = f"chart-{key}-{number}-title"
-    body, height, scale = _horizontal(chart) if chart.type == "hbar" else _vertical(chart)
-    svg = _element("svg", {"class": "chart-svg", "viewBox": (0, 0, WIDTH, math.ceil(height)),
-                           "role": "img", "aria-labelledby": title_id}, body)
+    wide, scale = _svg(chart, title_id, WIDTH, "chart-svg")
+    phone, _ = _svg(chart, title_id, PHONE_WIDTH, "chart-svg-phone")
     notes = []
     if chart.type == "line" and scale.low > 0:
         start = _tick_text(scale.low, scale.step, chart.effective_unit)
@@ -475,4 +486,4 @@ def draw(chart: Chart, key: str, number: int) -> str:
     return _element("figure", {"class": "chart-figure"},
                     _element("figcaption", {"class": "chart-title", "id": title_id},
                              _text(chart.title)),
-                    svg, *notes, _data_table(chart))
+                    wide, phone, *notes, _data_table(chart))
