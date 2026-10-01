@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Console</title>
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <a class="text-hidden" href="#main">Skip to content</a>
+  <header class="bar-console"><div class="bar-console-inner">
+    <a class="bar-console-home" href="index.html"><span class="bar-console-mark" aria-hidden="true">IR</span><b>Console</b><span class="text-label">Institutional Research</span></a>
+    <nav class="nav-console" aria-label="Console"><ul><li><a href="index.html" aria-current="page"><span class="text-mono">01</span>Dashboard</a></li><li><a href="data-bites.html"><span class="text-mono">02</span>Data Bites</a></li><li><a href="#"><span class="text-mono">03</span>Reports</a></li><li><a href="#"><span class="text-mono">04</span>Homepage</a></li><li><a href="#"><span class="text-mono">05</span>Users</a></li></ul></nav>
+    <div class="user-console">
+      <a class="user-console-site" href="../session-22-mockup/index.html">View site ↗</a>
+      <span class="user-console-name">Dana Whitfield <span class="text-label">Director</span></span>
+      <form><button type="button">Log out</button></form>
+    </div>
+  </div></header>
+  <main id="main" class="page-console">
+    <div class="head-page">
+      <div>
+        <h1>Dashboard</h1>
+        <dl class="facts-page text-label"><div><dt>Today</dt><dd class="text-mono">2026-10-01</dd></div><div><dt>Signed in as</dt><dd>Director</dd></div></dl>
+      </div>
+      <div class="actions-page"><a class="button-secondary" href="#">New Report</a><a class="button-primary" href="edit.html">New Data Bite</a></div>
+    </div>
+
+    <dl class="figures-console">
+      <div><dt><a href="data-bites.html">Data Bites published</a></dt><dd>3</dd></div>
+      <div><dt><a href="data-bites.html">Data Bite drafts</a></dt><dd>1</dd></div>
+      <div><dt><a href="#">Reports published</a></dt><dd>2</dd></div>
+      <div><dt><a href="#">Report drafts</a></dt><dd>1</dd></div>
+    </dl>
+
+    <div class="grid-dashboard">
+      <div>
+        <section class="section-console" aria-labelledby="waiting-title">
+          <div class="head-section"><span class="text-mono">01</span><h2 id="waiting-title">Waiting for you</h2><span class="head-section-note">Only the Director can publish a Report</span></div>
+          <ul class="list-console">
+            <li><span class="list-console-title"><a href="edit.html">Common Data Set 2026-27</a></span><span class="badge-state badge-state-waiting">Ready to publish</span><a class="button-secondary" href="edit.html">Review</a>
+              <span class="list-console-meta">Drafted by Sam Ortiz (Analyst) · updated <span class="text-mono">2026-10-01</span></span></li>
+          </ul>
+        </section>
+
+        <section class="section-console" aria-labelledby="recent-title">
+          <div class="head-section"><span class="text-mono">02</span><h2 id="recent-title">Recently changed</h2><a class="text-label" href="#">All content</a></div>
+          <ul class="list-console">
+            <li><span class="list-console-title"><a href="edit.html">Fall enrollment snapshot</a></span><span class="badge-state badge-state-published">Published</span><span class="text-mono text-muted">2026-10-01</span>
+              <span class="list-console-meta">Data Bite · Sam Ortiz</span></li>
+            <li><span class="list-console-title"><a href="edit.html">Spring survey response rates</a></span><span class="badge-state badge-state-draft">Draft</span><span class="text-mono text-muted">2026-09-30</span>
+              <span class="list-console-meta">Data Bite · Sam Ortiz</span></li>
+            <li><span class="list-console-title"><a href="edit.html">First-year retention holds at 91 percent</a></span><span class="badge-state badge-state-published">Published</span><span class="text-mono text-muted">2026-09-12</span>
+              <span class="list-console-meta">Data Bite · Dana Whitfield</span></li>
+            <li><span class="list-console-title"><a href="#">Factbook</a></span><span class="badge-state badge-state-published">Published</span><span class="text-mono text-muted">2026-09-10</span>
+              <span class="list-console-meta">Report · Dana Whitfield</span></li>
+          </ul>
+        </section>
+      </div>
+      <aside>
+        <div class="panel-console">
+          <h2>The public site</h2>
+          <p>Publishing marks an item as Published here. It reaches the public site at the next export:</p>
+          <code>uv run cms publish</code>
+          <p style="margin: 0.75rem 0 0"><a href="../session-22-mockup/index.html">View the site ↗</a></p>
+        </div>
+        <div class="panel-console">
+          <h2>Homepage</h2>
+          <p>Headline, intro, and four Key figures. Last saved <span class="text-mono">2026-10-01</span>.</p>
+          <a class="button-secondary" href="#">Edit homepage</a>
+        </div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,236 @@
+/* Admin console mockup (pre-spec): "same family, calmer". The public site's
+   fonts and tokens (static/site.css, ADR-007), on light paper; the deep
+   purple field only as a slim top bar, where the citron accent may appear.
+   Square corners, hairlines, mono labels, ISO dates, numbered sections. */
+@font-face { font-family: "Atkinson Next"; src: url("../../../static/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Atkinson Next"; src: url("../../../static/fonts/atkinson-hyperlegible-next-latin-wght-italic.woff2") format("woff2"); font-weight: 200 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Atkinson Mono"; src: url("../../../static/fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: light dark;
+  --font-text: "Atkinson Next", system-ui, sans-serif;
+  --font-mono: "Atkinson Mono", ui-monospace, monospace;
+  --color-paper: #fbfafd;
+  --color-surface: #ffffff;        /* fields and the Editor, a step off the paper */
+  --color-ink: #17131f;
+  --color-muted: #5d5870;
+  --color-line: #e2dfe9;
+  --color-line-strong: #c9c4d6;
+  --color-tint: #f0edf8;
+  --color-field: #231443;
+  --color-field-line: rgb(255 255 255 / 0.16);
+  --color-field-grid: rgb(255 255 255 / 0.045);
+  --color-field-text: #d9d3f0;
+  --color-kenyon: #4b2e84;
+  --color-purple: var(--color-kenyon);
+  --color-bright: #8f80ff;
+  --color-citron: #d6f550;         /* only ever on --color-field */
+  --color-danger: #b3261e;
+  --color-ok: #1f6f43;
+  --width-page: 84rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #110e17;
+    --color-surface: #18141f;
+    --color-ink: #ebe8f2;
+    --color-muted: #a39db3;
+    --color-line: #2b2737;
+    --color-line-strong: #3d3750;
+    --color-tint: #1b1726;
+    --color-field: #1a0f33;
+    --color-purple: #a99cff;
+    --color-bright: #7d6ef0;
+    --color-danger: #ff8a80;
+    --color-ok: #7fd4a4;
+  }
+}
+
+* { box-sizing: border-box; }
+body { background: var(--color-paper); color: var(--color-ink); font: 400 1rem/1.6 var(--font-text); margin: 0; }
+a { color: var(--color-purple); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--color-bright); outline-offset: 2px; }
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+.text-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+.text-label { font: 500 0.75rem/1.3 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; }
+.text-muted { color: var(--color-muted); }
+.text-hidden { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+
+/* The slim bar: the field, its grid, the mark, numbered nav, who's signed in. */
+.bar-console { background-color: var(--color-field); background-image: linear-gradient(var(--color-field-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-field-grid) 1px, transparent 1px); background-size: 2rem 2rem; color: #fff; }
+.bar-console :focus-visible { outline-color: var(--color-citron); }
+.bar-console-inner { align-items: center; display: flex; gap: 0 1.75rem; margin-inline: auto; max-width: var(--width-page); padding-inline: clamp(1rem, 3vw, 2rem); }
+.bar-console-home { align-items: center; color: #fff; display: flex; flex: none; gap: 0.6rem; padding-block: 0.7rem; text-decoration: none; }
+.bar-console-mark { background: var(--color-citron); color: var(--color-field); display: grid; font: 700 0.85rem/1 var(--font-mono); height: 1.9rem; place-items: center; width: 1.9rem; }
+.bar-console-home b { font-size: 0.98rem; }
+.bar-console-home .text-label { color: var(--color-bright); }
+.nav-console { align-self: stretch; display: flex; flex: 1; min-width: 0; }
+.nav-console ul { display: flex; gap: 0 1.5rem; list-style: none; margin: 0; overflow-x: auto; padding: 0; scrollbar-width: none; }
+.nav-console a { align-items: center; border-bottom: 3px solid transparent; color: #fff; display: flex; font-size: 0.92rem; font-weight: 600; gap: 0.45rem; height: 100%; padding-top: 3px; text-decoration: none; white-space: nowrap; }
+.nav-console a .text-mono { color: var(--color-bright); font-size: 0.75rem; font-weight: 500; }
+.nav-console a:hover { border-color: var(--color-field-line); }
+.nav-console a[aria-current] { border-color: var(--color-citron); }
+.nav-console a:focus-visible { outline-offset: -3px; }
+.user-console { align-items: center; display: flex; flex: none; gap: 1rem; font-size: 0.88rem; }
+.user-console .text-label { color: var(--color-field-text); }
+.user-console a { color: var(--color-field-text); }
+.user-console button { background: none; border: 1px solid var(--color-field-line); color: #fff; cursor: pointer; font: 600 0.82rem var(--font-text); padding: 0.35rem 0.7rem; }
+.user-console button:hover { border-color: #fff; }
+@media (max-width: 56rem) {
+  .bar-console-inner { flex-wrap: wrap; }
+  .nav-console { border-top: 1px solid var(--color-field-line); flex-basis: 100%; order: 3; }
+  .nav-console ul { mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 2rem; }
+  .nav-console a { padding-block: 0.7rem 0.55rem; }
+  .user-console { margin-left: auto; }
+  .user-console .user-console-name, .user-console .user-console-site { display: none; }
+}
+
+/* A page: its head (breadcrumb, title, facts, its main action), then sections. */
+.page-console { margin-inline: auto; max-width: var(--width-page); padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3vw, 2rem) 6rem; }
+.head-page { align-items: end; border-bottom: 2px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; padding-bottom: 1rem; }
+.head-page h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.03em; }
+.head-page-crumbs { color: var(--color-muted); display: block; margin-bottom: 0.5rem; }
+.head-page-crumbs a { color: inherit; }
+.facts-page { display: flex; flex-wrap: wrap; gap: 0.25rem 1.75rem; margin: 0.75rem 0 0; }
+.facts-page div { display: flex; gap: 0.5rem; }
+.facts-page dt { color: var(--color-muted); }
+.facts-page dd { margin: 0; }
+.actions-page { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+/* Buttons: square, one solid action per view. */
+.button-primary, .button-secondary, .button-quiet { align-items: center; cursor: pointer; display: inline-flex; font: 700 0.9rem/1 var(--font-text); gap: 0.45rem; padding: 0.7rem 1rem; text-decoration: none; }
+.button-primary { background: var(--color-kenyon); border: 1px solid var(--color-kenyon); color: #fff; }
+.button-primary:hover { background: var(--color-field); border-color: var(--color-field); }
+.button-secondary { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-ink); }
+.button-secondary:hover { border-color: var(--color-ink); }
+.button-quiet { background: none; border: 0; color: var(--color-purple); padding-inline: 0.4rem; }
+.button-quiet:hover { text-decoration: underline; }
+.button-danger { color: var(--color-danger); }
+
+/* The Confirmation (app.flash), once, after a save. */
+.confirmation-console { align-items: baseline; background: var(--color-tint); border-left: 3px solid var(--color-kenyon); display: flex; gap: 0.75rem; margin: 1.25rem 0 0; padding: 0.7rem 1rem; }
+.confirmation-console .text-label { color: var(--color-purple); }
+
+/* Numbered sections, as on the public site. */
+.section-console { padding-top: 2.25rem; }
+.head-section { align-items: baseline; border-bottom: 1px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; padding-bottom: 0.5rem; }
+.head-section > .text-mono { color: var(--color-purple); font-size: 0.8rem; }
+.head-section h2 { font-size: 1.25rem; }
+.head-section-note { color: var(--color-muted); }
+.head-section a, .head-section .head-section-end { margin-left: auto; }
+
+/* Status: square, mono. Published is filled; a Draft is dashed; a Draft
+   Report the Director has to publish is marked as waiting. */
+.badge-state { border: 1px solid; display: inline-block; font: 500 0.7rem/1 var(--font-mono); letter-spacing: 0.05em; padding: 0.3rem 0.45rem; text-transform: uppercase; white-space: nowrap; }
+.badge-state-published { background: var(--color-tint); border-color: transparent; color: var(--color-purple); }
+.badge-state-published::before { content: "● "; }
+.badge-state-draft { border-color: var(--color-line-strong); border-style: dashed; color: var(--color-muted); }
+.badge-state-waiting { border-color: var(--color-bright); color: var(--color-purple); }
+
+/* Dashboard counts: the public Key figures, smaller. */
+.figures-console { border-bottom: 1px solid var(--color-line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+.figures-console div { border-left: 1px solid var(--color-line); display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: 1.1rem 1.1rem 1.25rem; }
+.figures-console div:first-child { border-left: 0; padding-left: 0; }
+.figures-console dd { font: 500 2.4rem/1 var(--font-mono); letter-spacing: -0.04em; margin: 0 0 0.5rem; }
+.figures-console dt { color: var(--color-muted); font-size: 0.9rem; }
+.figures-console dt a { color: inherit; }
+@media (max-width: 40rem) {
+  .figures-console { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures-console div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .figures-console div:nth-child(n+3) { border-top: 1px solid var(--color-line); }
+}
+.grid-dashboard { display: grid; gap: 0 3rem; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); }
+@media (max-width: 60rem) { .grid-dashboard { grid-template-columns: minmax(0, 1fr); } }
+
+/* A list of items to act on: title and Summary, its state, its facts. */
+.list-console { list-style: none; margin: 0; padding: 0; }
+.list-console li { align-items: center; border-bottom: 1px solid var(--color-line); display: grid; gap: 0.2rem 1.25rem; grid-template-columns: minmax(0, 1fr) auto auto; padding: 0.9rem 0; }
+.list-console-title { font-weight: 700; }
+.list-console-title a { color: var(--color-ink); text-decoration: none; }
+.list-console-title a:hover { color: var(--color-purple); text-decoration: underline; }
+.list-console-meta { color: var(--color-muted); font-size: 0.85rem; grid-column: 1; }
+@media (max-width: 40rem) { .list-console li { grid-template-columns: minmax(0, 1fr) auto; } .list-console li > .button-secondary { grid-column: 1 / -1; justify-self: start; } }
+
+.panel-console { border: 1px solid var(--color-line); margin-top: 2.25rem; padding: 1.1rem 1.25rem; }
+.panel-console h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+.panel-console p { color: var(--color-muted); font-size: 0.92rem; margin: 0 0 0.75rem; }
+.panel-console code { background: var(--color-tint); display: block; font: 500 0.85rem var(--font-mono); padding: 0.55rem 0.7rem; }
+
+/* Filters above a table: underlined, numbered like the nav. */
+.filters-console { display: flex; flex-wrap: wrap; gap: 0 1.5rem; margin: 1.25rem 0 0; }
+.filters-console a { border-bottom: 2px solid transparent; color: var(--color-muted); padding-bottom: 0.35rem; text-decoration: none; }
+.filters-console a .text-mono { margin-left: 0.3rem; }
+.filters-console a[aria-current] { border-color: var(--color-kenyon); color: var(--color-ink); font-weight: 700; }
+
+/* The items table. On a phone each row stacks. */
+.table-items { border-collapse: collapse; margin-top: 0.75rem; width: 100%; }
+.table-items th { border-bottom: 1px solid var(--color-ink); color: var(--color-muted); font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; padding: 0.6rem 1rem 0.5rem 0; text-align: left; text-transform: uppercase; }
+.table-items td { border-bottom: 1px solid var(--color-line); padding: 0.85rem 1rem 0.85rem 0; vertical-align: top; }
+.table-items tbody tr:hover { background: var(--color-tint); }
+.table-items-title a { color: var(--color-ink); font-weight: 700; text-decoration: none; }
+.table-items-title a:hover { color: var(--color-purple); text-decoration: underline; }
+.table-items-title p { color: var(--color-muted); font-size: 0.88rem; margin: 0.15rem 0 0; max-width: 40rem; }
+.table-items td.text-mono { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
+.table-items-actions { text-align: right; white-space: nowrap; }
+@media (max-width: 48rem) {
+  .table-items thead { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; width: 1px; }
+  .table-items tr { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.35rem 0.75rem; grid-template-columns: auto auto 1fr; padding-block: 0.85rem; }
+  .table-items td { border: 0; padding: 0; }
+  .table-items td.table-items-title { grid-column: 1 / -1; }
+  .table-items-actions { grid-column: 1 / -1; text-align: left; }
+}
+
+/* The edit page: fields and the Editor, beside a sticky Site preview; a
+   save bar along the bottom. */
+.grid-edit { align-items: start; display: grid; gap: 2rem 2.5rem; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); margin-top: 1.5rem; }
+@media (max-width: 64rem) { .grid-edit { grid-template-columns: minmax(0, 1fr); } }
+.field-console { margin: 0 0 1.4rem; }
+.field-console label, .field-console .field-console-label { display: block; font-weight: 700; font-size: 0.92rem; margin-bottom: 0.35rem; }
+.field-console label .text-label { color: var(--color-muted); font-weight: 500; margin-left: 0.4rem; }
+.field-console input, .field-console textarea { background: var(--color-surface); border: 1px solid var(--color-line-strong); border-radius: 0; color: var(--color-ink); font: 400 1rem/1.5 var(--font-text); padding: 0.6rem 0.75rem; width: 100%; }
+.field-console input:focus, .field-console textarea:focus { border-color: var(--color-kenyon); outline: 2px solid var(--color-bright); outline-offset: 0; }
+.field-console-title input { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; padding-block: 0.5rem; }
+.field-console-hint { color: var(--color-muted); display: flex; font-size: 0.82rem; gap: 1rem; justify-content: space-between; margin-top: 0.35rem; }
+.field-console-hint .text-mono { white-space: nowrap; }
+.field-console-slug { align-items: stretch; display: flex; }
+.field-console-slug span { align-items: center; background: var(--color-tint); border: 1px solid var(--color-line-strong); color: var(--color-muted); display: flex; font: 500 0.85rem var(--font-mono); padding-inline: 0.6rem; white-space: nowrap; }
+.field-console-slug span:first-child { border-right: 0; }
+.field-console-slug span:last-child { border-left: 0; }
+.field-console-slug input { font-family: var(--font-mono); font-size: 0.9rem; min-width: 0; }
+
+/* The Editor, restyled by class only (static/editor.js keeps its markup). */
+.editor-console { background: var(--color-surface); border: 1px solid var(--color-line-strong); }
+.editor-console-toolbar { border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0; padding: 0.3rem; position: sticky; top: 0; background: var(--color-surface); z-index: 1; }
+.editor-console-toolbar span { border-left: 1px solid var(--color-line); margin: 0.25rem 0.35rem; }
+.editor-console-toolbar button { background: none; border: 1px solid transparent; color: var(--color-ink); cursor: pointer; font: 600 0.82rem var(--font-text); min-height: 2rem; padding: 0.3rem 0.55rem; }
+.editor-console-toolbar button:hover { background: var(--color-tint); }
+.editor-console-toolbar button[aria-pressed="true"] { border-color: var(--color-line-strong); background: var(--color-tint); }
+.editor-console-body { font-size: 1.05rem; line-height: 1.65; max-width: 44rem; min-height: 22rem; padding: 1.25rem 1.5rem; }
+.editor-console-body p { margin: 0 0 1rem; }
+.card-chart { border: 1px solid var(--color-line); margin: 1rem 0; }
+.card-chart-head { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; gap: 0.5rem; padding: 0.4rem 0.6rem; }
+.card-chart-head .text-label { color: var(--color-muted); margin-right: auto; }
+.card-chart-body { padding: 0.75rem 1rem; }
+.card-chart-body b { display: block; font-size: 0.95rem; margin-bottom: 0.5rem; }
+.card-chart-bars { align-items: end; border-bottom: 1px solid var(--color-line-strong); display: flex; gap: 1.5rem; height: 9rem; padding-inline: 1rem; }
+.card-chart-bars div { display: flex; flex: 1; gap: 3px; align-items: end; height: 100%; }
+.card-chart-bars i { background: var(--color-bright); flex: 1; }
+.card-chart-bars i + i { background: var(--color-kenyon); }
+
+.preview-console { border: 1px solid var(--color-line); position: sticky; top: 1rem; }
+.preview-console-head { align-items: center; border-bottom: 1px solid var(--color-line); display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0.75rem; }
+.preview-console-head h2 { font-size: 0.95rem; margin-right: auto; }
+.toggle-console { display: flex; }
+.toggle-console button { background: var(--color-surface); border: 1px solid var(--color-line-strong); color: var(--color-muted); cursor: pointer; font: 500 0.72rem var(--font-mono); letter-spacing: 0.05em; padding: 0.35rem 0.6rem; text-transform: uppercase; }
+.toggle-console button + button { border-left: 0; }
+.toggle-console button[aria-pressed="true"] { background: var(--color-kenyon); border-color: var(--color-kenyon); color: #fff; }
+.preview-console iframe { border: 0; display: block; height: min(70vh, 46rem); width: 100%; }
+@media (max-width: 64rem) { .preview-console { position: static; } .preview-console iframe { height: 32rem; } }
+
+.bar-save { background: var(--color-surface); border-top: 1px solid var(--color-line-strong); bottom: 0; left: 0; position: fixed; right: 0; z-index: 2; }
+.bar-save-inner { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-inline: auto; max-width: var(--width-page); padding: 0.7rem clamp(1rem, 3vw, 2rem); }
+.bar-save-state { align-items: center; color: var(--color-muted); display: flex; font-size: 0.88rem; gap: 0.75rem; margin-right: auto; }
+.bar-save-dirty::before { color: var(--color-bright); content: "● "; }
+.list-console .text-mono { font-size: 0.85rem; }
+/* On a phone the bar keeps the mark, "Console", and Log out on one line. */
+@media (max-width: 40rem) { .bar-console-home .text-label { display: none; } }

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Data Bite · Console</title>
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <a class="text-hidden" href="#main">Skip to content</a>
+  <header class="bar-console"><div class="bar-console-inner">
+    <a class="bar-console-home" href="index.html"><span class="bar-console-mark" aria-hidden="true">IR</span><b>Console</b><span class="text-label">Institutional Research</span></a>
+    <nav class="nav-console" aria-label="Console"><ul><li><a href="index.html"><span class="text-mono">01</span>Dashboard</a></li><li><a href="data-bites.html" aria-current="page"><span class="text-mono">02</span>Data Bites</a></li><li><a href="#"><span class="text-mono">03</span>Reports</a></li><li><a href="#"><span class="text-mono">04</span>Homepage</a></li><li><a href="#"><span class="text-mono">05</span>Users</a></li></ul></nav>
+    <div class="user-console">
+      <a class="user-console-site" href="../session-22-mockup/index.html">View site ↗</a>
+      <span class="user-console-name">Dana Whitfield <span class="text-label">Director</span></span>
+      <form><button type="button">Log out</button></form>
+    </div>
+  </div></header>
+  <main id="main" class="page-console">
+    <div class="head-page">
+      <div>
+        <span class="head-page-crumbs text-label"><a href="index.html">Dashboard</a> / <a href="data-bites.html">Data Bites</a> / Edit</span>
+        <h1>Fall enrollment snapshot</h1>
+        <dl class="facts-page text-label"><div><dt>State</dt><dd><span class="badge-state badge-state-published">Published</span></dd></div><div><dt>Created</dt><dd class="text-mono">2026-09-29</dd></div><div><dt>By</dt><dd>Sam Ortiz</dd></div><div><dt>Updated</dt><dd class="text-mono">2026-10-01</dd></div></dl>
+      </div>
+      <div class="actions-page"><a class="button-quiet" href="../session-22-mockup/data-bite.html">View on site ↗</a></div>
+    </div>
+    <div class="grid-edit">
+      <form>
+        <div class="field-console field-console-title"><label for="title">Title</label><input id="title" value="Fall enrollment snapshot"></div>
+        <div class="field-console"><label for="summary">Summary <span class="text-label">optional</span></label>
+          <textarea id="summary" rows="2">Headcount by class on the census date. The first-year class grew two percent; the rest held steady.</textarea>
+          <div class="field-console-hint"><span>Shown under the title, in lists, and in link previews.</span><span class="text-mono">99 / 200</span></div></div>
+        <div class="field-console"><label for="slug">Address</label>
+          <div class="field-console-slug"><span>data-bites/</span><input id="slug" value="fall-enrollment-snapshot"><span>.html</span></div></div>
+        <div class="field-console"><span class="field-console-label">Body</span>
+          <div class="editor-console">
+            <div class="editor-console-toolbar" role="toolbar" aria-label="Body formatting">
+              <button type="button" aria-pressed="false"><b>B</b></button><button type="button" aria-pressed="false"><i>I</i></button><span></span>
+              <button type="button">Section</button><button type="button">Subsection</button><span></span>
+              <button type="button">• List</button><button type="button">1. List</button><button type="button">Quote</button><span></span>
+              <button type="button">Link</button><span></span>
+              <button type="button">+ Table</button><button type="button">+ Chart</button><button type="button">+ Image</button>
+            </div>
+            <div class="editor-console-body">
+              <p>Headcount by class on the census date, the tenth day of classes.</p>
+              <div class="card-chart">
+                <div class="card-chart-head"><span class="text-label">Chart · bar</span><button class="button-quiet" type="button">Edit</button><button class="button-quiet button-danger" type="button">Remove</button></div>
+                <div class="card-chart-body"><b>Students by class</b>
+                  <div class="card-chart-bars"><div><i style="height:94%"></i><i style="height:96%"></i></div><div><i style="height:92%"></i><i style="height:91%"></i></div><div><i style="height:88%"></i><i style="height:88%"></i></div><div><i style="height:85%"></i><i style="height:86%"></i></div></div>
+                </div>
+              </div>
+              <p>The first-year class grew two percent; the rest held steady.</p>
+            </div>
+          </div>
+        </div>
+      </form>
+      <section class="preview-console" aria-labelledby="preview-title">
+        <div class="preview-console-head"><h2 id="preview-title">Site preview</h2>
+          <div class="toggle-console"><button type="button" aria-pressed="true">Desktop</button><button type="button" aria-pressed="false">Phone</button></div>
+          <a class="button-quiet" href="../session-22-mockup/data-bite.html">Open ↗</a></div>
+        <iframe title="Site preview" src="../session-22-mockup/data-bite.html"></iframe>
+      </section>
+    </div>
+  </main>
+  <div class="bar-save" role="region" aria-label="Save"><div class="bar-save-inner">
+    <span class="bar-save-state"><span class="badge-state badge-state-published">Published</span><span class="bar-save-dirty">Unsaved changes</span></span>
+    <button class="button-quiet button-danger" type="button">Delete</button>
+    <button class="button-secondary" type="button">Unpublish</button>
+    <button class="button-primary" type="button">Save changes</button>
+  </div></div>
+</body>
+</html>
