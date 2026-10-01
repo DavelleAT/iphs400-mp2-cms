@@ -11,9 +11,12 @@
     {#- The Editor (app.editor, static/editor.js) takes over the textarea, and
         shows the body from the template below, which a browser never renders
         itself. If its script doesn't run, the textarea posts Markdown, each
-        part the Editor can't edit standing as its locked-<n> line. #}
+        part the Editor can't edit standing as its locked-<n> line. An edit
+        page lists the item's chart images for "Insert image"; a create page
+        has no item to hold any yet, and lists none. #}
     <div class="admin-editor" data-body-dirty="{{ 1 if form.body_dirty else 0 }}"
       data-site-items='{{ site_items | tojson }}' data-link-states='{{ link_states | tojson }}'
+      {%- if body_images is defined %} data-images='{{ body_images | tojson }}'{% endif %}
       data-chart-preview="{{ path_for('preview_chart') }}">
     <p><label>Body (Markdown)<br><textarea name="body" rows="16" cols="60" required>{{ form.body }}</textarea></label></p>
     <template class="admin-editor-content">{{ editor_html }}</template>

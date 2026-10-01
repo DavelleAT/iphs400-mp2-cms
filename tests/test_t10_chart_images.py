@@ -65,7 +65,7 @@ def edit_bite(c: TestClient, bid: str, **override):
 
 # Uploading, listing, replacing, deleting
 
-def test_analyst_uploads_an_image_and_the_edit_page_lists_it_with_a_snippet(client_as):
+def test_analyst_uploads_an_image_and_the_edit_page_lists_it(client_as):
     analyst = client_as("editor")
     bid = create_bite(analyst)
 
@@ -73,7 +73,8 @@ def test_analyst_uploads_an_image_and_the_edit_page_lists_it_with_a_snippet(clie
     assert response.status_code == 303
     assert response.headers["location"] == f"/admin/data-bites/{bid}"
     page = analyst.get(f"/admin/data-bites/{bid}").text
-    assert "![Description](image:fall-by-class.png)" in page
+    # Listed by name for "Insert image" (T18), which replaced T10's snippet.
+    assert "<code>fall-by-class.png</code>" in page
     assert stored(bid) == ["fall-by-class.png"]
 
     served = analyst.get(f"/admin/data-bites/{bid}/images/fall-by-class.png")
@@ -186,7 +187,7 @@ def test_the_filename_is_sanitized_before_it_names_anything(client_as, uploaded_
     assert upload(analyst, bid, png(uploaded_name)).status_code == 303
 
     assert stored(bid) == [name]
-    assert f"image:{name})" in analyst.get(f"/admin/data-bites/{bid}").text
+    assert f"<code>{name}</code>" in analyst.get(f"/admin/data-bites/{bid}").text
     files = [p for p in settings.UPLOADS.parent.rglob("*") if p.is_file() and p.suffix == ".png"]
     assert files == [settings.UPLOADS / "images" / "data-bites" / bid / name]
 

@@ -93,14 +93,15 @@ def _edit_page(request: Request, user: sqlite3.Row, bite: sqlite3.Row, *,
     form = form or editor.form_for(bite)
     # The body with its locked blocks, which only the server sees.
     body = editor.full_body(form["body"], bite["body"])
+    images, names = _images(request, bite["id"]), data_bites.images(bite["id"])
     return templates.TemplateResponse(
         request, "admin/data_bite_edit.html",
         {"title": "Edit Data Bite", "home_path": "/admin", "user": user,
          "bite": bite, "status_labels": STATUS_LABELS,
          "error": error, "form": form,
-         "editor_html": editor.editor_html(form["body"], bite["body"],
-                                           _images(request, bite["id"]).src),
-         "images": list(data_bites.images(bite["id"])),
+         "editor_html": editor.editor_html(form["body"], bite["body"], images.src),
+         "images": list(names),
+         "body_images": editing.body_images(images, names),
          **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, bite),
          "preview_path": request.app.url_path_for("preview_bite", bite_id=bite["id"]),

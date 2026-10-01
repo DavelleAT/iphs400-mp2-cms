@@ -10,6 +10,10 @@
 // A Chart (T17) is a card in the body, its block in data-chart and its
 // drawing from the server. "Insert chart" and a card's "Edit chart" open the
 // Chart builder, which the server draws and checks as the writer types.
+//
+// A chart image (T18) is one of the item's uploaded pictures, from its admin
+// route. "Insert image" puts one in the body with a description, which it
+// requires; clicking one in the body changes its description or removes it.
 (() => {
   "use strict";
 
@@ -24,11 +28,17 @@
   // states are app.site_links'.
   const LINK_MARKS = {draft: "Not published: will show as plain text",
                       deleted: "Item deleted", unknown: "Unknown link"};
-  // T18's "Insert image" will place an uploaded chart image in the body.
+  // A picture reaches the body only as an uploaded chart image, by "Insert image".
   const PICTURE_REFUSED = "Pictures can't be pasted or dropped into the body. " +
-    'Upload the picture under "Chart images" instead.';
+    'Upload the picture under "Chart images", then use "Insert image".';
   const PICTURE_DROPPED = "The pasted text had pictures, which were left out. " +
-    'Upload a picture under "Chart images" instead.';
+    'Upload a picture under "Chart images", then use "Insert image".';
+  const IMAGES_AFTER_SAVE = "Images can be added after the first save. Save this draft, " +
+    'then upload a chart image under "Chart images" on its edit page.';
+  const NO_IMAGES = 'There are no chart images yet. Upload one under "Chart images", ' +
+    "below the form, then insert it here.";
+  const IMAGE_NOT_CHOSEN = "Choose an image to insert.";
+  const DESCRIPTION_NEEDED = "Describe what the chart shows, for readers who can't see it.";
   const LOCKED = "[data-locked]";
   const CHART = "[data-chart]";
   // What the body shows but doesn't edit in place.
@@ -65,6 +75,9 @@
     // The Chart builder, made when it is first opened.
     const chartPreview = wrapper.dataset.chartPreview;
     let builder = null;
+    // The item's chart images ({name, src}), or null on a create page, where
+    // there is no item to hold one yet.
+    const images = "images" in wrapper.dataset ? parseJson(wrapper.dataset.images, []) : null;
 
     // What the form posts instead of the textarea.
     const bodyHtml = hidden(form, "body_html");
@@ -88,6 +101,7 @@
         <button type="button" data-action="quote" aria-pressed="false">Quote</button>
         <button type="button" data-action="table">Insert table</button>
         <button type="button" data-action="chart">Insert chart</button>
+        <button type="button" data-action="image">Insert image</button>
       </div>
       <div class="admin-editor-cell-tools" role="toolbar" aria-label="Table" aria-controls="${id}" hidden>
         <button type="button" data-table="row-above">Row above</button>
@@ -119,6 +133,24 @@
           <button type="button" data-link="cancel">Cancel</button>
         </p>
       </fieldset>
+      <fieldset class="admin-editor-image" hidden>
+        <legend>Insert image</legend>
+        <p class="admin-editor-image-note"></p>
+        <fieldset class="admin-editor-image-choices">
+          <legend>Chart image</legend>
+        </fieldset>
+        <p class="admin-editor-image-description">
+          <label>Description (required) <input type="text" autocomplete="off"
+            aria-describedby="${id}-image-hint"></label>
+          <small id="${id}-image-hint">What the chart shows, for readers who can't see it,
+            e.g. "Fall enrollment by class, 2022 to 2026".</small>
+        </p>
+        <p class="admin-editor-image-actions">
+          <button type="button" data-image="apply" disabled>Insert image</button>
+          <button type="button" data-image="remove">Remove image</button>
+          <button type="button" data-image="cancel">Cancel</button>
+        </p>
+      </fieldset>
       <p class="admin-editor-message" role="alert"></p>
       <div class="content-body admin-editor-area" id="${id}" contenteditable="true"
         role="textbox" aria-multiline="true" aria-labelledby="${id}-label"></div>`;
@@ -134,6 +166,15 @@
     const linkSite = linkPanel.querySelector(".admin-editor-link-site");
     const linkWeb = linkPanel.querySelector(".admin-editor-link-web");
     fillPicker();
+    const imagePanel = ui.querySelector(".admin-editor-image");
+    const imageLegend = imagePanel.querySelector("legend");
+    const imageNote = imagePanel.querySelector(".admin-editor-image-note");
+    const imageChoices = imagePanel.querySelector(".admin-editor-image-choices");
+    const imageDescription = imagePanel.querySelector(".admin-editor-image-description");
+    const descriptionInput = imageDescription.querySelector("input");
+    const applyImageButton = imagePanel.querySelector("[data-image=apply]");
+    const removeImageButton = imagePanel.querySelector("[data-image=remove]");
+    fillImageChoices();
     const messageLine = ui.querySelector(".admin-editor-message");
 
     area.append(template.content.cloneNode(true));
@@ -141,8 +182,11 @@
     for (const card of area.querySelectorAll(CHART)) chartCard(card);
     ensureParagraph();
     markLinks();
-    // The item's own chart images, the only pictures the body may show.
-    const ownImages = new Set(area.querySelectorAll("img"));
+    // The item's own chart images, the only pictures the body may show, by
+    // their full URL: a browser may give a dragged picture's src in full.
+    const ownImages = new Map([...(images || []).map((image) => image.src),
+                               ...[...area.querySelectorAll("img")].map((img) => img.getAttribute("src"))]
+      .map((src) => [new URL(src, document.baseURI).href, src]));
 
     // The textarea stays in the page, unposted, in case this script fails
     // part way: the form still has a body field.
@@ -164,12 +208,14 @@
       unsaved = true;
       sync();
     });
+    // The link and image panels' fields are only a way to change the body.
+    const inPanel = (target) => linkPanel.contains(target) || imagePanel.contains(target);
     form.addEventListener("input", (event) => {
-      if (!linkPanel.contains(event.target)) unsaved = true;
+      if (!inPanel(event.target)) unsaved = true;
       if (event.target !== area) message("");
     });
     form.addEventListener("change", (event) => {
-      if (!linkPanel.contains(event.target)) unsaved = true;
+      if (!inPanel(event.target)) unsaved = true;
     });
     form.addEventListener("submit", (event) => {
       sync();
@@ -197,6 +243,7 @@
       const action = button.dataset.action;
       if (action === "link") return openLink();
       if (action === "chart") return openChart(null);
+      if (action === "image") return openImage(null);
       area.focus();
       if (action === "table") return insertTable();
       if (action === "bold" || action === "italic") command(action);
@@ -405,6 +452,7 @@
     let linkRange = null;
 
     function openLink() {
+      closeImagePanel();
       linkRange = currentRange();
       const link = closest("a");
       const href = link ? link.getAttribute("href") : "";
@@ -543,6 +591,137 @@
       }
     });
 
+    // Chart images: inserted from the item's own, each with a description.
+
+    let imageRange = null;
+    // The image in the body being changed, or null when inserting one.
+    let chosenImage = null;
+
+    function fillImageChoices() {
+      for (const image of images || []) {
+        const thumbnail = element("img", {src: image.src, alt: "", loading: "lazy"});
+        imageChoices.append(element("label", {class: "admin-editor-image-choice"}, [
+          element("input", {type: "radio", name: `${id}-image`, value: image.src}),
+          thumbnail, element("span", {}, [image.name])]));
+      }
+    }
+
+    // `img` is an image in the body to change, or null to insert one.
+    function openImage(img) {
+      linkPanel.hidden = true;
+      closeImagePanel(false);
+      imageRange = img ? null : currentRange();
+      chosenImage = img;
+      const note = img ? "" : images === null ? IMAGES_AFTER_SAVE : images.length ? "" : NO_IMAGES;
+      // Inserting, with images to choose from.
+      const choosing = !img && !note;
+      imageLegend.textContent = img ? "Image" : "Insert image";
+      imageNote.textContent = note;
+      imageNote.hidden = !note;
+      imageChoices.hidden = !choosing;
+      imageDescription.hidden = Boolean(note);
+      applyImageButton.hidden = Boolean(note);
+      applyImageButton.textContent = img ? "Update description" : "Insert image";
+      removeImageButton.hidden = !img;
+      for (const radio of imageChoices.querySelectorAll("input")) {
+        radio.checked = choosing && images.length === 1;
+      }
+      descriptionInput.value = img ? img.getAttribute("alt") || "" : "";
+      if (img) img.classList.add("admin-editor-image-chosen");
+      imagePanel.hidden = false;
+      showImageState();
+      const first = imageChoices.querySelector("input");
+      if (note) imagePanel.querySelector("[data-image=cancel]").focus();
+      else if (choosing && images.length > 1) first.focus();
+      else descriptionInput.focus();
+    }
+
+    function closeImagePanel(restore = true) {
+      if (chosenImage) chosenImage.classList.remove("admin-editor-image-chosen");
+      chosenImage = null;
+      if (imagePanel.hidden) return;
+      imagePanel.hidden = true;
+      if (restore) {
+        area.focus();
+        if (imageRange) {
+          document.getSelection().removeAllRanges();
+          document.getSelection().addRange(imageRange);
+        }
+      }
+    }
+
+    function chosenSrc() {
+      return imageChoices.querySelector("input:checked")?.value || null;
+    }
+
+    // A description is required: Insert (or Update) waits for one.
+    function showImageState() {
+      const described = Boolean(descriptionInput.value.trim());
+      applyImageButton.disabled = !described || (!chosenImage && !chosenSrc());
+    }
+
+    function applyImage() {
+      const description = descriptionInput.value.trim().replace(/\s+/g, " ");
+      const src = chosenImage ? chosenImage.getAttribute("src") : chosenSrc();
+      if (!src) {
+        message(IMAGE_NOT_CHOSEN);
+        return imageChoices.querySelector("input")?.focus();
+      }
+      if (!description) {
+        message(DESCRIPTION_NEEDED);
+        return descriptionInput.focus();
+      }
+      message("");
+      const img = chosenImage;
+      closeImagePanel();
+      if (img) {
+        img.setAttribute("alt", description);
+      } else {
+        // A paragraph of its own, after the one the cursor is in.
+        const paragraph = element("p", {}, [element("img", {src, alt: description})]);
+        placeBlocks([paragraph]);
+        caretIn(paragraph.nextElementSibling);
+      }
+      changedHere();
+    }
+
+    function removeImage() {
+      const img = chosenImage;
+      closeImagePanel(false);
+      area.focus();
+      const paragraph = img.parentElement;
+      img.remove();
+      if (paragraph !== area && paragraph.tagName === "P" && !paragraph.textContent.trim() &&
+          !paragraph.querySelector("img")) {
+        paragraph.remove();
+      }
+      ensureParagraph();
+      changedHere();
+    }
+
+    area.addEventListener("click", (event) => {
+      const img = event.target.closest("img");
+      if (img && area.contains(img) && !img.closest(SHOWN_ONLY)) openImage(img);
+    });
+    imagePanel.addEventListener("input", showImageState);
+    imagePanel.addEventListener("change", showImageState);
+    imagePanel.addEventListener("click", (event) => {
+      const action = event.target.closest("button")?.dataset.image;
+      if (action === "apply") applyImage();
+      else if (action === "remove") removeImage();
+      else if (action === "cancel") closeImagePanel();
+    });
+    imagePanel.addEventListener("keydown", (event) => {
+      // As in the link panel: Enter in a field inserts, not submits.
+      if (event.key === "Enter" && event.target.tagName !== "BUTTON") {
+        event.preventDefault();
+        if (!applyImageButton.hidden) applyImage();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        closeImagePanel();
+      }
+    });
+
     // Paste and drop.
 
     area.addEventListener("paste", (event) => {
@@ -590,7 +769,10 @@
     // Text dragged in from elsewhere keeps only what the Editor supports.
     function tidyDropped() {
       for (const img of area.querySelectorAll("img")) {
-        if (!ownImages.has(img)) {
+        const own = ownImages.get(img.src);
+        if (own) {
+          img.setAttribute("src", own);
+        } else {
           img.remove();
           message(PICTURE_DROPPED);
         }
@@ -655,6 +837,7 @@
         delete link.dataset.linkMark;
         link.removeAttribute("title");
       }
+      for (const img of copy.querySelectorAll("img[class]")) img.removeAttribute("class");
       return copy.innerHTML;
     }
 

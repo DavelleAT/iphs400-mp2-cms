@@ -55,7 +55,7 @@ def test_analyst_uploads_to_a_draft_report_and_the_edit_page_lists_it(client_as)
     response = upload(analyst, rid, png())
     assert response.status_code == 303
     assert response.headers["location"] == f"/admin/reports/{rid}"
-    assert "![Description](image:fall-by-class.png)" in analyst.get(f"/admin/reports/{rid}").text
+    assert "<code>fall-by-class.png</code>" in analyst.get(f"/admin/reports/{rid}").text
     assert stored(rid) == ["fall-by-class.png"]
 
     served = analyst.get(f"/admin/reports/{rid}/images/fall-by-class.png")

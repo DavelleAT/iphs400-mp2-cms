@@ -128,6 +128,22 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
 /* As wide as the public page's column, so the chart is drawn at its size there. */
 .admin-chart-builder-preview { border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); max-width: 40rem; min-height: 3rem; padding: 0 0.75rem; }
+/* Admin only: the Editor's "Insert image" panel (T18), with the item's chart
+   images as thumbnails, and the image in the body it is changing. */
+.admin-editor-image { margin-block: 0.25rem; }
+.admin-editor-image p { margin: 0.4rem 0; }
+.admin-editor-image[hidden], .admin-editor-image [hidden] { display: none; }
+.admin-editor-image-choices { border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; }
+.admin-editor-image-choices legend { font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
+.admin-editor-image-choice { align-items: center; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
+.admin-editor-image-choice:has(:checked) { outline: 2px solid currentColor; }
+.admin-editor-image-choice img { background: #fff; height: 3.5rem; object-fit: contain; width: 5.5rem; }
+.admin-editor-image-description label { display: flex; flex-direction: column; gap: 0.15rem; }
+.admin-editor-image-description input { box-sizing: border-box; max-width: 100%; width: 32rem; }
+.admin-editor-image-description small { display: block; font-size: 0.875rem; }
+.admin-editor-image-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.admin-editor-area img { cursor: pointer; }
+.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid #0b57d0; outline-offset: 2px; }
 .admin-chart-builder-stale figure { opacity: 0.35; }
 @media (min-width: 64rem) {
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

@@ -27,6 +27,12 @@ def image_links(request: Request, route: str, **item_id: int) -> editor.ImageLin
     return editor.image_links(image.removesuffix("x"))
 
 
+def body_images(links: editor.ImageLinks, names) -> list[dict]:
+    """The item's chart images, for the Editor's "Insert image" to list:
+    each one's name, and the admin src it is shown from."""
+    return [{"name": name, "src": links.src(name)} for name in names]
+
+
 def refused_status(exc: ContentError) -> int:
     """A refused save's status: 409 if the item changed since its form was
     opened, else 400."""

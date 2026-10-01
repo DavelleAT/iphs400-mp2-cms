@@ -3,12 +3,12 @@
   {% set images_path = action ~ "/images" %}
   <section class="content-images" aria-labelledby="content-images-heading">
     <h2 id="content-images-heading">Chart images</h2>
-    <p>To show an image, copy its line into the body, and replace <em>Description</em>
-      with what the chart shows, for readers who can't see it.</p>
+    <p>Upload an image here, then put it in the body with <strong>Insert image</strong>,
+      describing what the chart shows for readers who can't see it.</p>
     {% if images %}
     <ul class="content-images-list">
       {% for name in images %}
-      <li><code>![Description](image:{{ name }})</code>
+      <li><code>{{ name }}</code>
         <form method="post" action="{{ images_path }}/{{ name }}/delete">
           <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
           <button type="submit" aria-label="Delete {{ name }}">Delete</button>

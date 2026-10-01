@@ -70,6 +70,21 @@ _MARKDOWN.add_render_rule("table_open", lambda self, tokens, idx, options, env: 
 _MARKDOWN.add_render_rule("table_close", lambda self, tokens, idx, options, env: (
     self.renderToken(tokens, idx, options, env) + "</div>\n"))
 
+
+def _image_text_join(state) -> None:
+    """An escaped character or entity in an image's description (`\\[`,
+    `&amp;`) is text, as markdown-it's own text_join makes it everywhere but
+    there: so the alt keeps it, and the Editor reads it as text."""
+    for block in state.tokens:
+        images = [token for token in block.children or [] if token.type == "image"]
+        for image in images:
+            for child in image.children or []:
+                if child.type == "text_special":
+                    child.type = "text"
+
+
+_MARKDOWN.core.ruler.push("image_text_join", _image_text_join)
+
 CHART_NOT_SHOWN = "This chart could not be shown."
 
 
