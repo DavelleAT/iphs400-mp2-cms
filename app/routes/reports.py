@@ -100,16 +100,16 @@ def _edit_page(request: Request, user: sqlite3.Row, report: sqlite3.Row, *,
     form = form or editor.form_for(report)
     # The body with its locked blocks, which only the server sees.
     body = editor.full_body(form["body"], report["body"])
-    images, names = _images(request, report["id"]), reports.images(report["id"])
+    links, names = _images(request, report["id"]), list(reports.images(report["id"]))
     return templates.TemplateResponse(
         request, "admin/report_edit.html",
         {"title": "Edit Report", "home_path": "/admin", "user": user,
          "report": report, "can_edit": reports.can_edit(report, user),
          "status_labels": STATUS_LABELS, "error": error, "form": form,
          "max_file_mb": _MAX_FILE_MB,
-         "editor_html": editor.editor_html(form["body"], report["body"], images.src),
-         "images": list(names),
-         "body_images": editing.body_images(images, names),
+         "editor_html": editor.editor_html(form["body"], report["body"], links.src),
+         "images": names,
+         "body_images": editing.body_images(links, names),
          **editing.site_links_for(body),
          "site_preview": _site_preview(request, {**form, "body": body}, report),
          "preview_path": request.app.url_path_for("preview_report", report_id=report["id"]),

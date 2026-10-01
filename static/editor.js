@@ -182,11 +182,12 @@
     for (const card of area.querySelectorAll(CHART)) chartCard(card);
     ensureParagraph();
     markLinks();
-    // The item's own chart images, the only pictures the body may show, by
-    // their full URL: a browser may give a dragged picture's src in full.
-    const ownImages = new Map([...(images || []).map((image) => image.src),
-                               ...[...area.querySelectorAll("img")].map((img) => img.getAttribute("src"))]
-      .map((src) => [new URL(src, document.baseURI).href, src]));
+    // The chart images in the body, the only pictures a drop may keep (an
+    // image moved within it), by full URL: a browser may give a dragged
+    // picture's src in full. Not the panel's thumbnails, which have no
+    // description: an image comes in by "Insert image", described.
+    const ownImages = new Map();
+    for (const img of area.querySelectorAll("img")) ownImage(img.getAttribute("src"));
 
     // The textarea stays in the page, unposted, in case this script fails
     // part way: the form still has a body field.
@@ -412,6 +413,8 @@
 
     // `card` is the card to edit, or null for a new Chart.
     function openChart(card) {
+      linkPanel.hidden = true;
+      closeImagePanel(false);
       chartRange = card ? null : currentRange();
       builder = builder || chartBuilder(chartPreview, () => form.elements.csrf_token.value);
       builder.open(card ? card.dataset.chart : null, (chart, drawing) => {
@@ -519,12 +522,13 @@
       restoreRange();
     }
 
-    function restoreRange() {
+    // Back to the body, with the selection a panel was opened on.
+    function restoreRange(range = linkRange) {
       area.focus();
-      if (linkRange) {
+      if (range) {
         const selection = document.getSelection();
         selection.removeAllRanges();
-        selection.addRange(linkRange);
+        selection.addRange(range);
       }
     }
 
@@ -599,7 +603,7 @@
 
     function fillImageChoices() {
       for (const image of images || []) {
-        const thumbnail = element("img", {src: image.src, alt: "", loading: "lazy"});
+        const thumbnail = element("img", {src: image.src, alt: "", loading: "lazy", draggable: "false"});
         imageChoices.append(element("label", {class: "admin-editor-image-choice"}, [
           element("input", {type: "radio", name: `${id}-image`, value: image.src}),
           thumbnail, element("span", {}, [image.name])]));
@@ -612,7 +616,10 @@
       closeImagePanel(false);
       imageRange = img ? null : currentRange();
       chosenImage = img;
-      const note = img ? "" : images === null ? IMAGES_AFTER_SAVE : images.length ? "" : NO_IMAGES;
+      // Why there is nothing to insert, if there isn't.
+      let note = "";
+      if (!img && images === null) note = IMAGES_AFTER_SAVE;
+      else if (!img && !images.length) note = NO_IMAGES;
       // Inserting, with images to choose from.
       const choosing = !img && !note;
       imageLegend.textContent = img ? "Image" : "Insert image";
@@ -636,18 +643,16 @@
       else descriptionInput.focus();
     }
 
+    function ownImage(src) {
+      ownImages.set(new URL(src, document.baseURI).href, src);
+    }
+
     function closeImagePanel(restore = true) {
       if (chosenImage) chosenImage.classList.remove("admin-editor-image-chosen");
       chosenImage = null;
       if (imagePanel.hidden) return;
       imagePanel.hidden = true;
-      if (restore) {
-        area.focus();
-        if (imageRange) {
-          document.getSelection().removeAllRanges();
-          document.getSelection().addRange(imageRange);
-        }
-      }
+      if (restore) restoreRange(imageRange);
     }
 
     function chosenSrc() {
@@ -678,6 +683,7 @@
         img.setAttribute("alt", description);
       } else {
         // A paragraph of its own, after the one the cursor is in.
+        ownImage(src);
         const paragraph = element("p", {}, [element("img", {src, alt: description})]);
         placeBlocks([paragraph]);
         caretIn(paragraph.nextElementSibling);

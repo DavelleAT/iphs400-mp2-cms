@@ -146,7 +146,7 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-editor-image-description small { display: block; font-size: 0.875rem; }
 .admin-editor-image-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .admin-editor-area img { cursor: pointer; }
-.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid #0b57d0; outline-offset: 2px; }
+.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid currentColor; outline-offset: 2px; }
 .admin-chart-builder-stale figure { opacity: 0.35; }
 @media (min-width: 64rem) {
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
