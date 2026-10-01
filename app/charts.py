@@ -12,6 +12,7 @@ Each ChartError names its `field` too, for the builder (T17) to show it by:
 "title", "unit", "categories.3", "series.1.name", "series.1.values.3" (series
 1's value for category 3), and so on, as the grammar's keys and indexes go;
 None for one in no one field. `problems` finds every field's error at once.
+Its `short` message leaves out where it is, for beside its cell.
 """
 from __future__ import annotations
 
@@ -68,11 +69,14 @@ _NUMBER = re.compile(r"""
 
 class ChartError(ValueError):
     """A Chart broke a rule; the message is safe to show and names it, and
-    `field` is where it is (see above)."""
+    `field` is where it is (see above). `short` is the message less the
+    cell it names, if it names one."""
 
-    def __init__(self, message: str, field: str | None = None) -> None:
+    def __init__(self, message: str, field: str | None = None,
+                 short: str | None = None) -> None:
         super().__init__(message)
         self.field = field
+        self.short = short or message
 
 
 @dataclass(frozen=True)
@@ -268,11 +272,14 @@ def _series_name(value: object, index: int) -> str:
 def _cell(value: object, name: object, category: object, field: str) -> tuple[str, Cell]:
     """A value cell, as typed and as read, of series `name` and `category`."""
     where = f"series '{name}', '{category}'"
-    typed = _string(value, "value", where, field)
+    try:
+        typed = _string(value, "value", where, field)
+    except ChartError as exc:
+        raise ChartError(str(exc), field, str(exc).removeprefix(f"{where} ")) from None
     try:
         return typed, read_cell(typed)
     except ValueError as exc:
-        raise ChartError(f"{where}: {exc}", field) from None
+        raise ChartError(f"{where}: {exc}", field, str(exc)) from None
 
 
 def _series(value: object, index: int, categories: tuple[str, ...]) -> Series:
@@ -331,9 +338,10 @@ def _one_unit(chart: Chart) -> None:
         for series_index, series in enumerate(chart.series):
             cell = series.cells[category_index]
             if cell.unit and cell.unit != unit:
-                raise ChartError(f"series '{series.name}', '{category}': '{cell.text}' is in "
-                                 f"{cell.unit.text}, but the chart's units are {unit.text}",
-                                 f"series.{series_index}.values.{category_index}")
+                short = (f"'{cell.text}' is in {cell.unit.text}, but the chart's units "
+                         f"are {unit.text}")
+                raise ChartError(f"series '{series.name}', '{category}': {short}",
+                                 f"series.{series_index}.values.{category_index}", short)
 
 
 def _load(source: str) -> object:
@@ -355,7 +363,7 @@ def parse(source: str, number: int = 1) -> Chart:
     try:
         return _chart(_load(source))
     except ChartError as exc:
-        raise ChartError(f"Chart {number}: {exc}", exc.field) from None
+        raise ChartError(f"Chart {number}: {exc}", exc.field, exc.short) from None
 
 
 # The builder (T17).

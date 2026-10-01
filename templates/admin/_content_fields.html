@@ -13,7 +13,8 @@
         itself. If its script doesn't run, the textarea posts Markdown, each
         part the Editor can't edit standing as its locked-<n> line. #}
     <div class="admin-editor" data-body-dirty="{{ 1 if form.body_dirty else 0 }}"
-      data-site-items='{{ site_items | tojson }}' data-link-states='{{ link_states | tojson }}'>
+      data-site-items='{{ site_items | tojson }}' data-link-states='{{ link_states | tojson }}'
+      data-chart-preview="{{ path_for('preview_chart') }}">
     <p><label>Body (Markdown)<br><textarea name="body" rows="16" cols="60" required>{{ form.body }}</textarea></label></p>
     <template class="admin-editor-content">{{ editor_html }}</template>
     </div>

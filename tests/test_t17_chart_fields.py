@@ -57,6 +57,28 @@ def test_parse_keeps_the_field_under_its_chart_number():
     assert raised.value.field == "series.0.values.1"
 
 
+@pytest.mark.parametrize("value, short", [
+    ("abc", "'abc' isn't a number"), ("€5", "'€5' is in a currency other than $"),
+    ("x" * 21, "must be at most 20 characters"), ("a\tb", "must be on one line, with no tabs"),
+])
+def test_a_cells_short_message_leaves_out_the_cell(value, short):
+    [error] = charts.problems(source(series=[series("1", value)]))
+    assert error.short == short and str(error).startswith("series 'Fall 2025', 'Senior'")
+
+
+def test_a_unit_conflicts_short_message_leaves_out_the_cell():
+    [error] = charts.problems(source(series=[series("$1", "2%")]))
+    assert error.short == "'2%' is in %, but the chart's units are $"
+    with pytest.raises(ChartError) as raised:
+        charts.parse(source(series=[series("$1", "2%")]))
+    assert raised.value.short == error.short
+
+
+def test_any_other_errors_short_message_is_its_message():
+    [error] = charts.problems(source(title=""))
+    assert error.short == str(error)
+
+
 @pytest.mark.parametrize("text, message", VIOLATIONS)
 def test_every_t16_error_is_still_found_with_its_message(text, message):
     found = charts.problems(text)

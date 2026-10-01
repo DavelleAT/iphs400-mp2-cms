@@ -65,15 +65,13 @@ def test_each_error_comes_back_with_its_field(analyst):
     assert found["figure"] is None and found["chart"] is None
     assert found["errors"] == [
         {"field": "title", "message": "The title must be 1 to 120 characters"},
-        {"field": "series.0.values.1",
-         "message": "Series 'Fall', 'Senior': 'abc' isn't a number"}]
+        {"field": "series.0.values.1", "message": "'abc' isn't a number"}]
 
 
 def test_a_whole_chart_error_comes_back_with_its_field(analyst):
     found = answer(analyst, source(series=[series("$1", "2%")]))
-    assert found["errors"] == [{"field": "series.0.values.1", "message":
-                                "Series 'Fall 2025', 'Senior': '2%' is in %, but the "
-                                "chart's units are $"}]
+    assert found["errors"] == [{"field": "series.0.values.1",
+                                "message": "'2%' is in %, but the chart's units are $"}]
 
 
 def test_an_error_in_no_one_field_has_none(analyst):
@@ -118,3 +116,13 @@ def test_the_answer_is_json_the_page_can_trust(analyst):
     found = answer(analyst, source())
     assert set(found) == {"errors", "figure", "chart", "suggestion"}
     assert json.loads(found["chart"])["title"] == "Fall enrollment by class"
+
+
+@pytest.mark.parametrize("path", ["/admin/data-bites", "/admin/reports"])
+def test_the_editor_is_told_where_to_draw_charts(analyst, path):
+    from tests.test_t03_data_bites import create_bite
+    pages = [analyst.get(path).text]
+    if path == "/admin/data-bites":
+        pages.append(analyst.get(f"{path}/{create_bite(analyst)}").text)
+    for page in pages:
+        assert f'data-chart-preview="{PATH}"' in page

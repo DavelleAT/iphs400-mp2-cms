@@ -99,6 +99,37 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-editor-locked { background: color-mix(in srgb, currentColor 5%, transparent); border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); margin-block: 0.75rem; padding: 0 0.75rem; }
 .admin-editor-locked-note { font-size: 0.875rem; font-style: italic; margin: 0.4rem 0; }
 .admin-editor-locked pre { overflow-x: auto; }
+/* Admin only: a Chart in the Editor's body, as a card, and the Chart builder
+   (T17). The builder's grid is styled by its own classes: only
+   .content-body's own rules may style tables (T09). */
+.admin-editor-chart { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; margin-block: 0.75rem; padding: 0 0.75rem; }
+.admin-editor-chart-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.5rem 0 0; }
+.admin-chart-builder { box-sizing: border-box; max-height: calc(100vh - 1rem); max-width: calc(100vw - 1rem); padding: 1rem; width: 52rem; }
+.admin-chart-builder::backdrop { background: rgb(0 0 0 / 0.4); }
+.admin-chart-builder h2 { margin-top: 0; }
+.admin-chart-builder h3 { margin: 1rem 0 0.25rem; }
+.admin-chart-builder-fields p { margin: 0.5rem 0; }
+.admin-chart-builder-fields label { display: flex; flex-direction: column; gap: 0.15rem; }
+.admin-chart-builder-fields input, .admin-chart-builder-fields select { box-sizing: border-box; max-width: 100%; width: 26rem; }
+.admin-chart-builder-fields small, .admin-chart-builder-hint { display: block; font-size: 0.875rem; }
+.admin-chart-builder-hint { margin: 0 0 0.5rem; }
+.admin-chart-builder-suggestion { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; padding: 0.4rem 0.8rem; }
+.admin-chart-builder-suggestion[hidden] { display: none; }
+.admin-chart-builder-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
+.admin-chart-builder-message:empty { display: none; }
+.admin-chart-builder-error { color: #b3261e; display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
+.admin-chart-builder-error:empty { display: none; }
+.admin-chart-builder [aria-invalid="true"] { border-color: #b3261e; outline: 2px solid #b3261e; outline-offset: -1px; }
+.admin-chart-builder-grid-scroll { overflow-x: auto; }
+.admin-chart-builder-grid { border-collapse: collapse; }
+.admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
+.admin-chart-builder-cell input { box-sizing: border-box; width: 8.5rem; }
+.admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
+@media (max-width: 30rem) { .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
+.admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+/* As wide as the public page's column, so the chart is drawn at its size there. */
+.admin-chart-builder-preview { border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); max-width: 40rem; min-height: 3rem; padding: 0 0.75rem; }
+.admin-chart-builder-stale figure { opacity: 0.35; }
 @media (min-width: 64rem) {
   .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }

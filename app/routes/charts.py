@@ -16,9 +16,9 @@ router = APIRouter(prefix="/admin/charts", dependencies=[Depends(current_user)])
 
 
 def _message(error: charts.ChartError) -> str:
-    """An error as the dialog shows it, on its own beside its field."""
-    text = str(error)
-    return text[:1].upper() + text[1:]
+    """An error as the dialog shows it, beside its field or cell: the cell
+    is the place, so the message needn't name it."""
+    return error.short[:1].upper() + error.short[1:]
 
 
 @router.post("/preview", dependencies=[Depends(require_csrf)])
