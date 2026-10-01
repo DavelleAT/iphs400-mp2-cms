@@ -90,6 +90,35 @@ site's nav and stylesheet and a "Draft preview, not published" banner. Saves
 nothing and publishes nothing.
 _Avoid_: live view
 
+**Summary**:
+One or two sentences of plain text about a Data Bite or Report, at most 200
+characters, written under its title on the edit form. Shown under the title
+on its page, in the lists and the Reports table, and in its page's
+description and link-preview tags (spec #22, T20). Optional: an item without
+one shows nothing in its place.
+_Avoid_: excerpt, abstract, description, blurb
+
+**Homepage settings**:
+The homepage's headline, its accent (the end of the headline, in bright
+purple), its intro, and its Key figures. Edited by the Director only, at
+/admin/homepage. Settings, not content: no Draft, and on the public site from
+the next `cms publish`, like a change to the nav (spec #22, T20).
+_Avoid_: hero, homepage content
+
+**Key figure**:
+One of up to four numbers on the homepage, each a value, a label saying what
+it counts, and an optional note saying when or of whom (e.g. "1,805" /
+"Students enrolled" / "Fall 2026 census"). Typed text, not drawn from data.
+_Avoid_: stat, KPI, metric
+
+**Site search**:
+The public site's search of published titles and Summaries, entirely static:
+`cms publish` writes `search-index.json` and `search.html`, and
+`search.js` searches the index in the browser. Without JavaScript,
+`search.html` lists every published item. Bodies are not searched (spec #22,
+T20).
+_Avoid_: search engine, full-text search
+
 **Confirmation**:
 The one-line message the admin console shows, once, after a save, publish,
 upload, delete, or user change succeeds (`app/flash.py`). Fixed text only:

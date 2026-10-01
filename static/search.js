@@ -64,7 +64,8 @@ if (typeof document === "object") {
     }));
     const quoted = `“${query.trim()}”`;
     status.textContent = found.length === 0 ? `Nothing published matches ${quoted}.`
-      : `${found.length} ${found.length === 1 ? "result" : "results"} for ${quoted}, title matches first.`;
+      : found.length === 1 ? `1 result for ${quoted}.`
+      : `${found.length} results for ${quoted}, title matches first.`;
     document.title = `Search: ${query.trim()} · ${document.title.split(" · ").pop()}`;
   })();
 }
