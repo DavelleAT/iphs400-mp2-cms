@@ -1,10 +1,12 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import created_date with context %}
+{% from "public/_lists.html" import created_date, title_field, fact with context %}
+{% block field %}
+  {%- call title_field([(home_path, "Home"), (root ~ "data-bites/index.html", "Data Bites")], bite.title) %}
+    {%- call fact("Published") %}<span class="text-mono">{{ created_date(bite) }}</span>{% endcall %}
+    {%- call fact("Type") %}Data Bite{% endcall %}
+  {%- endcall %}
+{%- endblock %}
 {% block content %}
-  <article>
-    <h1>{{ bite.title }}</h1>
-    <p class="data-bite-meta"><small>{{ created_date(bite) }}</small></p>
-    <div class="content-body">{{ bite.body | markdown(image_src, link_href) }}</div><!-- /content-body -->
-  </article>
-  <p><a href="{{ root }}data-bites/index.html">All Data Bites</a></p>
-{% endblock %}
+      <article class="body-item"><div class="content-body">{{ bite.body | markdown(image_src, link_href) }}</div><!-- /content-body --></article>
+      <p class="link-back"><a href="{{ root }}data-bites/index.html">All Data Bites</a></p>
+{%- endblock %}

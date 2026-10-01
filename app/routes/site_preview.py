@@ -10,8 +10,8 @@ from pathlib import Path
 from fastapi import HTTPException
 from fastapi.responses import RedirectResponse, Response
 
-from app import chart_images
-from app.routes.public import pdf_response, stylesheet
+from app import chart_images, public_site
+from app.routes.public import asset, pdf_response
 
 # A path in the site, as the *_path functions of app.public_site make them:
 # never starting with "/" or a backslash, so a redirect to "/" + it stays on
@@ -20,12 +20,12 @@ _SITE_PATH = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", re.ASCII)
 
 
 def site_file(path: str, images: dict[str, Path], pdfs: dict[str, Path] | None = None) -> Response:
-    """What a Site preview's link to `path` in the site gets: the stylesheet,
-    or one of the previewed item's own chart `images` or `pdfs` (a Report's
+    """What a Site preview's link to `path` in the site gets: the stylesheet
+    or a font (public_site.assets), or one of the previewed item's own chart `images` or `pdfs` (a Report's
     file), by path in the site, which the public site would not serve for a
     draft. Any other page sends the browser to the published one."""
-    if path == "style.css":
-        return stylesheet()
+    if path in public_site.assets():
+        return asset(path)
     if path in images:
         return chart_images.response(images[path])
     if pdfs and path in pdfs:

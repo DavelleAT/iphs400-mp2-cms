@@ -1,10 +1,17 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import data_bite_list with context %}
+{% from "public/_lists.html" import data_bite_list, title_field, fact with context %}
+{% block field %}
+  {%- call title_field([(home_path, "Home")], "Data Bites") %}
+    {%- call fact("Published") %}<span class="text-mono">{{ data_bites | length }}</span>{% endcall %}
+    {%- call fact("Order") %}Newest first{% endcall %}
+  {%- endcall %}
+{%- endblock %}
 {% block content %}
-  <h1>Data Bites</h1>
-  {% if data_bites %}
-    {{ data_bite_list(data_bites) }}
-  {% else %}
-    <p>No Data Bites published yet.</p>
-  {% endif %}
-{% endblock %}
+    <section class="section-list">
+      {%- if data_bites %}
+      {{ data_bite_list(data_bites) }}
+      {%- else %}
+      <p>No Data Bites published yet.</p>
+      {%- endif %}
+    </section>
+{%- endblock %}

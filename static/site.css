@@ -1,0 +1,217 @@
+/* The public site's stylesheet, at style.css in the site's root (ADR-007):
+   "set like a dataset" (spec #22). Atkinson Hyperlegible Next for text and
+   Mono for figures and labels, built so 0/O and 1/l/I can't be confused.
+   Solid fields of deep purple with a faint plotting grid, Kenyon purple and
+   bright purple on paper, and one citron accent, used only on the purple
+   field (and for one Chart series in dark mode, where the paper is dark).
+   Never linked from an admin page, which has the console's own stylesheet.
+
+   Text contrast, both themes, is listed in the closing comment of T19 (#23):
+   body text and labels at least 4.5:1, large text and Chart marks 3:1. */
+@font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Atkinson Next"; src: url("fonts/atkinson-hyperlegible-next-latin-wght-italic.woff2") format("woff2"); font-weight: 200 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Atkinson Mono"; src: url("fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: light dark;
+  --font-text: "Atkinson Next", system-ui, sans-serif;
+  --font-mono: "Atkinson Mono", ui-monospace, monospace;
+  --color-paper: #fbfafd;
+  --color-ink: #17131f;
+  --color-muted: #5d5870;
+  --color-line: #e2dfe9;
+  --color-tint: #f0edf8;
+  --color-field: #231443;          /* the deep purple fields */
+  --color-field-line: rgb(255 255 255 / 0.16);
+  --color-field-grid: rgb(255 255 255 / 0.045);
+  --color-field-text: #d9d3f0;
+  --color-purple: #4b2e84;         /* Kenyon purple */
+  --color-bright: #8f80ff;         /* Kenyon bright purple */
+  --color-citron: #d6f550;         /* only ever on --color-field */
+  /* Chart series (the newest last): Kenyon purple, then green, then bright
+     purple, then a muted violet. Citron is too pale on paper for a mark, so
+     the light theme's green is a deep olive. */
+  --color-chart-newest: var(--color-purple);
+  --color-chart-green: #6b8a00;
+  --color-chart-bright: var(--color-bright);
+  --color-chart-oldest: #8a849b;
+  --width-page: 78rem;
+  --width-measure: 44rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #110e17;
+    --color-ink: #ebe8f2;
+    --color-muted: #a39db3;
+    --color-line: #2b2737;
+    --color-tint: #1b1726;
+    --color-field: #1a0f33;
+    --color-purple: #a99cff;
+    --color-bright: #7d6ef0;
+    --color-chart-green: var(--color-citron);
+    --color-chart-bright: #6352d6;   /* darker than the text step, so it parts from the newest */
+    --color-chart-oldest: #8a849b;
+  }
+}
+
+* { box-sizing: border-box; }
+body { background: var(--color-paper); color: var(--color-ink); font: 400 1.125rem/1.65 var(--font-text); margin: 0; }
+a { color: var(--color-purple); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--color-bright); outline-offset: 2px; }
+.field-site :focus-visible { outline-color: var(--color-citron); }
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+.layout-wrap { margin-inline: auto; max-width: var(--width-page); padding-inline: clamp(1rem, 4vw, 2.5rem); }
+.skip-link { background: var(--color-citron); color: var(--color-field); font-weight: 700; left: 1rem; padding: 0.5rem 0.9rem; position: absolute; top: -4rem; z-index: 5; }
+.skip-link:focus { top: 0.5rem; }
+.text-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+.text-label { font: 500 0.78rem/1.3 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* The purple field: the header on every page, then the home intro or a
+   page's title, and the footer. A faint plotting grid sits under it. */
+.field-site { background-color: var(--color-field); background-image: linear-gradient(var(--color-field-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-field-grid) 1px, transparent 1px); background-position: -1px -1px; background-size: 3rem 3rem; color: #fff; }
+.field-site a { color: #fff; }
+
+/* A Site preview's banner (Page.render_preview); never on a published page. */
+.site-preview-banner { border-bottom: 1px dashed var(--color-citron); color: var(--color-citron); font: 500 0.78rem/1.3 var(--font-mono); letter-spacing: 0.04em; margin: 0; padding-block: 0.6rem; text-transform: uppercase; }
+
+.header-site { align-items: center; display: flex; gap: 1rem 2rem; padding-block: 1.25rem; }
+.header-home { align-items: center; display: flex; gap: 0.8rem; text-decoration: none; }
+.header-mark { background: var(--color-citron); color: var(--color-field); display: grid; flex: none; font: 700 1.05rem/1 var(--font-mono); height: 2.6rem; letter-spacing: -0.04em; place-items: center; width: 2.6rem; }
+.header-home-text { font-size: 1.1rem; line-height: 1.25; }
+
+/* Numbered nav: the Reports, then Data Bites. On a phone it scrolls
+   sideways, fading at the edge, and never wraps. */
+.nav-site { border-top: 1px solid var(--color-field-line); }
+.nav-site ul { display: flex; gap: 0 2rem; list-style: none; margin: 0; overflow-x: auto; padding: 0; scrollbar-width: none; }
+.nav-site ul::-webkit-scrollbar { display: none; }
+.nav-site a { border-bottom: 3px solid transparent; display: flex; font-size: 0.98rem; font-weight: 600; gap: 0.5rem; padding-block: 0.85rem 0.7rem; text-decoration: none; white-space: nowrap; }
+.nav-site a .text-mono { color: var(--color-bright); font-size: 0.82rem; font-weight: 500; padding-top: 0.12rem; }
+.nav-site a:hover { border-color: var(--color-field-line); }
+.nav-site a[aria-current] { border-color: var(--color-citron); }
+@media (max-width: 40rem) {
+  .nav-site ul { gap: 0 1.4rem; mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 2.5rem; }
+}
+
+/* The home intro. */
+.intro-home { border-top: 1px solid var(--color-field-line); padding-block: clamp(2.5rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem); }
+.intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; }
+.intro-home-lede { color: var(--color-field-text); font-size: 1.2rem; margin: 1.25rem 0 0; max-width: 36rem; }
+
+/* A page's title on the field: breadcrumb, title, and its facts row. */
+.title-item { border-top: 1px solid var(--color-field-line); padding-top: clamp(2rem, 6vw, 3.75rem); }
+.nav-breadcrumb, .nav-breadcrumb a { color: var(--color-field-text); }
+.title-item h1 { font-size: clamp(2.3rem, 5.4vw, 4rem); letter-spacing: -0.035em; margin: 1rem 0; max-width: 20ch; overflow-wrap: break-word; }
+.meta-item { border-top: 1px solid var(--color-field-line); display: flex; flex-wrap: wrap; gap: 0.5rem 2.5rem; margin: 2.5rem 0 0; padding-block: 1rem; }
+.meta-item div { display: flex; gap: 0.6rem; min-width: 0; }
+.meta-item dt { color: var(--color-bright); }
+.meta-item dd { color: #fff; margin: 0; overflow-wrap: anywhere; }
+.meta-item a { color: var(--color-citron); }
+
+/* Sections on paper: a mono number, a heading, and a link. */
+.section-home { padding-top: clamp(2.5rem, 6vw, 4.5rem); }
+.section-list { padding-top: clamp(1.5rem, 4vw, 2.5rem); }
+.head-section { align-items: baseline; border-bottom: 2px solid var(--color-ink); display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-bottom: 0.5rem; padding-bottom: 0.6rem; }
+.head-section > .text-mono { color: var(--color-purple); font-size: 0.85rem; }
+.head-section h2 { font-size: 1.6rem; }
+.head-section a { color: var(--color-muted); margin-left: auto; }
+
+/* Data Bites and Reports: an ISO date column, then the title. */
+.list-data-bites, .list-reports { list-style: none; margin: 0; padding: 0; }
+.list-data-bites li, .list-reports li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.15rem 2rem; grid-template-columns: 8rem minmax(0, 1fr); padding: 1.15rem 0; position: relative; }
+.list-data-bites li:hover, .list-reports li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
+.list-data-bites .text-mono, .list-reports .text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 0.25rem; }
+.list-data-bites a, .list-reports a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+/* The whole row is the link's target. */
+.list-data-bites a::after, .list-reports a::after { content: ""; inset: 0; position: absolute; }
+.list-data-bites li:hover a, .list-reports li:hover a { color: var(--color-purple); text-decoration: underline; }
+@media (max-width: 40rem) { .list-data-bites li, .list-reports li { grid-template-columns: 1fr; } }
+
+/* An item's body, at a readable measure. */
+.body-item { max-width: var(--width-measure); padding-top: 2.5rem; }
+.link-back { border-top: 1px solid var(--color-line); margin: 2.5rem 0 0; max-width: var(--width-measure); padding-top: 1rem; }
+
+.content-body { overflow-wrap: break-word; }
+.content-body p, .content-body ul, .content-body ol { margin: 0 0 1.15rem; }
+.content-body h1 { font-size: 2rem; margin: 2.5rem 0 0.8rem; }
+.content-body h2 { font-size: 1.6rem; margin: 2.5rem 0 0.8rem; }
+.content-body h3 { font-size: 1.25rem; margin: 2rem 0 0.6rem; }
+.content-body code { font-family: var(--font-mono); font-size: 0.9em; }
+.content-body blockquote { border-left: 3px solid var(--color-bright); margin: 1.5rem 0; padding-left: 1rem; }
+/* Chart images (app.chart_images) shrink to the column, keeping their shape. */
+.content-body img { height: auto; max-width: 100%; }
+
+/* Tables (T09), by class only: hairline rules, a mono header, and mono
+   figures in right-aligned columns. A wide one scrolls sideways in its
+   wrapper (app.rendering.TABLE_SCROLL) rather than widening the page. */
+.content-body .content-table-scroll { margin: 1.75rem 0; overflow-x: auto; }
+.content-body table { border-collapse: collapse; font-size: 1rem; width: 100%; }
+.content-body th, .content-body td { border-bottom: 1px solid var(--color-line); padding: 0.65rem 0.9rem; }
+.content-body thead th { border-bottom: 2px solid var(--color-purple); color: var(--color-muted); font: 500 0.78rem var(--font-mono); font-weight: 500; letter-spacing: 0.04em; padding-top: 0; text-transform: uppercase; vertical-align: bottom; }
+.content-body tbody th { font-weight: 600; text-align: left; }
+.content-body td[style*="right"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+.content-body th:first-child, .content-body td:first-child { padding-left: 0; }
+.content-body th:last-child, .content-body td:last-child { padding-right: 0; }
+@media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
+
+/* Charts (app.chart_drawing), recoloured by class only. The SVG scales to
+   the column, but no wider than the 40rem it is drawn for, so its text stays
+   near FONT pixels. Each is drawn twice; the narrow drawing replaces the
+   wide one on a phone, and display: none takes the hidden one out of the
+   accessibility tree. */
+.chart-figure { margin: 2.25rem 0; max-width: 40rem; }
+.chart-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; }
+.chart-svg, .chart-svg-phone { display: block; height: auto; width: 100%; }
+.chart-svg-phone { display: none; }
+@media (max-width: 30rem) { .chart-svg { display: none; } .chart-svg-phone { display: block; } }
+.chart-figure text { fill: var(--color-muted); font-family: var(--font-text); font-size: 13px; }
+.chart-figure .chart-tick, .chart-figure .chart-value { font-family: var(--font-mono); }
+.chart-figure .chart-value { fill: var(--color-ink); }
+.chart-figure .chart-grid { stroke: var(--color-line); }
+.chart-figure .chart-baseline { stroke: var(--color-muted); }
+.chart-figure polyline { stroke-linecap: round; stroke-linejoin: round; }
+.chart-figure circle { stroke: var(--color-paper); }
+/* Series by how many the Chart has, the newest (the last) in Kenyon purple. */
+.chart-figure { --chart-1: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-2, .chart-line-2) { --chart-1: var(--color-chart-green); --chart-2: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-3, .chart-line-3) { --chart-1: var(--color-chart-bright); --chart-2: var(--color-chart-green); --chart-3: var(--color-chart-newest); }
+.chart-figure:has(.chart-series-4, .chart-line-4) { --chart-1: var(--color-chart-oldest); --chart-2: var(--color-chart-bright); --chart-3: var(--color-chart-green); --chart-4: var(--color-chart-newest); }
+.chart-series-1, .chart-marker-1 { fill: var(--chart-1); } .chart-line-1 { stroke: var(--chart-1); }
+.chart-series-2, .chart-marker-2 { fill: var(--chart-2); } .chart-line-2 { stroke: var(--chart-2); }
+.chart-series-3, .chart-marker-3 { fill: var(--chart-3); } .chart-line-3 { stroke: var(--chart-3); }
+.chart-series-4, .chart-marker-4 { fill: var(--chart-4); } .chart-line-4 { stroke: var(--chart-4); }
+.chart-note, .chart-source { color: var(--color-muted); margin: 0.25rem 0; }
+.chart-data { border-top: 1px solid var(--color-line); font-size: 0.9rem; margin-top: 0.6rem; overflow-x: auto; padding-top: 0.5rem; }
+.chart-data summary { color: var(--color-purple); cursor: pointer; font: 500 0.8rem var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.content-body .chart-data td { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; text-align: right; }
+
+/* The footer, back on the field. */
+.footer-site { margin-top: clamp(3.5rem, 8vw, 6rem); }
+.footer-site .layout-wrap { display: grid; gap: 1.5rem 3rem; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); padding-block: 2.5rem 3rem; }
+.footer-site p { color: var(--color-field-text); font-size: 0.95rem; margin: 0.4rem 0 0; }
+.footer-site .text-label { color: var(--color-bright); }
+.footer-site .footer-colophon { border-top: 1px solid var(--color-field-line); color: var(--color-field-text); grid-column: 1 / -1; margin: 0; padding-top: 1rem; }
+.footer-colophon a { color: var(--color-field-text); }
+@media (max-width: 48rem) { .footer-site .layout-wrap { grid-template-columns: 1fr; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+}
+
+/* Print: black on white, without the field, the nav, or the footer. Links
+   are relative, so their addresses aren't printed after them. */
+@media print {
+  :root { --color-paper: #fff; --color-ink: #000; --color-muted: #333; --color-line: #999; --color-purple: #000; }
+  body { font-size: 11pt; }
+  .field-site { background: none; color: #000; }
+  .field-site a, .nav-breadcrumb, .nav-breadcrumb a, .meta-item dt, .meta-item dd, .meta-item a, .intro-home-lede { color: #000; }
+  .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back { display: none; }
+  .header-site { padding-block: 0 0.5rem; }
+  .header-mark { background: none; border: 1px solid #000; color: #000; }
+  .title-item, .intro-home, .meta-item { border-color: #000; padding-top: 0.5rem; }
+  .title-item h1, .intro-home h1 { font-size: 22pt; }
+  .meta-item { margin-top: 0.75rem; }
+  .body-item { max-width: none; padding-top: 1rem; }
+  .chart-figure { break-inside: avoid; }
+  .content-body table { break-inside: avoid; }
+}

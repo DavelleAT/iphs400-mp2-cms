@@ -1,19 +1,47 @@
 {# Pieces the public pages share. Import them "with context": they use the
-   page's `root` and *_path functions. #}
-{% macro created_date(item) %}<time datetime="{{ item.created_at[:10] }}">{{ item.created_at[:10] }}</time>{% endmacro %}
+   page's `root` and *_path functions. Dates are ISO, YYYY-MM-DD (spec #22). #}
+{% macro iso_date(stamp) %}<time datetime="{{ stamp[:10] }}">{{ stamp[:10] }}</time>{% endmacro %}
+
+{% macro created_date(item) %}{{ iso_date(item.created_at) }}{% endmacro %}
+
+{#- A nav entry's or section's number, 01, 02, … #}
+{% macro nav_number(n) %}<span class="text-mono">{{ "%02d" | format(n) }}</span>{% endmacro %}
+
+{#- A numbered section's heading row: its number, heading, and a link. #}
+{% macro section_head(n, id, heading, href, link) %}
+  <div class="head-section">{{ nav_number(n) }}<h2 id="{{ id }}">{{ heading }}</h2><a class="text-label" href="{{ href }}">{{ link }}</a></div>
+{%- endmacro %}
 
 {% macro data_bite_list(bites) %}
   <ul class="list-data-bites">
-    {% for bite in bites %}
-      <li><a href="{{ root }}{{ data_bite_path(bite.slug) }}">{{ bite.title }}</a> <small>{{ created_date(bite) }}</small></li>
-    {% endfor %}
+    {%- for bite in bites %}
+    <li><span class="text-mono">{{ created_date(bite) }}</span><a href="{{ root }}{{ data_bite_path(bite.slug) }}">{{ bite.title }}</a></li>
+    {%- endfor %}
   </ul>
-{% endmacro %}
+{%- endmacro %}
 
+{#- Each Report by the date it was last updated. #}
 {% macro report_list(reports) %}
   <ul class="list-reports">
-    {% for report in reports %}
-      <li><a href="{{ root }}{{ report_path(report.slug) }}">{{ report.title }}</a></li>
-    {% endfor %}
+    {%- for report in reports %}
+    <li><span class="text-mono">{{ iso_date(report.updated_at) }}</span><a href="{{ root }}{{ report_path(report.slug) }}">{{ report.title }}</a></li>
+    {%- endfor %}
   </ul>
-{% endmacro %}
+{%- endmacro %}
+
+{#- An item page's or list page's head, on the purple field: a breadcrumb
+   (its `crumbs`, [(href, text)]), its title, and its facts row, which the
+   call's body gives as fact() entries. #}
+{% macro title_field(crumbs, heading) %}
+    <div class="field-site"><div class="layout-wrap"><div class="title-item">
+      <nav class="nav-breadcrumb text-label" aria-label="Breadcrumb">
+        {%- for href, text in crumbs %}{% if not loop.first %} / {% endif %}<a href="{{ href }}">{{ text }}</a>{% endfor %}</nav>
+      <h1>{{ heading }}</h1>
+      <dl class="meta-item text-label">{{ caller() }}
+      </dl>
+    </div></div></div>
+{%- endmacro %}
+
+{% macro fact(term) %}
+        <div><dt>{{ term }}</dt><dd>{{ caller() }}</dd></div>
+{%- endmacro %}

@@ -1,12 +1,27 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import data_bite_list with context %}
+{% from "public/_lists.html" import data_bite_list, report_list, section_head with context %}
+{% block field %}
+    <div class="field-site"><div class="layout-wrap"><section class="intro-home" aria-labelledby="intro-home-title">
+      <h1 id="intro-home-title">{{ title }}</h1>
+      {#- T20 makes the headline and this intro Homepage settings. #}
+      <p class="intro-home-lede">Enrollment, retention, outcomes and survey results from Kenyon's Office of Institutional Research.</p>
+    </section></div></div>
+{%- endblock %}
 {% block content %}
-  <h1>{{ title }}</h1>
-  <h2>Latest Data Bites</h2>
-  {% if data_bites %}
-    {{ data_bite_list(data_bites) }}
-  {% else %}
-    <p>Nothing published yet.</p>
-  {% endif %}
-  <p><a href="{{ root }}data-bites/index.html">All Data Bites</a> · <a href="{{ root }}reports/index.html">All Reports</a></p>
-{% endblock %}
+    <section class="section-home" aria-labelledby="latest-home-title">
+      {{- section_head(1, "latest-home-title", "Latest Data Bites", root ~ "data-bites/index.html", "All Data Bites") }}
+      {%- if data_bites %}
+      {{ data_bite_list(data_bites) }}
+      {%- else %}
+      <p>Nothing published yet.</p>
+      {%- endif %}
+    </section>
+    <section class="section-home" aria-labelledby="reports-home-title">
+      {{- section_head(2, "reports-home-title", "Reports", root ~ "reports/index.html", "All Reports") }}
+      {%- if nav_reports %}
+      {{ report_list(nav_reports) }}
+      {%- else %}
+      <p>No Reports published yet.</p>
+      {%- endif %}
+    </section>
+{%- endblock %}

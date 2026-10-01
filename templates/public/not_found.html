@@ -1,0 +1,13 @@
+{% extends "public/layout.html" %}
+{% from "public/_lists.html" import title_field, fact with context %}
+{% block field %}
+  {%- call title_field([(home_path, "Home")], "Page not found") %}
+    {%- call fact("Status") %}<span class="text-mono">404</span>{% endcall %}
+  {%- endcall %}
+{%- endblock %}
+{% block content %}
+      <div class="body-item">
+        <p>Nothing is published at this address. The page may have been taken down, or the link may be mistyped.</p>
+        <p><a href="{{ home_path }}">Go to the home page</a></p>
+      </div>
+{%- endblock %}

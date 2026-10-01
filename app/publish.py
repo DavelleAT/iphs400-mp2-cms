@@ -24,11 +24,10 @@ def render_site(out: Path | None = None) -> Path:
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    # UTF-8, as the app serves them, whatever this machine's locale.
-    (out / "style.css").write_text(public_site.CSS, encoding="utf-8")
     for page in public_site.pages():
+        # UTF-8, as the app serves them, whatever this machine's locale.
         _target(out, page.path).write_text(page.render(), encoding="utf-8")
-    for path, stored in public_site.files().items():
+    for path, stored in {**public_site.assets(), **public_site.files()}.items():
         shutil.copyfile(stored, _target(out, path))
     return out
 

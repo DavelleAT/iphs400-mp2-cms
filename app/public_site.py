@@ -23,136 +23,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 
+from markupsafe import Markup
+
 from app import data_bites, reports, settings, site_links
 from app.templating import templates
 
-CSS = """/* The public site's one stylesheet, at style.css in the site's root. */
-:root { color-scheme: light dark; }
-body { font: 16px/1.6 system-ui, sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; }
-.header-home { font-weight: 700; text-decoration: none; }
-.nav-site ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
-main { margin-block: 2rem; }
-/* Admin only: the message after a successful save (app.flash). */
-.admin-confirmation { background: color-mix(in srgb, #2e7d32 12%, transparent); border-left: 4px solid #2e7d32; margin: 0 0 1.5rem; padding: 0.6rem 0.9rem; }
-/* Markdown tables, in a Data Bite's or Report's body. A wide one scrolls
-   sideways in its wrapper (app.rendering.TABLE_SCROLL) rather than widening
-   the page; on a phone, rather than squeezing its text to a word a line. */
-.content-body .content-table-scroll { margin-block: 1rem; overflow-x: auto; }
-/* Chart images (app.chart_images) shrink to the column, keeping their shape. */
-.content-body img { height: auto; max-width: 100%; }
-.content-body table { border-collapse: collapse; }
-.content-body th, .content-body td { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); padding: 0.35rem 0.7rem; }
-.content-body th { background: color-mix(in srgb, currentColor 8%, transparent); font-weight: 600; }
-@media (max-width: 40rem) { .content-body th, .content-body td { min-width: 10ch; } }
-/* Charts (app.chart_drawing): an SVG scaled to the column, its text at the
-   size its layout assumes (FONT, in the SVG's units), and its data in a
-   <details> table that scrolls sideways rather than widen the page. Each is
-   drawn twice; the narrow drawing replaces the wide one on a phone, and
-   display: none takes the hidden one out of the accessibility tree. */
-.chart-figure { margin: 1.5rem 0; }
-.chart-title { font-weight: 600; margin-bottom: 0.5rem; }
-.chart-svg, .chart-svg-phone { display: block; height: auto; width: 100%; }
-.chart-svg-phone { display: none; }
-@media (max-width: 30rem) { .chart-svg { display: none; } .chart-svg-phone { display: block; } }
-.chart-figure text { font-family: system-ui, sans-serif; font-size: 13px; }
-.chart-figure polyline { stroke-linecap: round; stroke-linejoin: round; }
-.chart-figure circle { stroke: Canvas; }
-.chart-note, .chart-source { margin: 0.25rem 0; }
-.chart-data { margin-top: 0.5rem; overflow-x: auto; }
-.chart-data summary { cursor: pointer; }
-.content-body .chart-data td { font-variant-numeric: tabular-nums; text-align: right; }
-@media (prefers-color-scheme: dark) {
-  .chart-figure text { fill: #c3c2b7; }
-  .chart-figure .chart-tick { fill: #898781; }
-  .chart-figure .chart-grid { stroke: #2c2c2a; }
-  .chart-figure .chart-baseline { stroke: #5c5b57; }
-  .chart-series-1, .chart-marker-1 { fill: #3987e5; } .chart-line-1 { stroke: #3987e5; }
-  .chart-series-2, .chart-marker-2 { fill: #d95926; } .chart-line-2 { stroke: #d95926; }
-  .chart-series-3, .chart-marker-3 { fill: #199e70; } .chart-line-3 { stroke: #199e70; }
-  .chart-series-4, .chart-marker-4 { fill: #c98500; } .chart-line-4 { stroke: #c98500; }
-}
-/* A Site preview's banner (Page.render_preview); never on a published page. */
-.site-preview-banner { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; font-weight: 600; margin: 0 0 1rem; padding: 0.5rem 0.9rem; }
-/* Admin only: an edit form's fields beside its Site preview, stacked below
-   them on a narrow screen. */
-body:has(.admin-site-preview) { max-width: 90rem; }
-.admin-content-fields textarea { box-sizing: border-box; width: 100%; }
-.admin-site-preview-frame { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); box-sizing: border-box; display: block; height: 75vh; min-height: 24rem; width: 100%; }
-.admin-site-preview-frame[data-width="phone"] { max-width: 100%; width: 390px; }
-/* Admin only: the Editor (static/editor.js), its toolbar, and the parts of a
-   body it can't edit, shown read-only. */
-.admin-editor-label { font-weight: 600; margin: 0 0 0.25rem; }
-.admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
-/* The table controls, shown while the cursor is in a table. Not named
-   "table": only .content-body's own rules may style tables (T09). */
-.admin-editor-cell-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.25rem; }
-.admin-editor-cell-tools[hidden] { display: none; }
-.admin-editor-toolbar [aria-pressed="true"] { background: color-mix(in srgb, currentColor 18%, transparent); }
-.admin-editor-link { margin-block: 0.25rem; }
-.admin-editor-link p { align-items: center; display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0.25rem 0; }
-.admin-editor-link[hidden], .admin-editor-link p[hidden] { display: none; }
-/* A site link that won't be a link on the site, marked for the writer. */
-.admin-editor-area a[data-link-mark]::after { background: #fff4ce; border-radius: 3px; color: #4d3800; content: attr(data-link-mark); display: inline-block; font-size: 0.75rem; font-style: normal; font-weight: 600; margin-left: 0.3em; padding: 0 0.35em; }
-.admin-editor-message, .admin-chart-builder-message { background: color-mix(in srgb, #b3261e 12%, transparent); border-left: 4px solid #b3261e; margin: 0.25rem 0; padding: 0.4rem 0.8rem; }
-.admin-editor-message:empty, .admin-chart-builder-message:empty { display: none; }
-.admin-editor-area { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); min-height: 16rem; overflow-wrap: anywhere; padding: 0.25rem 0.75rem; }
-.admin-editor-locked { background: color-mix(in srgb, currentColor 5%, transparent); border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); margin-block: 0.75rem; padding: 0 0.75rem; }
-.admin-editor-locked-note { font-size: 0.875rem; font-style: italic; margin: 0.4rem 0; }
-.admin-editor-locked pre { overflow-x: auto; }
-/* Admin only: a Chart in the Editor's body, as a card, and the Chart builder
-   (T17). The builder's grid is styled by its own classes: only
-   .content-body's own rules may style tables (T09). */
-.admin-editor-chart { border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; margin-block: 0.75rem; padding: 0 0.75rem; }
-.admin-editor-chart-tools { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.5rem 0 0; }
-.admin-chart-builder { box-sizing: border-box; max-height: calc(100vh - 1rem); max-width: calc(100vw - 1rem); padding: 1rem; width: 52rem; }
-.admin-chart-builder::backdrop { background: rgb(0 0 0 / 0.4); }
-.admin-chart-builder h2 { margin-top: 0; }
-.admin-chart-builder h3 { margin: 1rem 0 0.25rem; }
-.admin-chart-builder-fields p { margin: 0.5rem 0; }
-.admin-chart-builder-fields label { display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-chart-builder-fields input, .admin-chart-builder-fields select { box-sizing: border-box; max-width: 100%; width: 26rem; }
-.admin-chart-builder-fields small, .admin-chart-builder-hint { display: block; font-size: 0.875rem; }
-.admin-chart-builder-hint { margin: 0 0 0.5rem; }
-.admin-chart-builder-suggestion { background: #fff4ce; border-left: 4px solid #9a6700; color: #4d3800; padding: 0.4rem 0.8rem; }
-.admin-chart-builder-suggestion[hidden] { display: none; }
-.admin-chart-builder-error { color: #b3261e; display: block; font-size: 0.875rem; margin: 0.15rem 0 0; }
-.admin-chart-builder-error:empty { display: none; }
-.admin-chart-builder [aria-invalid="true"] { border-color: #b3261e; outline: 2px solid #b3261e; outline-offset: -1px; }
-.admin-chart-builder-grid-scroll { overflow-x: auto; }
-.admin-chart-builder-grid { border-collapse: collapse; }
-.admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
-.admin-chart-builder-cell input { box-sizing: border-box; width: 8.5rem; }
-.admin-chart-builder-name { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
-@media (max-width: 30rem) { .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
-.admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-/* As wide as the public page's column, so the chart is drawn at its size there. */
-.admin-chart-builder-preview { border: 1px dashed color-mix(in srgb, currentColor 40%, transparent); max-width: 40rem; min-height: 3rem; padding: 0 0.75rem; }
-/* Admin only: the Editor's "Insert image" panel (T18), with the item's chart
-   images as thumbnails, and the image in the body it is changing. */
-/* A fieldset is as wide as its widest content unless told otherwise, which
-   would push the page sideways on a phone. */
-.admin-editor-image, .admin-editor-image-choices { min-width: 0; }
-.admin-editor-image { margin-block: 0.25rem; }
-.admin-editor-image p { margin: 0.4rem 0; }
-.admin-editor-image[hidden], .admin-editor-image [hidden] { display: none; }
-.admin-editor-image-choices { border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; }
-.admin-editor-image-choices legend { font-weight: 600; margin-bottom: 0.25rem; padding: 0; }
-.admin-editor-image-choice { align-items: center; box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); border-radius: 4px; display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
-.admin-editor-image-choice:has(:checked) { outline: 2px solid currentColor; }
-.admin-editor-image-choice img { background: #fff; height: 3.5rem; object-fit: contain; width: 5.5rem; }
-.admin-editor-image-description label { display: flex; flex-direction: column; gap: 0.15rem; }
-.admin-editor-image-description input { box-sizing: border-box; max-width: 100%; width: 32rem; }
-.admin-editor-image-description small { display: block; font-size: 0.875rem; }
-.admin-editor-image-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.admin-editor-area img { cursor: pointer; }
-.admin-editor-area img.admin-editor-image-chosen { outline: 3px solid currentColor; outline-offset: 2px; }
-.admin-chart-builder-stale figure { opacity: 0.35; }
-@media (min-width: 64rem) {
-  .admin-content-editing { align-items: start; display: grid; gap: 0 2rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .admin-content-editing .admin-site-preview { position: sticky; top: 1rem; }
-}
-"""
+# The site's stylesheet and the fonts it loads, with their licences (ADR-007).
+STYLESHEET = settings.STATIC / "site.css"
+FONTS = settings.STATIC / "fonts"
 RECENT_DATA_BITES = 5  # on the home page; the rest are on the Data Bites list
 # A new item's slug in its Site preview, which only its paths use.
 _UNSAVED_SLUG = "untitled"
@@ -219,7 +97,7 @@ class Page:
         nav_reports = reports.list_published() if self.nav_reports is None else self.nav_reports
         return templates.env.get_template(self.template).render(
             image_src=image_src, link_href=link_href,
-            title=settings.SITE_TITLE, root=root, css_path=f"{root}style.css",
+            title=settings.SITE_TITLE, root=root, page_path=self.path,
             home_path=f"{root}index.html", nav_reports=nav_reports,
             data_bite_path=data_bite_path, report_path=report_path,
             report_file_path=report_file_path, preview_base=preview_base, **self.context)
@@ -352,17 +230,39 @@ def report_image(slug: str, name: str) -> Path | None:
     return None if found is None else reports.images(found["id"]).get(name)
 
 
+def not_found() -> Page:
+    """404.html, which GitHub Pages serves at whatever missing path was asked
+    for, at any depth, so its relative links can't be trusted (ADR-007). It
+    carries a <base> at the deployed site's root, CMS_BASE_PATH. Without one
+    (local use) it inlines its stylesheet and links as from the site's root,
+    which is right for a miss at the top level."""
+    base = settings.BASE_PATH
+    if base and not base.endswith("/"):
+        base += "/"  # else the <base> is the site's parent folder
+    return Page("404.html", "public/not_found.html",
+                {"page_title": "Page not found", "site_base": base,
+                 "inline_css": None if base else Markup(STYLESHEET.read_text(encoding="utf-8"))})
+
+
 def pages() -> list[Page]:
     """Every page of the site: what `cms publish` writes."""
-    return [home(), data_bite_list(), report_list(),
+    return [home(), data_bite_list(), report_list(), not_found(),
             *map(_data_bite_page, data_bites.list_published()),
             *map(_report_page, reports.list_published())]
 
 
+def assets() -> dict[str, Path]:
+    """The stylesheet and its fonts, as {path in the site: where it is
+    stored}: style.css, and fonts/ beside it with the fonts' OFL licences."""
+    return {"style.css": STYLESHEET,
+            **{f"fonts/{font.name}": font for font in sorted(FONTS.iterdir())
+               if font.suffix in (".woff2", ".txt")}}
+
+
 def files() -> dict[str, Path]:
-    """Every file the site's pages link to besides the stylesheet, as
-    {path in the site: where it is stored}: the published Data Bites' and
-    Reports' chart images, and the published Reports' files."""
+    """Every file the site's pages link to besides assets(), as {path in the
+    site: where it is stored}: the published Data Bites' and Reports' chart
+    images, and the published Reports' files."""
     found: dict[str, Path] = {}
     for bite in data_bites.list_published():
         found.update(data_bite_files(bite))
@@ -378,9 +278,10 @@ def _as_if_published(form: Mapping[str, str], saved: sqlite3.Row | None) -> dict
     with `form`'s unsaved title and body, published. It keeps the saved slug:
     an unsaved slug would change only paths, which no reader sees, and with
     the saved one the preview finds the item's files where it puts them."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     item = dict(saved) if saved is not None else {
         "id": None, "slug": _UNSAVED_SLUG, "file_name": None,
-        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}
+        "created_at": now, "updated_at": now}
     return {**item, "title": form["title"].strip(), "body": form["body"],
             "status": "published"}
 

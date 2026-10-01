@@ -126,7 +126,7 @@ def test_visitor_lists_published_reports_by_title(client_as, client):
 
     page = client.get("/reports/index.html")
     assert page.status_code == 200
-    content = page.text.split("<main>")[1]
+    content = page.text.split('<main id="main">')[1]  # the skip link's target since T19
     assert content.index("Common Data Set") < content.index(REPORT["title"])
     assert 'href="../reports/cds.html"' in content
     assert "Survey Calendar" not in page.text and "survey-calendar" not in page.text
@@ -162,11 +162,13 @@ EXTERNAL = re.compile(r"(?:https:|mailto:)", re.I)
 
 
 def crawl(client: TestClient) -> dict[str, bytes]:
-    """Every public page and file a visitor can reach from the home page by
-    following links, by path. Fails on a broken link, and on any link but an
-    <a>'s https: or mailto: that isn't relative: root-absolute, any other
-    scheme, or any absolute src."""
-    seen, queue = {}, ["/index.html"]
+    """Every public page and file a visitor can reach by following links from
+    the home page, or from 404.html, where a missed link lands, by path.
+    Follows the stylesheet's url()s too, to its fonts (T19). Fails on a broken
+    link, and on any link but an <a>'s https: or mailto: that isn't relative:
+    root-absolute, any other scheme, or any absolute src. The one <base>
+    allowed is 404.html's (ADR-007)."""
+    seen, queue = {}, ["/index.html", "/404.html"]
     while queue:
         path = queue.pop()
         if path in seen:
@@ -174,15 +176,23 @@ def crawl(client: TestClient) -> dict[str, bytes]:
         response = client.get(path)
         assert response.status_code == 200, f"broken link to {path}"
         seen[path] = response.content
-        if not path.endswith(".html"):
+        if path.endswith(".css"):
+            found = [("url", "url", link) for link in re.findall(r'url\("([^"]+)"\)', response.text)]
+        elif path.endswith(".html"):
+            found = re.findall(r'<(\w+)\b[^>]*?\b(href|src)="([^"]+)"', response.text)
+        else:
             continue
-        for tag, attribute, link in re.findall(r'<(\w+)\b[^>]*?\b(href|src)="([^"]+)"',
-                                               response.text):
+        for tag, attribute, link in found:
             if tag == "a" and attribute == "href" and EXTERNAL.match(link):
+                continue
+            if tag == "base":
+                assert path == "/404.html", (path, link)
                 continue
             assert not link.startswith("/") and not re.match(r"[a-z][a-z0-9+.-]*:", link, re.I), (
                 path, link)
-            queue.append(normpath(join(dirname(path), link)))
+            link = link.partition("#")[0]  # "#main", the skip link, is this page
+            if link:
+                queue.append(normpath(join(dirname(path), link)))
     return seen
 
 

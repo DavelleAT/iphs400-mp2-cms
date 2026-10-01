@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 import pytest
 from fastapi.testclient import TestClient
 
-from app import data_bites, reports, settings
+from app import data_bites, public_site, reports, settings
 from app.publish import render_site
 from tests.conftest import csrf_from, post_form
 from tests.test_t03_data_bites import BITE, create_bite
@@ -23,7 +23,7 @@ from tests.test_t04_reports import REPORT, create_report, report_id
 from tests.test_t05_report_files import PDF, pdf, post_with_file
 from tests.test_t06_admin_console import PAYLOAD, assert_inert
 from tests.test_t06_admin_console import site_preview_page as framed
-from tests.test_t07_public_site import (DRAFT_LEAKS, a_site_with_drafts, crawl, nav,
+from tests.test_t07_public_site import (DRAFT_LEAKS, EXTERNAL, a_site_with_drafts, crawl, nav,
                                         published_bite, published_report)
 from tests.test_t08_publish import exported
 from tests.test_t09_tables import content_body
@@ -54,8 +54,10 @@ def links(page: str) -> list[str]:
 
 
 def without_preview_marks(page: str) -> str:
-    """The page without its banner and <base>: what the export would write."""
+    """The page without its banner and <base>, and with the skip link a
+    <base> leaves out (T19): what the export would write."""
     page = re.sub(r'\s*<base href="[^"]*">', "", page)
+    page = page.replace("<body>", '<body>\n  <a class="skip-link" href="#main">Skip to content</a>', 1)
     return re.sub(r'\s*<p class="site-preview-banner"[^>]*>[^<]*</p>', "", page)
 
 
@@ -89,7 +91,9 @@ def test_a_data_bites_preview_has_its_date_line(client_as):
     bid = create_bite(analyst)
     created = stored_row("data-bites", bid)["created_at"][:10]
     page = preview(analyst, "data-bites", bid, **BITE).text
-    assert f'<p class="data-bite-meta"><small><time datetime="{created}">{created}</time>' in page
+    # On the title's field since T19, as its Published fact.
+    assert (f'<dt>Published</dt><dd><span class="text-mono"><time datetime="{created}">'
+            f'{created}</time></span></dd>') in page
 
 
 @pytest.mark.parametrize("kind, item, create, publish", KINDS)
@@ -116,8 +120,9 @@ def test_a_reports_preview_links_its_attached_file(client_as):
     assert post_with_file(analyst, "/admin/reports", REPORT, pdf()).status_code == 303
     rid = report_id(analyst, REPORT["slug"])
     page = preview(analyst, "reports", rid, **REPORT).text
-    assert ('<a href="../reports/files/factbook.pdf" download="factbook-2026.pdf">'
-            'Download factbook-2026.pdf</a>') in page
+    # In the title's facts row since T19.
+    assert ('<a class="report-download" href="../reports/files/factbook.pdf"'
+            ' download="factbook-2026.pdf">Download factbook-2026.pdf</a>') in page
 
 
 @pytest.mark.parametrize("kind, item, create, publish", KINDS)
@@ -140,6 +145,8 @@ def test_every_link_in_the_preview_is_relative_and_reaches_the_preview_site(
     assert "../style.css" in found and "../index.html" in found
     assert f"../images/{kind}/{item['slug']}/fall-by-class.png" in found
     for link in found:
+        if EXTERNAL.match(link):
+            continue  # the footer's mailto: since T19, which leaves the site
         assert not link.startswith("/") and "://" not in link, link
         url = urljoin(base, link)
         assert url.startswith(f"/admin/{kind}/{item_id}/preview/"), (link, url)
@@ -148,6 +155,9 @@ def test_every_link_in_the_preview_is_relative_and_reaches_the_preview_site(
         if link == "../style.css":
             assert response.status_code == 200
             assert response.headers["content-type"].startswith("text/css")
+        elif public.removeprefix("/") in public_site.assets():
+            # The fonts' licences, linked from the footer since T19.
+            assert response.status_code == 200, url
         elif "/images/" in url or "/files/" in url:
             # The draft's own files: shown here, though the public site 404s them.
             assert response.status_code == 200, url

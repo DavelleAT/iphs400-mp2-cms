@@ -1,10 +1,11 @@
-"""Login and logout."""
+"""Login and logout, and the admin console's stylesheet, which the login page
+needs before there is a session."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
-from app import auth, users
+from app import auth, settings, users
 from app.templating import templates
 
 router = APIRouter()
@@ -40,3 +41,9 @@ def login(request: Request, email: str = Form(""), password: str = Form("")):
 def logout(request: Request):
     auth.log_out(request)
     return RedirectResponse("/login", status_code=303)
+
+
+@router.get("/admin.css")
+def admin_stylesheet():
+    """The console's own stylesheet (ADR-007); the public site's is style.css."""
+    return FileResponse(settings.STATIC / "admin.css", media_type="text/css; charset=utf-8")

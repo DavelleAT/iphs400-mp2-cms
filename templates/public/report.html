@@ -1,11 +1,16 @@
 {% extends "public/layout.html" %}
+{% from "public/_lists.html" import created_date, iso_date, title_field, fact with context %}
+{% block field %}
+  {%- call title_field([(home_path, "Home"), (root ~ "reports/index.html", "Reports")], report.title) %}
+    {%- call fact("Published") %}<span class="text-mono">{{ created_date(report) }}</span>{% endcall %}
+    {%- call fact("Updated") %}<span class="text-mono">{{ iso_date(report.updated_at) }}</span>{% endcall %}
+    {%- call fact("Type") %}Report{% endcall %}
+    {%- if has_file %}
+    {%- call fact("PDF") %}<a class="report-download" href="{{ root }}{{ report_file_path(report.slug) }}" download="{{ report.file_name }}">Download {{ report.file_name }}</a>{% endcall %}
+    {%- endif %}
+  {%- endcall %}
+{%- endblock %}
 {% block content %}
-  <article>
-    <h1>{{ report.title }}</h1>
-    {% if has_file %}
-      <p class="report-download"><a href="{{ root }}{{ report_file_path(report.slug) }}" download="{{ report.file_name }}">Download {{ report.file_name }}</a> (PDF)</p>
-    {% endif %}
-    <div class="content-body">{{ report.body | markdown(image_src, link_href) }}</div><!-- /content-body -->
-  </article>
-  <p><a href="{{ root }}reports/index.html">All Reports</a></p>
-{% endblock %}
+      <article class="body-item"><div class="content-body">{{ report.body | markdown(image_src, link_href) }}</div><!-- /content-body --></article>
+      <p class="link-back"><a href="{{ root }}reports/index.html">All Reports</a></p>
+{%- endblock %}

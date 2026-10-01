@@ -11,7 +11,7 @@ vocabulary, and any attribute value that isn't one of:
 Writer strings (title, labels, units, source, category and series names,
 cell text) are only ever text content, escaped by _text.
 
-Layout is in the SVG's own units: the stylesheet (app.public_site.CSS) sets
+Layout is in the SVG's own units: the stylesheet (static/site.css) sets
 its text to FONT units and scales the SVG to the column. Both drawings share
 the scale, so the phone one starts its axis where the wide one does.
 """
@@ -25,8 +25,10 @@ from html import escape
 
 from app.charts import Chart, Unit
 
-# The palette (dataviz reference palette, slots 1 to 4, light steps). The
-# stylesheet swaps in the dark steps by class in dark mode.
+# The palette (dataviz reference palette, slots 1 to 4, light steps): what a
+# Chart shows without a stylesheet. The public site's (static/site.css)
+# recolours the series by class, and the console's (static/admin.css) swaps
+# in the dark steps in dark mode.
 SERIES = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")
 INK = "#52514e"       # labels, values, legend, axis titles
 MUTED = "#898781"     # tick labels

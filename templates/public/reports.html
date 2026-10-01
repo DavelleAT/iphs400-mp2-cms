@@ -1,10 +1,17 @@
 {% extends "public/layout.html" %}
-{% from "public/_lists.html" import report_list with context %}
+{% from "public/_lists.html" import report_list, title_field, fact with context %}
+{% block field %}
+  {%- call title_field([(home_path, "Home")], "Reports") %}
+    {%- call fact("Published") %}<span class="text-mono">{{ reports | length }}</span>{% endcall %}
+    {%- call fact("Order") %}By title{% endcall %}
+  {%- endcall %}
+{%- endblock %}
 {% block content %}
-  <h1>Reports</h1>
-  {% if reports %}
-    {{ report_list(reports) }}
-  {% else %}
-    <p>No Reports published yet.</p>
-  {% endif %}
-{% endblock %}
+    <section class="section-list">
+      {%- if reports %}
+      {{ report_list(reports) }}
+      {%- else %}
+      <p>No Reports published yet.</p>
+      {%- endif %}
+    </section>
+{%- endblock %}

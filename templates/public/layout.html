@@ -1,16 +1,62 @@
-{# Every public page. Links are relative to the site's root via `root`,
-   never root-absolute, so the pages work exported to a Pages subfolder. A
-   Site preview (`preview_base`, app.public_site.Page.render_preview) adds a
-   <base> and its banner, and nothing else. #}
-{% extends "base.html" %}
-{% from "public/_lists.html" import report_list with context %}
-{% block head %}{% if preview_base %}
-  <base href="{{ preview_base }}">{% endif %}{% endblock %}
-{% block title %}{% if page_title %}{{ page_title }} · {% endif %}{{ title }}{% endblock %}
-{% block banner %}{% if preview_base %}
-  <p class="site-preview-banner" role="note">Draft preview, not published</p>{% endif %}{% endblock %}
-{% block nav %}
-  {% if nav_reports %}
-    <nav class="nav-site" aria-label="Reports">{{ report_list(nav_reports) }}</nav>
-  {% endif %}
-{% endblock %}
+{# Every public page, "set like a dataset" (spec #22, ADR-007). Standalone:
+   the admin console's layout is base.html, and neither links the other's
+   stylesheet. Links are relative to the site's root via `root`, never
+   root-absolute, so the pages work exported to a Pages subfolder.
+
+   Two pages carry a <base>: a Site preview (`preview_base`,
+   app.public_site.Page.render_preview), which also shows its banner, and
+   404.html (`site_base`, app.public_site.not_found), which GitHub Pages
+   serves at whatever path was missed. Without a site_base, 404.html inlines
+   its stylesheet (`inline_css`) instead of linking it. #}
+{% from "public/_lists.html" import nav_number with context %}
+{%- set base_href = preview_base or site_base -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {%- if base_href %}
+  <base href="{{ base_href }}">{% endif %}
+  <title>{% if page_title %}{{ page_title }} · {% endif %}{{ title }}</title>
+  {%- if inline_css %}
+  <style>{{ inline_css }}</style>
+  {%- else %}
+  <link rel="stylesheet" href="{{ root }}style.css">
+  {%- endif %}
+</head>
+<body>
+  {#- Under a <base>, a fragment link resolves against it and leaves the
+      page: so neither a Site preview nor 404.html with a site_base has one. #}
+  {%- if not base_href %}
+  <a class="skip-link" href="#main">Skip to content</a>
+  {%- endif %}
+  <div class="field-site"><div class="layout-wrap">
+    {%- if preview_base %}
+    <p class="site-preview-banner" role="note">Draft preview, not published</p>{% endif %}
+    <header class="header-site">
+      <a class="header-home" href="{{ home_path }}"><span class="header-mark" aria-hidden="true">IR</span><b class="header-home-text">{{ title }}</b></a>
+    </header>
+    <nav class="nav-site" aria-label="Site"><ul>
+      {%- for report in nav_reports %}{% set path = report_path(report.slug) %}
+      <li><a href="{{ root }}{{ path }}"{% if path == page_path %} aria-current="page"{% endif %}>{{ nav_number(loop.index) }}{{ report.title }}</a></li>
+      {%- endfor %}
+      <li><a href="{{ root }}data-bites/index.html"
+        {%- if page_path == "data-bites/index.html" %} aria-current="page"
+        {%- elif page_path.startswith("data-bites/") %} aria-current="true"{% endif %}>{{ nav_number(nav_reports | length + 1) }}Data Bites</a></li>
+    </ul></nav>
+  </div></div>
+  <main id="main">
+    {%- block field %}{% endblock %}
+    <div class="layout-wrap">
+      {%- block content %}{% endblock %}
+    </div>
+  </main>
+  <footer class="footer-site field-site"><div class="layout-wrap">
+    <div><b>{{ title }}</b><p>The college's official source for enrollment, outcomes and survey data. Each figure is final as of the date shown with it.</p></div>
+    <div><span class="text-label">Data requests</span><p><a href="mailto:ir@example.edu">ir@example.edu</a></p></div>
+    <div><span class="text-label">Location</span><p>Kenyon College<br>Gambier, Ohio</p></div>
+    {#- The fonts' OFL licences travel with them (ADR-007). #}
+    <p class="footer-colophon text-label">Set in Atkinson Hyperlegible <a href="{{ root }}fonts/OFL-atkinson-hyperlegible-next.txt">Next</a> and <a href="{{ root }}fonts/OFL-atkinson-hyperlegible-mono.txt">Mono</a>, under the SIL Open Font License</p>
+  </div></footer>
+</body>
+</html>

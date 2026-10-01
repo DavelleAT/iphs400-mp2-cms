@@ -218,8 +218,9 @@ class Site:
     """Pages a crawl reads, by path, in place of the app."""
 
     def __init__(self, home: str, **pages: str) -> None:
-        self.pages = {"/index.html": home, **{f"/{p.replace('_', '/', 1)}.html": html
-                                              for p, html in pages.items()}}
+        # The crawl starts from 404.html too, since T19.
+        self.pages = {"/index.html": home, "/404.html": "",
+                      **{f"/{p.replace('_', '/', 1)}.html": html for p, html in pages.items()}}
 
     def get(self, path: str):
         class Response:
@@ -232,7 +233,7 @@ class Site:
 def test_the_crawler_skips_external_links_but_follows_internal_ones():
     site = Site('<a href="https://www.kenyon.edu/">K</a> <a href="mailto:ir@kenyon.edu">M</a>'
                 ' <a href="reports/cds.html">CDS</a>', reports_cds='<a href="../index.html">Home</a>')
-    assert set(crawl(site)) == {"/index.html", "/reports/cds.html"}
+    assert set(crawl(site)) == {"/index.html", "/404.html", "/reports/cds.html"}
 
 
 @pytest.mark.parametrize("bad", ['<a href="/reports/cds.html">x</a>',
