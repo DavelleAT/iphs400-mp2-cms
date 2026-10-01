@@ -4,7 +4,7 @@ protected without further work."""
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.exception_handlers import http_exception_handler
@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app import homepage, settings
 from app.auth import current_user, signed_in_user
 from app.content import STATUS_LABELS
-from app.routes.listing import (CONTENT_TYPES, REPORT, ContentType, ItemRow, item_row,
+from app.routes.listing import (CONTENT_TYPES, REPORT, ContentType, ItemRow, newest_first,
                                 status_filter, type_filter)
 from app.users import is_director
 from app.templating import templates
@@ -38,16 +38,6 @@ async def refused_page(request: Request, exc: StarletteHTTPException):
 RECENT_COUNT = 8
 
 
-def newest_first(request: Request, user: sqlite3.Row, ctypes=CONTENT_TYPES,
-                 status: str | None = None) -> list[ItemRow]:
-    """Every item of `ctypes`, or only those in `status`, as rows for `user`,
-    most recently updated first."""
-    rows = [item_row(request, ctype, item, user)
-            for ctype in ctypes for item in ctype.module.list_all(status)]
-    rows.sort(key=lambda row: row.item["updated_at"], reverse=True)
-    return rows
-
-
 def waiting_for(request: Request, user: sqlite3.Row) -> list[ItemRow]:
     """The Dashboard's "Waiting for you", derived from what is stored (spec
     #25): for the Director, every draft Report, oldest update first, as only
@@ -64,15 +54,20 @@ def admin_home(request: Request, user=Depends(current_user)):
     """The Dashboard: what needs the user's attention (spec #25, T24)."""
     counts: dict[ContentType, dict[str, int]] = {
         ctype: ctype.module.count_by_status() for ctype in CONTENT_TYPES}
+    director = is_director(user)
     return templates.TemplateResponse(
         request, "admin/home.html",
-        {"title": "Dashboard", "user": user,
-         # The day as the stored times have it, UTC, so it agrees with their dates.
-         "today": datetime.now(timezone.utc).date().isoformat(),
+        {"title": "Dashboard", "user": user, "director": director,
+         # The office's day: the Console runs on the office's own machine.
+         # (Stored times, and so the items' dates, are UTC, as on every page.)
+         "today": date.today().isoformat(),
          "counts": counts,
          "waiting": waiting_for(request, user),
          "recent": newest_first(request, user)[:RECENT_COUNT],
-         "homepage_saved": homepage.last_saved() if is_director(user) else None,
+         # When the Homepage settings were last saved; None if they are
+         # still the sample a new site starts with, so never saved.
+         "homepage_saved": (homepage.last_saved()
+                            if director and homepage.get() != homepage.SAMPLE else None),
          "status_labels": STATUS_LABELS},
     )
 

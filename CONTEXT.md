@@ -150,8 +150,9 @@ _Avoid_: back end, dashboard (that is its home page only)
 **Dashboard**:
 The Console's home page: counts of each type by State, then "Waiting for
 you" and "Recently changed" (spec #25, T24). What is waiting is derived from
-what is stored, with no review step: for the Director, every Draft Report
-(only they can publish one); for an Analyst, their own Drafts.
+what is stored, with no review State or "submitted" step: for the
+Director, every Draft Report, each with Review, which opens it (only they can
+publish one); for an Analyst, their own Drafts.
 _Avoid_: home, overview, inbox
 
 **Factbook**:

@@ -4,8 +4,9 @@
     start for a refused post (`unsaved`) or an edited body. Save submits the item's form
     (#form-item); Publish or Unpublish posts its own, back to this page; Delete
     opens the confirmation page. Read-only, it shows the State and why. #}
+{%- from "admin/_macros.html" import state_badge with context %}
   <div class="bar-save" role="region" aria-label="Save"><div class="bar-save-inner">
-    <span class="bar-save-state" role="status"><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span>
+    <span class="bar-save-state" role="status">{{ state_badge(item.status) }}
       {%- if actions.may_edit %}<span class="bar-save-dirty"{% if not (unsaved or form.body_dirty) %} hidden{% endif %}>Unsaved changes</span>
       {%- else %}<span class="bar-save-note">Only the Director can edit, unpublish, or delete a published Report.</span>{% endif %}</span>
     {%- if actions.delete_path %}

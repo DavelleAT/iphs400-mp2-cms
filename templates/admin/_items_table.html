@@ -4,6 +4,7 @@
     On a phone its rows stack; the explicit roles keep it a table to a screen
     reader, which some browsers stop reading it as once its CSS display
     changes (as T20's Reports table). #}
+{%- from "admin/_macros.html" import iso_date, state_badge with context %}
   <table class="table-items table-items-stack" role="table">
     <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">{{ noun }}</th><th role="columnheader" scope="col">State</th><th role="columnheader" scope="col">Author</th><th role="columnheader" scope="col">Updated</th><th role="columnheader" scope="col"><span class="text-hidden">Actions</span></th></tr></thead>
     <tbody role="rowgroup">
@@ -15,9 +16,9 @@
           <a href="{{ row.edit_path }}">{{ item.title }}</a>
           {%- if item.summary %}<p>{{ item.summary }}</p>{% endif -%}
         </th>
-        <td role="cell"><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span></td>
+        <td role="cell">{{ state_badge(item.status) }}</td>
         <td role="cell">{{ item.author_name }}</td>
-        <td role="cell" class="text-mono"><time datetime="{{ item.updated_at | replace(" ", "T") }}">{{ item.updated_at[:10] }}</time></td>
+        <td role="cell" class="text-mono">{{ iso_date(item.updated_at) }}</td>
         <td role="cell" class="table-items-actions">
           <a class="button-quiet" href="{{ row.edit_path }}">{{ "Edit" if row.may_edit else "View" }}</a>
           {%- if row.status_path %}

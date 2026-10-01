@@ -5,7 +5,7 @@ signed-in user may take on it; and they filter by State with `?status=`."""
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from types import ModuleType
 from typing import NamedTuple
@@ -98,6 +98,17 @@ def item_row(request: Request, ctype: ContentType, item: sqlite3.Row, user: sqli
                    edit_path=path(ctype.edit_route),
                    status_path=path(action) + back if may_publish else None,
                    delete_path=path(ctype.delete_route) if director else None)
+
+
+def newest_first(request: Request, user: sqlite3.Row,
+                 ctypes: Iterable[ContentType] = CONTENT_TYPES,
+                 status: str | None = None) -> list[ItemRow]:
+    """Every item of `ctypes`, or only those in `status`, as rows for `user`,
+    most recently updated first: All content, and the Dashboard's lists."""
+    rows = [item_row(request, ctype, item, user)
+            for ctype in ctypes for item in ctype.module.list_all(status)]
+    rows.sort(key=lambda row: row.item["updated_at"], reverse=True)
+    return rows
 
 
 # A Publish or Unpublish form's `back` from an edit page's save bar (T23).

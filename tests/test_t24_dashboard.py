@@ -9,7 +9,7 @@ Homepage settings. All of it is derived from what is stored.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import date
 
 from fastapi.testclient import TestClient
 
@@ -58,7 +58,7 @@ def publish(c: TestClient, kind: str, item_id: str) -> None:
 # --- The head ------------------------------------------------------------------
 
 def test_the_head_has_today_the_role_and_both_new_buttons(client_as):
-    today = datetime.now(timezone.utc).date().isoformat()  # stored times are UTC
+    today = date.today().isoformat()  # the office's day, where the Console runs
     for role, label in (("admin", "Director"), ("editor", "Analyst")):
         page = client_as(role).get("/admin").text
         head = re.search(r'<div class="head-page">(.*?)</div>\s*<dl class="figures-console">',
@@ -229,12 +229,21 @@ def test_the_public_site_panel_says_when_publishing_reaches_it(client_as):
 
 def test_only_the_director_has_the_homepage_panel_with_when_it_was_saved(client_as):
     director, analyst = client_as("admin"), client_as("editor")
-    with db.connect() as conn:
-        conn.execute("UPDATE homepage SET updated_at = '2026-09-28 16:00:00'")
+    with db.connect() as conn:  # setup: settings saved, so no longer the sample
+        conn.execute("UPDATE homepage SET headline = 'Our numbers,',"
+                     " updated_at = '2026-09-28 16:00:00'")
     homepage = panel(director.get("/admin").text, "Homepage")
     assert homepage and 'Last saved <time class="text-mono" datetime="2026-09-28T16:00:00">2026-09-28</time>' in homepage
     assert '<a class="button-secondary" href="/admin/homepage">Edit homepage</a>' in homepage
     assert panel(analyst.get("/admin").text, "Homepage") is None
+
+
+def test_the_homepage_panel_says_when_the_settings_were_never_saved(client_as):
+    # A new site's settings are the seeded sample: their time is the seed's,
+    # not a save's.
+    homepage = panel(client_as("admin").get("/admin").text, "Homepage")
+    assert homepage and "Not saved yet: still the sample a new site starts with." in homepage
+    assert "Last saved" not in homepage
 
 
 # --- Nothing leaks -----------------------------------------------------------------

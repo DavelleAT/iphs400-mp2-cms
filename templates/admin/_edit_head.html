@@ -1,12 +1,12 @@
 {#- An edit page's head (spec #25, T23): the item's title, its State, who
     made it and when, and, once Published, its page on the site. Needs `item`
     and `actions` (app.routes.listing.ItemRow). #}
-{%- macro iso_date(stamp) %}<time datetime="{{ stamp | replace(" ", "T") }}">{{ stamp[:10] }}</time>{% endmacro %}
+{%- from "admin/_macros.html" import iso_date, state_badge with context %}
   <div class="head-page"><div>
     <span class="head-page-crumbs text-label"><a href="{{ path_for('admin_home') }}">Dashboard</a> / <a href="{{ path_for(actions.ctype.list_route) }}">{{ actions.ctype.plural }}</a> / {{ "Edit" if actions.may_edit else "View" }}</span>
     <h1>{{ item.title }}</h1>
     <dl class="facts-page text-label">
-      <div><dt>State</dt><dd><span class="badge-state badge-state-{{ item.status }}">{{ status_labels[item.status] }}</span></dd></div>
+      <div><dt>State</dt><dd>{{ state_badge(item.status) }}</dd></div>
       <div><dt>Created</dt><dd class="text-mono">{{ iso_date(item.created_at) }}</dd></div>
       <div><dt>By</dt><dd>{{ item.author_name }}</dd></div>
       <div><dt>Updated</dt><dd class="text-mono">{{ iso_date(item.updated_at) }}</dd></div>

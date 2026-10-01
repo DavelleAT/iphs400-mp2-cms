@@ -1,0 +1,4 @@
+{#- Markup the console's pages share. Import with context: state_badge reads
+    the page's status_labels. #}
+{%- macro iso_date(stamp, class_="") %}<time{% if class_ %} class="{{ class_ }}"{% endif %} datetime="{{ stamp | replace(" ", "T") }}">{{ stamp[:10] }}</time>{% endmacro %}
+{%- macro state_badge(status) %}<span class="badge-state badge-state-{{ status }}">{{ status_labels[status] }}</span>{% endmacro %}

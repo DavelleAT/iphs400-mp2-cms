@@ -76,8 +76,8 @@ def get() -> Homepage:
 
 
 def last_saved() -> str:
-    """When the settings were last saved (UTC, as SQLite's datetime('now')),
-    or seeded, if they never have been."""
+    """When the settings were last saved, or seeded if they never have been
+    (UTC, as SQLite's datetime('now'))."""
     with db.connect() as conn:
         return conn.execute("SELECT updated_at FROM homepage WHERE id = 1").fetchone()[0]
 
