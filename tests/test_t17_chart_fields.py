@@ -75,7 +75,7 @@ def test_a_unit_conflicts_short_message_leaves_out_the_cell():
 
 
 def test_any_other_errors_short_message_is_its_message():
-    [error] = charts.problems(source(title=""))
+    [error] = charts.problems(source(title="t" * 121))
     assert error.short == str(error)
 
 
@@ -132,3 +132,15 @@ def test_a_long_category_suggests_a_horizontal_bar_chart():
 ])
 def test_nothing_else_suggests_one(text):
     assert charts.suggestion(text) is None
+
+
+@pytest.mark.parametrize("override, field", [
+    ({"title": ""}, "title"), ({"title": "   "}, "title"),
+    ({"categories": ["First-year", ""]}, "categories.1"),
+    ({"series": [series("1", "2", name=" ")]}, "series.0.name"),
+    ({"unit": {"text": " ", "position": "suffix"}}, "unit"),
+])
+def test_a_blank_strings_short_message_says_it_is_blank(override, field):
+    [error] = charts.problems(source(**override))
+    assert (error.field, error.short) == (field, "can't be blank")
+    assert "must be 1 to" in str(error)

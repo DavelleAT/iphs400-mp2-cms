@@ -730,7 +730,8 @@
       </div>
       <h3>Data</h3>
       <p class="admin-chart-builder-hint" id="${id}-grid-hint">Categories down, series across.
-        Paste a range from Excel or Sheets into any cell. Empty rows and series at the end are left out.</p>
+        Paste a range from Excel or Sheets into any cell; its top-left cell, if it names the
+        categories, becomes the category axis label. Empty rows and series at the end are left out.</p>
       <div class="admin-chart-builder-grid-scroll">
         <table class="admin-chart-builder-grid" aria-describedby="${id}-grid-hint"></table>
       </div>
@@ -841,10 +842,11 @@
       const many = state.series.length > 1;
       const head = element("tr", {}, [cell("th", ["Category"], {scope: "col"})]);
       state.series.forEach((series, column) => {
-        head.append(cell("th", [
+        // Its Remove under its name, so the column is as wide as its cells.
+        head.append(cell("th", [element("div", {class: "admin-chart-builder-name"}, [
           ...gridInput(`series.${column}.name`, series.name, `Series ${column + 1} name`),
           ...(many ? [gridButton("Remove", `Remove series ${column + 1}`,
-                                 () => removeSeries(column))] : [])], {scope: "col"}));
+                                 () => removeSeries(column))] : [])])], {scope: "col"}));
       });
       const rows = state.categories.map((category, row) => element("tr", {}, [
         cell("td", gridInput(`categories.${row}`, category, `Category ${row + 1}`)),
@@ -908,6 +910,8 @@
     // A range pasted into the grid fills it from the cell pasted into. Its
     // first row is series names, and its first column category names, when
     // they aren't numbers: those go to the names, wherever it was pasted.
+    // The cell above the category names names them: the category axis
+    // label, unless the writer has given one.
     grid.addEventListener("paste", (event) => {
       const input = event.target.closest("[data-field]");
       const text = event.clipboardData ? event.clipboardData.getData("text/plain") : "";
@@ -936,8 +940,14 @@
       rows.forEach((cells, down) => cells.forEach((text, across) => {
         const row = top + down;
         const column = left + across;
-        // The corner above the category names is nobody's name.
-        if (!row && !column) return;
+        if (!row && !column) {
+          if (text && !state.x_label.trim()) {
+            setField("x_label", text);
+            dialog.querySelector("[data-field=x_label]").value = text;
+            touched.add("x_label");
+          }
+          return;
+        }
         if (row > MOST_CATEGORIES[state.type] || column > MOST_SERIES) {
           cut = true;
           return;

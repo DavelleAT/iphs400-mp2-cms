@@ -124,6 +124,7 @@ body:has(.admin-site-preview) { max-width: 90rem; }
 .admin-chart-builder-grid { border-collapse: collapse; }
 .admin-chart-builder-cell { padding: 0.15rem; text-align: left; vertical-align: top; }
 .admin-chart-builder-cell input { box-sizing: border-box; width: 8.5rem; }
+.admin-chart-builder-name { align-items: flex-start; display: flex; flex-direction: column; gap: 0.15rem; }
 .admin-chart-builder-cell .admin-chart-builder-error { max-width: 8.5rem; }
 @media (max-width: 30rem) { .admin-chart-builder-cell input, .admin-chart-builder-cell .admin-chart-builder-error { width: 6.5rem; max-width: 6.5rem; } }
 .admin-chart-builder-grid-tools, .admin-chart-builder-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }

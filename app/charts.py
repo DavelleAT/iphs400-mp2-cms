@@ -67,6 +67,10 @@ _NUMBER = re.compile(r"""
 """, re.X)
 
 
+# The short message for a string that must have something in it and hasn't.
+BLANK = "can't be blank"
+
+
 class ChartError(ValueError):
     """A Chart broke a rule; the message is safe to show and names it, and
     `field` is where it is (see above). `short` is the message less the
@@ -218,9 +222,11 @@ def _string(value: object, what: str, name: str, field: str | None = None) -> st
     if any(unicodedata.category(char) in ("Cc", "Zl", "Zp") for char in value):
         raise ChartError(f"{name} must be on one line, with no tabs", field)
     fewest, most = _LENGTHS[what]
-    if not fewest <= len(value) <= most or (fewest and not value.strip()):
+    blank = fewest and not value.strip()
+    if not fewest <= len(value) <= most or blank:
         raise ChartError(f"{name} must be {fewest} to {most} characters"
-                         if fewest else f"{name} must be at most {most} characters", field)
+                         if fewest else f"{name} must be at most {most} characters", field,
+                         BLANK if blank else None)
     return value
 
 

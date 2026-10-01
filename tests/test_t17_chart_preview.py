@@ -64,7 +64,7 @@ def test_each_error_comes_back_with_its_field(analyst):
     found = answer(analyst, source(title="", series=[series("482", "abc", name="Fall")]))
     assert found["figure"] is None and found["chart"] is None
     assert found["errors"] == [
-        {"field": "title", "message": "The title must be 1 to 120 characters"},
+        {"field": "title", "message": "Can't be blank"},
         {"field": "series.0.values.1", "message": "'abc' isn't a number"}]
 
 
