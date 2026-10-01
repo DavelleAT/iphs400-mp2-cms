@@ -11,6 +11,11 @@ body's locked blocks), and the Editor shows its rendered, sanitized HTML,
 read-only. Its Markdown source never reaches the browser. On save, each token
 is replaced by that block's source from the *stored* body, never from
 anything posted.
+
+**Charts.** A valid top-level Chart (ADR-006) is a *card*: its drawing, with
+its canonical block in `data-chart`, which the builder (T17) edits and
+app.markdown_form saves. A Chart that is invalid, or inside another block,
+is locked.
 """
 from __future__ import annotations
 
@@ -24,7 +29,7 @@ import nh3
 from markdown_it.token import Token
 from markupsafe import Markup, escape
 
-from app import charts
+from app import chart_drawing, charts
 from app.content import STALE, ContentError, StaleItem, item_base
 from app.markdown_form import LOCKED_TOKEN, ImageName, is_link, to_markdown
 from app.rendering import (IMAGE_REFERENCE, ImageSrc, parse, render_markdown,
@@ -75,9 +80,18 @@ def _token_number(block: list[Token]) -> int | None:
     return int(match[1]) if match else None
 
 
+def _chart(source: str) -> charts.Chart | None:
+    try:
+        return charts.parse(source)
+    except charts.ChartError:
+        return None
+
+
 def _supported(block: list[Token]) -> bool:
     """Whether the Editor can represent a top-level block, given as its
     tokens: it and everything in it."""
+    if len(block) == 1 and charts.is_chart(block[0]):
+        return _chart(block[0].content) is not None
     if _token_number(block) is not None:
         # Text that reads as a token; locked, so it is never taken for one.
         return False
@@ -206,33 +220,60 @@ def _locked_html(number: int, locked: tuple[str, ...], image_src: ImageSrc | Non
             f'<div class="admin-editor-locked-shown">{shown}</div></div>')
 
 
+CARD = "admin-editor-chart"
+
+
+def _card_html(chart: charts.Chart, key: str, number: int) -> str:
+    """A Chart as the Editor shows it: its drawing, and its canonical block,
+    which is what the Editor posts back."""
+    return (f'<div class="{CARD}" data-chart="{escape(chart.canonical())}">'
+            f'{chart_drawing.draw(chart, key, number)}</div>')
+
+
 def editor_html(markdown: str, stored: str, image_src: ImageSrc | None) -> Markup:
     """What the Editor shows for `markdown`, a tokenized body (usually
     tokenize(stored).markdown), whose tokens are `stored`'s locked blocks.
     Rendered and sanitized as the site renders it, with each chart image's
-    src from `image_src`."""
+    src from `image_src`, and each valid top-level Chart as a card."""
     locked = tokenize(stored).locked
-    # Each token is swapped for a placeholder only this call knows, so that
-    # nothing the writer typed can render as one.
+    # Each token and card is swapped for a placeholder only this call knows,
+    # so that nothing the writer typed can render as one.
     nonce = secrets.token_hex(16)
     lines = _lines(markdown)
-    for start, end, number in _token_paragraphs(markdown):
-        lines[start:end] = [f"locked-{nonce}-{number}{_ending(lines[end - 1])}"]
+    # (first line, line after the last, placeholder), each on its own.
+    spans = [(start, end, f"locked-{nonce}-{number}")
+             for start, end, number in _token_paragraphs(markdown)]
+    cards: list[charts.Chart] = []
+    for token in parse(markdown):
+        if (token.level == 0 and token.map and charts.is_chart(token)
+                and (chart := _chart(token.content))):
+            spans.append((*token.map, f"chart-{nonce}-{len(cards)}"))
+            cards.append(chart)
+    for start, end, placeholder in sorted(spans, reverse=True):
+        # A blank line either side, so a placeholder is its own paragraph
+        # (a fence may follow a paragraph's line straight on).
+        lines[start:end] = ["\n", placeholder + _ending(lines[end - 1]), "\n"]
     html = str(render_markdown("".join(lines), image_src, _site_link))
-    return Markup(re.sub(rf"<p>locked-{nonce}-(\d+)</p>",
-                         lambda m: _locked_html(int(m[1]), locked, image_src), html))
+    # The cards' titles' ids need only be unique on the admin page.
+    key = secrets.token_hex(16)
+    return Markup(re.sub(
+        rf"<p>(locked|chart)-{nonce}-(\d+)</p>",
+        lambda m: (_locked_html(int(m[2]), locked, image_src) if m[1] == "locked"
+                   else _card_html(cards[int(m[2])], key, int(m[2]))), html))
 
 
 # What a post saves.
 
 # The Editor's HTML as nh3 lets it through, before app.markdown_form reads it:
-# only what the Editor can represent, and each locked block's token.
+# only what the Editor can represent, each locked block's token, and each
+# card's Chart.
 _POSTED_TAGS = {"p", "br", "strong", "b", "em", "i", "a", "img", "ul", "ol", "li",
                 "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "table", "thead",
                 "tbody", "tfoot", "tr", "th", "td", "div", "span"}
 _POSTED_ATTRIBUTES = {"a": {"href"}, "img": {"src", "alt"}, "ol": {"start"},
                       "th": {"style", "colspan", "rowspan"},
-                      "td": {"style", "colspan", "rowspan"}, "div": {"data-locked"}}
+                      "td": {"style", "colspan", "rowspan"},
+                      "div": {"data-locked", "data-chart"}}
 
 
 # A posted link's schemes, site links' included; app.markdown_form keeps

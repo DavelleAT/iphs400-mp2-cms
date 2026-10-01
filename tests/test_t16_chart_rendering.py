@@ -354,15 +354,15 @@ def test_the_export_is_still_the_live_site_with_charts(client_as, client, tmp_pa
         assert content == live[path], path
 
 
-def test_the_editor_shows_a_chart_as_a_locked_block_drawn(client_as):
+def test_the_editor_shows_a_chart_drawn(client_as):
+    """As a card since T17 (test_t17_chart_cards.py); a locked block before."""
     from tests.test_t03_data_bites import create_bite
-    from tests.test_t13_editor_routes import edit_page, editor_content, textarea
+    from tests.test_t13_editor_routes import edit_page, editor_content
     analyst = client_as("editor")
     item_id = create_bite(analyst, body=CHART_BODY)
-    page = edit_page(analyst, "data-bites", item_id)
-    content = editor_content(page)
-    assert 'data-locked="locked-0"' in content and "chart-figure" in content
-    assert '"version"' not in page and "locked-0" in textarea(page)
+    content = editor_content(edit_page(analyst, "data-bites", item_id))
+    assert 'class="admin-editor-chart" data-chart=' in content and "chart-figure" in content
+    assert "data-locked" not in content
 
 
 # Room for value labels (review of T16).

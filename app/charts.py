@@ -7,6 +7,11 @@ writer typed them ("1,200", "<10", "n/a") and read here, so labels and the
 data table keep the original notation. `parse` reads a block into a Chart or
 raises ChartError naming the problem; nothing is drawn from a block that
 hasn't passed it (app.chart_drawing).
+
+Each ChartError names its `field` too, for the builder (T17) to show it by:
+"title", "unit", "categories.3", "series.1.name", "series.1.values.3" (series
+1's value for category 3), and so on, as the grammar's keys and indexes go;
+None for one in no one field. `problems` finds every field's error at once.
 """
 from __future__ import annotations
 
@@ -14,7 +19,7 @@ import json
 import math
 import re
 import unicodedata
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 
@@ -34,6 +39,8 @@ _SERIES_KEYS = ("name", "values")
 # How many categories each type may have.
 CATEGORIES = {"bar": (1, 30), "hbar": (1, 30), "line": (2, 60)}
 MAX_SERIES = 4
+# A category longer than this suggests a horizontal bar chart (spec #14).
+LONG_CATEGORY = 15
 # Each string's length, as (fewest, most) characters.
 _LENGTHS = {"title": (1, 120), "x_label": (0, 60), "y_label": (0, 60),
             "source": (0, 200), "unit": (1, 20), "category": (1, 60),
@@ -60,7 +67,12 @@ _NUMBER = re.compile(r"""
 
 
 class ChartError(ValueError):
-    """A Chart broke a rule; the message is safe to show and names it."""
+    """A Chart broke a rule; the message is safe to show and names it, and
+    `field` is where it is (see above)."""
+
+    def __init__(self, message: str, field: str | None = None) -> None:
+        super().__init__(message)
+        self.field = field
 
 
 @dataclass(frozen=True)
@@ -192,18 +204,19 @@ def _no_constant(name: str):
     raise ChartError(f"{name} isn't a number a chart can hold")
 
 
-def _string(value: object, what: str, name: str) -> str:
+def _string(value: object, what: str, name: str, field: str | None = None) -> str:
     """A string of the grammar's, NFC-normalized, its length and its single
-    line checked. `what` is its kind in _LENGTHS; `name` how a message calls it."""
+    line checked. `what` is its kind in _LENGTHS; `name` how a message calls
+    it; `field` where it is."""
     if not isinstance(value, str):
-        raise ChartError(f"{name} must be text")
+        raise ChartError(f"{name} must be text", field)
     value = unicodedata.normalize("NFC", value)
     if any(unicodedata.category(char) in ("Cc", "Zl", "Zp") for char in value):
-        raise ChartError(f"{name} must be on one line, with no tabs")
+        raise ChartError(f"{name} must be on one line, with no tabs", field)
     fewest, most = _LENGTHS[what]
     if not fewest <= len(value) <= most or (fewest and not value.strip()):
         raise ChartError(f"{name} must be {fewest} to {most} characters"
-                         if fewest else f"{name} must be at most {most} characters")
+                         if fewest else f"{name} must be at most {most} characters", field)
     return value
 
 
@@ -227,33 +240,56 @@ def _list(value: object, name: str) -> list:
 
 def _unit(value: object) -> Unit:
     data = _keys(value, _UNIT_KEYS, set(_UNIT_KEYS), "the units")
-    text = _string(data["text"], "unit", "the units").strip()
+    text = _string(data["text"], "unit", "the units", "unit").strip()
     position = data["position"]
     if position not in (PREFIX, SUFFIX):
-        raise ChartError("the units' position must be 'prefix' or 'suffix'")
+        raise ChartError("the units' position must be 'prefix' or 'suffix'", "unit")
     if _other_currency(text):
-        raise ChartError(f"the units '{text}' are a currency other than $")
+        raise ChartError(f"the units '{text}' are a currency other than $", "unit")
     if (position == PREFIX) != (text == "$"):
-        raise ChartError("$ goes before the number, and any other units after it")
+        raise ChartError("$ goes before the number, and any other units after it", "unit")
     return Unit(text, position)
 
 
-def _series(value: object, categories: tuple[str, ...]) -> Series:
+def _type(kind: object) -> str:
+    if kind not in TYPES:
+        raise ChartError("its type must be 'bar', 'hbar', or 'line'", "type")
+    return kind
+
+
+def _category(value: object, index: int) -> str:
+    return _string(value, "category", "each category", f"categories.{index}")
+
+
+def _series_name(value: object, index: int) -> str:
+    return _string(value, "series", "a series name", f"series.{index}.name")
+
+
+def _cell(value: object, name: object, category: object, field: str) -> tuple[str, Cell]:
+    """A value cell, as typed and as read, of series `name` and `category`."""
+    where = f"series '{name}', '{category}'"
+    typed = _string(value, "value", where, field)
+    try:
+        return typed, read_cell(typed)
+    except ValueError as exc:
+        raise ChartError(f"{where}: {exc}", field) from None
+
+
+def _series(value: object, index: int, categories: tuple[str, ...]) -> Series:
     data = _keys(value, _SERIES_KEYS, set(_SERIES_KEYS), "each series")
-    name = _string(data["name"], "series", "a series name")
+    name = _series_name(data["name"], index)
     values = _list(data["values"], f"series '{name}'s values")
     if len(values) != len(categories):
         raise ChartError(f"series '{name}' has {len(values)} values but "
-                         f"{len(categories)} categories")
-    typed = tuple(_string(item, "value", f"series '{name}', '{category}'")
-                  for item, category in zip(values, categories))
-    cells = []
-    for text, category in zip(typed, categories):
-        try:
-            cells.append(read_cell(text))
-        except ValueError as exc:
-            raise ChartError(f"series '{name}', '{category}': {exc}") from None
-    return Series(name, typed, tuple(cells))
+                         f"{len(categories)} categories", f"series.{index}.values")
+    typed, cells = zip(*(_cell(item, name, category, f"series.{index}.values.{place}")
+                         for place, (item, category) in enumerate(zip(values, categories))))
+    return Series(name, typed, cells)
+
+
+def _second(names: Sequence[str]) -> int | None:
+    """Where the first name in `names` that repeats one before it is."""
+    return next((index for index, name in enumerate(names) if name in names[:index]), None)
 
 
 def _chart(data: object) -> Chart:
@@ -261,29 +297,27 @@ def _chart(data: object) -> Chart:
     version = data["version"]
     if type(version) is not int or version != VERSION:
         raise ChartError(f"its version must be {VERSION}")
-    kind = data["type"]
-    if kind not in TYPES:
-        raise ChartError("its type must be 'bar', 'hbar', or 'line'")
-    optional = {key: _string(data[key], key, _NAMES[key])
+    kind = _type(data["type"])
+    optional = {key: _string(data[key], key, _NAMES[key], key)
                 for key in ("x_label", "y_label", "source") if key in data}
-    categories = tuple(_string(item, "category", "each category")
-                       for item in _list(data["categories"], "the categories"))
+    categories = tuple(_category(item, index) for index, item
+                       in enumerate(_list(data["categories"], "the categories")))
     fewest, most = CATEGORIES[kind]
     if not fewest <= len(categories) <= most:
         raise ChartError(f"a {TYPE_NAMES[kind]} has {fewest} to {most} categories; "
-                         f"this one has {len(categories)}")
-    for category in categories:
-        if categories.count(category) > 1:
-            raise ChartError(f"the category '{category}' appears twice")
+                         f"this one has {len(categories)}", "categories")
+    if (twice := _second(categories)) is not None:
+        raise ChartError(f"the category '{categories[twice]}' appears twice",
+                         f"categories.{twice}")
     raw_series = _list(data["series"], "the series")
     if not 1 <= len(raw_series) <= MAX_SERIES:
-        raise ChartError(f"a chart has 1 to {MAX_SERIES} series; this one has {len(raw_series)}")
-    series = tuple(_series(item, categories) for item in raw_series)
-    names = [item.name for item in series]
-    for name in names:
-        if names.count(name) > 1:
-            raise ChartError(f"the series name '{name}' appears twice")
-    chart = Chart(type=kind, title=_string(data["title"], "title", "the title"),
+        raise ChartError(f"a chart has 1 to {MAX_SERIES} series; this one has {len(raw_series)}",
+                         "series")
+    series = tuple(_series(item, index, categories) for index, item in enumerate(raw_series))
+    if (twice := _second([item.name for item in series])) is not None:
+        raise ChartError(f"the series name '{series[twice].name}' appears twice",
+                         f"series.{twice}.name")
+    chart = Chart(type=kind, title=_string(data["title"], "title", "the title", "title"),
                   categories=categories, series=series,
                   unit=_unit(data["unit"]) if "unit" in data else None, **optional)
     _one_unit(chart)
@@ -294,29 +328,109 @@ def _one_unit(chart: Chart) -> None:
     """ChartError naming the first cell whose units aren't the Chart's."""
     unit = chart.effective_unit
     for category_index, category in enumerate(chart.categories):
-        for series in chart.series:
+        for series_index, series in enumerate(chart.series):
             cell = series.cells[category_index]
             if cell.unit and cell.unit != unit:
                 raise ChartError(f"series '{series.name}', '{category}': '{cell.text}' is in "
-                                 f"{cell.unit.text}, but the chart's units are {unit.text}")
+                                 f"{cell.unit.text}, but the chart's units are {unit.text}",
+                                 f"series.{series_index}.values.{category_index}")
+
+
+def _load(source: str) -> object:
+    """A block's JSON, read strictly. ChartError if it can't be."""
+    if len(source.encode("utf-8")) > MAX_BYTES:
+        raise ChartError(f"it is larger than {MAX_BYTES // 1024} KB")
+    try:
+        return json.loads(source, object_pairs_hook=_no_duplicates,
+                          parse_constant=_no_constant)
+    except json.JSONDecodeError as exc:
+        raise ChartError(f"its data can't be read ({exc.msg}, line {exc.lineno})") from None
+    except RecursionError:
+        raise ChartError("its data is nested too deeply") from None
 
 
 def parse(source: str, number: int = 1) -> Chart:
     """The Chart in a `chart` fence's source, the `number`th in its body.
     ChartError, its message starting "Chart <number>: ", if it breaks a rule."""
     try:
-        if len(source.encode("utf-8")) > MAX_BYTES:
-            raise ChartError(f"it is larger than {MAX_BYTES // 1024} KB")
-        try:
-            data = json.loads(source, object_pairs_hook=_no_duplicates,
-                              parse_constant=_no_constant)
-        except json.JSONDecodeError as exc:
-            raise ChartError(f"its data can't be read ({exc.msg}, line {exc.lineno})") from None
-        return _chart(data)
+        return _chart(_load(source))
     except ChartError as exc:
-        raise ChartError(f"Chart {number}: {exc}") from None
-    except RecursionError:
-        raise ChartError(f"Chart {number}: its data is nested too deeply") from None
+        raise ChartError(f"Chart {number}: {exc}", exc.field) from None
+
+
+# The builder (T17).
+
+def _field_problems(data: object) -> list[ChartError]:
+    """The error in each field of `data` that breaks a rule on its own: the
+    type, each string, and each value cell, the cells in the grid's order.
+    Whatever isn't the shape the grammar has is left for _chart."""
+    if not isinstance(data, dict):
+        return []
+    found: list[ChartError] = []
+
+    def check(rule, *args) -> None:
+        try:
+            rule(*args)
+        except ChartError as exc:
+            found.append(exc)
+
+    if "type" in data:
+        check(_type, data["type"])
+    for key in ("title", "x_label", "y_label", "source"):
+        if key in data:
+            check(_string, data[key], key, _NAMES[key], key)
+    if "unit" in data:
+        check(_unit, data["unit"])
+    categories = data.get("categories")
+    categories = categories if isinstance(categories, list) else []
+    for index, category in enumerate(categories):
+        check(_category, category, index)
+    series = data.get("series")
+    series = [item if isinstance(item, dict) else {}
+              for item in (series if isinstance(series, list) else [])]
+    for index, item in enumerate(series):
+        if "name" in item:
+            check(_series_name, item["name"], index)
+    for place, category in enumerate(categories):
+        for index, item in enumerate(series):
+            values = item.get("values")
+            if isinstance(values, list) and place < len(values):
+                check(_cell, values[place], item.get("name"), category,
+                      f"series.{index}.values.{place}")
+    return found
+
+
+def problems(source: str) -> list[ChartError]:
+    """Every error in a Chart's source, for the builder to show by its
+    field: the error in each field that breaks a rule on its own, or if
+    there are none, the first rule the whole Chart breaks (as `parse`, less
+    its "Chart <number>: "). [] if the Chart is valid."""
+    try:
+        data = _load(source)
+        found = _field_problems(data)
+        if not found:
+            _chart(data)
+    except ChartError as exc:
+        return [exc]
+    return found
+
+
+def suggestion(source: str) -> str | None:
+    """The type a Chart's source would be better drawn as, if any: "hbar"
+    for a vertical bar chart with a category over LONG_CATEGORY characters,
+    which would be shortened under its bar. It is only a suggestion."""
+    try:
+        data = _load(source)
+    except ChartError:
+        return None
+    if not isinstance(data, dict) or data.get("type") != "bar":
+        return None
+    categories = data.get("categories")
+    if isinstance(categories, list) and any(
+            isinstance(category, str) and len(category) > LONG_CATEGORY
+            for category in categories):
+        return "hbar"
+    return None
 
 
 def check(tokens: Iterable[Token]) -> None:

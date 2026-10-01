@@ -6,16 +6,18 @@ Markdown, written one standard way, with stdlib `html.parser`. It writes only
 what the Editor supports: paragraphs, Sections (H2) and Subsections (H3),
 bulleted and numbered lists, block quotes, tables, and bold, italic, line
 breaks, `https:`/`mailto:` and site links (app.site_links), and chart images
-inline. Any other element is let through as its text. Everything the writer typed is escaped, so it
+inline, and Charts (a card, `data-chart`, as the canonical `chart` block). Any other element is let through as its text. Everything the writer typed is escaped, so it
 renders as the text it is and never as Markdown syntax.
 """
 from __future__ import annotations
 
+import itertools
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from html.parser import HTMLParser
 
+from app import charts
 from app.content import ContentError
 from app.rendering import LINK_SCHEMES
 from app.site_links import REFERENCE
@@ -27,6 +29,11 @@ LOCKED_TOKEN = re.compile(r"locked-(\d+)")
 _LOCKED = "data-locked"
 _LOCKED_MOVED = ("A part of the body that can't be edited here was moved into a list, "
                  "quote, table, or paragraph. Move it back, or remove it.")
+# A Chart (app.editor): at the top level, a card holding its block in
+# data-chart. What the card shows is never read.
+_CHART = "data-chart"
+_CHART_MOVED = ("A Chart was moved into a list, quote, table, or paragraph. "
+                "Move it back, or remove it.")
 _LOCKED_FORGED = ("A part of the body that can't be edited here was changed. Reload the "
                   "page to get it back.")
 
@@ -151,7 +158,8 @@ def _destination(url: str) -> str:
 
 
 def _is_block(node: _Element | str) -> bool:
-    return isinstance(node, _Element) and (node.tag in _BLOCK_TAGS or _LOCKED in node.attrs)
+    return isinstance(node, _Element) and (
+        node.tag in _BLOCK_TAGS or _LOCKED in node.attrs or _CHART in node.attrs)
 
 
 def _locked_token(node: _Element) -> str:
@@ -284,6 +292,8 @@ class _Converter:
     image_name: ImageName | None
     # Off in a table cell, where a line never starts a block.
     escape_line_starts: bool = True
+    # Each Chart's number in the body, for its errors.
+    chart_numbers: Iterator[int] = field(default_factory=lambda: itertools.count(1))
 
     # Inline.
 
@@ -294,6 +304,8 @@ class _Converter:
             return _escape(node)
         if _LOCKED in node.attrs:
             raise ContentError(_LOCKED_MOVED)
+        if _CHART in node.attrs:
+            raise ContentError(_CHART_MOVED)
         if node.tag == "br":
             return _BREAK
         if node.tag == "img":
@@ -350,7 +362,7 @@ class _Converter:
     def blocks(self, element: _Element, *, top: bool = False) -> list[str]:
         """An element's children as Markdown blocks, in order. A run of
         inline children between blocks is a paragraph. Only the `top`, the
-        body itself, may hold a locked block."""
+        body itself, may hold a locked block or a Chart."""
         blocks: list[str | None] = []
         run: list[_Element | str] = []
         # The marker of the list just written, if the last block is a list:
@@ -374,6 +386,12 @@ class _Converter:
                 blocks.append(_locked_token(block))
                 previous_marker = None
                 continue
+            if _CHART in block.attrs:
+                if not top:
+                    raise ContentError(_CHART_MOVED)
+                blocks.append(self.chart(block))
+                previous_marker = None
+                continue
             if block.tag in _LISTS:
                 ordered = block.tag == "ol"
                 marker = (")" if previous_marker == "." else ".") if ordered else (
@@ -394,6 +412,17 @@ class _Converter:
             else:
                 blocks.extend(self.blocks(block))
         return [written for written in blocks if written is not None]
+
+    def chart(self, card: _Element) -> str:
+        """A card as its Chart's canonical block. ContentError, naming the
+        Chart by its place in the body, if it breaks a rule."""
+        try:
+            chart = charts.parse(card.attrs[_CHART], next(self.chart_numbers))
+        except charts.ChartError as exc:
+            raise ContentError(str(exc)) from None
+        # No line of the canonical form starts with a backtick, so nothing
+        # in it can close the fence.
+        return f"```{charts.INFO}\n{chart.canonical()}```"
 
     def paragraph(self, nodes: list[_Element | str]) -> str | None:
         # A backslash at the end of a line is a line break.
@@ -459,6 +488,7 @@ def to_markdown(html: str, image_name: ImageName | None = None) -> str:
     one blank line, ending in a newline; "" if nothing is left. An <img> is
     kept only as the chart image `image_name` names for its src. A locked
     block is written as its token; ContentError if one is not as the Editor
-    shows it, at the top level and empty."""
+    shows it, at the top level and empty. A Chart's card is written as its
+    canonical block; ContentError if it is invalid or not at the top level."""
     blocks = _Converter(image_name).blocks(_tree(html), top=True)
     return "\n\n".join(blocks) + "\n" if blocks else ""

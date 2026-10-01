@@ -140,23 +140,13 @@ def test_saving_a_canonical_chart_again_changes_nothing(analyst):
     assert stored_body(data_bites, item_id) == body + "\nMore.\n"
 
 
-@pytest.mark.parametrize("path", ["editor", "fallback"])
-def test_a_stored_chart_not_in_canonical_form_keeps_its_bytes(analyst, path):
-    """Untouched, or with the blocks around it edited: it's a locked block,
-    so its bytes are the stored ones (ADR-005)."""
+def test_a_stored_chart_not_in_canonical_form_keeps_its_bytes_untouched(analyst):
+    """Saved untouched, its bytes are the stored ones (ADR-005). Since T17 a
+    valid Chart is a card, so an edit around it saves it in canonical form
+    (test_t17_chart_cards.py)."""
     item_id = create_bite(analyst)
     chart = f"~~~chart\n{_shuffled()}\n~~~"
     store_body(data_bites, item_id, f"Intro.\n\n{chart}\n")
     page = edit_page(analyst, "data-bites", item_id)
-    if path == "editor":
-        assert save(analyst, "data-bites", item_id, page).status_code == 303
-        assert stored_body(data_bites, item_id) == f"Intro.\n\n{chart}\n"
-        page = edit_page(analyst, "data-bites", item_id)
-        response = save(analyst, "data-bites", item_id, page, body_dirty="1",
-                        body_html="<p>Intro, edited.</p>" + _locked(page))
-    else:
-        assert "locked-0" in textarea(page) and _shuffled() not in textarea(page)
-        response = fallback_save(analyst, "data-bites", item_id, page,
-                                 textarea(page).replace("Intro.", "Intro, edited."))
-    assert response.status_code == 303
-    assert stored_body(data_bites, item_id) == f"Intro, edited.\n\n{chart}\n"
+    assert save(analyst, "data-bites", item_id, page).status_code == 303
+    assert stored_body(data_bites, item_id) == f"Intro.\n\n{chart}\n"
