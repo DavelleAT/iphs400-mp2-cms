@@ -15,7 +15,8 @@ import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app import db, site_links
+from app import charts, db, site_links
+from app.rendering import parse
 
 STATUS_LABELS = {"draft": "Draft", "published": "Published"}
 # Runs inside the transaction that wrote an item's row, given the connection and
@@ -61,6 +62,11 @@ def validate(title: str, slug: str, body: str) -> tuple[str, str, str]:
                            "choose another.")
     if not body.strip():
         raise ContentError("Enter a body.")
+    try:
+        # Every save, from the Editor or not (spec #14, ADR-006).
+        charts.check(parse(body))
+    except charts.ChartError as exc:
+        raise ContentError(str(exc)) from None
     return title, slug, body
 
 

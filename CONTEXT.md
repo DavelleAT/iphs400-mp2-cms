@@ -53,8 +53,9 @@ _Avoid_: figure, graphic, media, attachment
 **Chart**:
 A bar, horizontal bar, or line chart the CMS *draws* from data typed or
 pasted into it, shown inline in a Data Bite or Report body with its data
-available as a table (spec #14). Stored in the body as a `chart` block the
-writer never sees. Not a **Chart image**, which is made elsewhere and uploaded.
+available as a table (spec #14,
+[ADR-006](docs/adr/ADR-006-charts-drawn-from-data.md)). Stored in the body
+as a `chart` block the writer never sees. Not a **Chart image**, which is made elsewhere and uploaded.
 _Avoid_: graph, plot, visualization
 
 **Editor**:

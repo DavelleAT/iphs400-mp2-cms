@@ -24,6 +24,7 @@ import nh3
 from markdown_it.token import Token
 from markupsafe import Markup, escape
 
+from app import charts
 from app.content import STALE, ContentError, StaleItem, item_base
 from app.markdown_form import LOCKED_TOKEN, ImageName, is_link, to_markdown
 from app.rendering import (IMAGE_REFERENCE, ImageSrc, parse, render_markdown,
@@ -249,6 +250,25 @@ def _with_lf(text: str) -> str:
     return _NEWLINE.sub("\n", text)
 
 
+def canonical_charts(markdown: str) -> str:
+    """`markdown` with each top-level Chart in it in canonical form (spec
+    #14), with the line endings of the line that closes it. A Chart that
+    breaks a rule is left as it is, for app.content.validate to name."""
+    lines = _lines(markdown)
+    for token in reversed(parse(markdown)):
+        if not (charts.is_chart(token) and token.level == 0 and token.map):
+            continue
+        try:
+            chart = charts.parse(token.content)
+        except charts.ChartError:
+            continue
+        start, end = token.map
+        ending = _ending(lines[end - 1])
+        fence = f"```{charts.INFO}\n{chart.canonical()}```\n"
+        lines[start:end] = [fence.replace("\n", ending)]
+    return "".join(lines)
+
+
 @dataclass(frozen=True)
 class Posted:
     """A body as an edit form posts it. With the Editor, `body_html` is its
@@ -268,7 +288,7 @@ class Posted:
         """The body the writer wants, tokenized. ContentError if the Editor's
         HTML has a locked block it didn't make."""
         if self.body_html is None:
-            return self.body
+            return canonical_charts(self.body)
         return to_markdown(_sanitized(self.body_html), image_name)
 
 
