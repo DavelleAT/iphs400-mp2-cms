@@ -87,6 +87,8 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .nav-site a .text-mono { color: var(--color-bright); font-size: 0.82rem; font-weight: 500; padding-top: 0.12rem; }
 .nav-site a:hover { border-color: var(--color-field-line); }
 .nav-site a[aria-current] { border-color: var(--color-citron); }
+/* Inside the link: the scrolling list would clip a ring drawn outside it. */
+.nav-site a:focus-visible { outline-offset: -3px; }
 @media (max-width: 40rem) {
   .nav-site ul { gap: 0 1.4rem; mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 2.5rem; }
 }
