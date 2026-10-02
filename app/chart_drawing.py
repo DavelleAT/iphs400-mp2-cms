@@ -2,14 +2,9 @@
 inline SVG figure with its "Show the data" table.
 
 What this returns is inserted *after* nh3 (app.rendering), so it is safe
-because of how it's built, not by filtering. Every element goes through
-_element, which refuses any element or attribute outside the spec's fixed
-vocabulary, and any attribute value that isn't one of:
-  - a number this module formatted (and checked with math.isfinite),
-  - a palette constant (fill, stroke), a fixed class name, or a fixed token,
-  - the title's id, `chart-<key>-<n>-title`.
-Writer strings (title, labels, units, source, category and series names,
-cell text) are only ever text content, escaped by _text.
+because of how it's built, not by filtering: every element goes through
+app.chart_svg, which refuses anything outside the spec's fixed vocabulary,
+and a writer's strings are only ever text content, escaped there.
 
 Layout is in the SVG's own units: the stylesheet (static/site.css) sets
 its text to FONT units and scales the SVG to the column. Both drawings share
@@ -18,44 +13,14 @@ the scale, so the phone one starts its axis where the wide one does.
 from __future__ import annotations
 
 import math
-import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from html import escape
 
+from app.chart_svg import (BASELINE, GRID, INK, LINE_CLASSES, MARKER_CLASSES, MUTED, NONE,
+                           SERIES, SERIES_CLASSES, SURFACE)
+from app.chart_svg import element as _element
+from app.chart_svg import text as _text
 from app.charts import Chart, Unit
-
-# The palette (dataviz reference palette, slots 1 to 4, light steps): what a
-# Chart shows without a stylesheet. The public site's (static/site.css)
-# recolours the series by class, and the console's (static/admin.css) swaps
-# in the dark steps in dark mode.
-SERIES = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")
-INK = "#52514e"       # labels, values, legend, axis titles
-MUTED = "#898781"     # tick labels
-GRID = "#e1e0d9"
-BASELINE = "#a3a29b"
-SURFACE = "#ffffff"   # the ring around a marker
-NONE = "none"         # a line's fill
-PALETTE = frozenset({*SERIES, INK, MUTED, GRID, BASELINE, SURFACE, NONE})
-
-ELEMENTS = frozenset({"figure", "figcaption", "svg", "g", "title", "rect", "line", "polyline",
-                      "circle", "text", "p", "small", "details", "summary", "table", "thead",
-                      "tbody", "tr", "th", "td"})
-ATTRIBUTES = frozenset({"class", "viewBox", "role", "aria-labelledby", "aria-hidden", "id", "x",
-                        "y", "x1", "y1", "x2", "y2", "width", "height", "cx", "cy", "r",
-                        "points", "fill", "stroke", "stroke-width", "text-anchor", "scope"})
-_SERIES_CLASSES = tuple(f"chart-series-{i}" for i in range(1, len(SERIES) + 1))
-_LINE_CLASSES = tuple(f"chart-line-{i}" for i in range(1, len(SERIES) + 1))
-_MARKER_CLASSES = tuple(f"chart-marker-{i}" for i in range(1, len(SERIES) + 1))
-CLASSES = frozenset({"chart-figure", "chart-title", "chart-svg", "chart-svg-phone", "chart-grid", "chart-baseline",
-                     "chart-tick", "chart-category", "chart-value", "chart-axis-title",
-                     "chart-legend", "chart-note", "chart-source", "chart-data",
-                     *_SERIES_CLASSES, *_LINE_CLASSES, *_MARKER_CLASSES})
-_NUMERIC = frozenset({"x", "y", "x1", "y1", "x2", "y2", "width", "height", "cx", "cy", "r",
-                      "stroke-width"})
-_TOKENS = {"role": {"img"}, "text-anchor": {"start", "middle", "end"}, "scope": {"row", "col"},
-           "aria-hidden": {"true"}}
-TITLE_ID = re.compile(r"chart-[0-9a-f]{32}-[0-9]+-title")
 
 PRIVACY_NOTE = "Some values are suppressed for privacy."
 DATA_SUMMARY = "Show the data"
@@ -71,53 +36,6 @@ _LINE = 18           # a line of text
 _PLOT_HEIGHT = 220
 _BAR = 24            # the thickest a bar is
 _GAP = 2             # between touching bars
-
-
-class ChartDrawError(RuntimeError):
-    """The drawing broke its own rules: a bug, never a writer's mistake."""
-
-
-# Building elements.
-
-def _number(value: float) -> str:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise ChartDrawError(f"not a finite number: {value!r}")
-    text = f"{value:.2f}".rstrip("0").rstrip(".")
-    return "0" if text == "-0" else text
-
-
-def _value(name: str, value: object) -> str:
-    """An attribute's value, if the vocabulary allows it."""
-    if name == "viewBox":
-        return " ".join(map(_number, value))
-    if name == "points":
-        return " ".join(f"{_number(x)},{_number(y)}" for x, y in value)
-    if name in _NUMERIC:
-        return _number(value)
-    allowed = (name == "class" and value in CLASSES
-               or name in ("fill", "stroke") and value in PALETTE
-               or name in ("id", "aria-labelledby") and TITLE_ID.fullmatch(str(value))
-               or value in _TOKENS.get(name, ()))
-    if not allowed:
-        raise ChartDrawError(f"{name}={value!r} is not in the vocabulary")
-    return str(value)
-
-
-def _element(name: str, attributes: dict | None = None, *content: str) -> str:
-    """An element of the vocabulary. `content` is elements from here, or
-    _text: never a writer's string as it is."""
-    if name not in ELEMENTS:
-        raise ChartDrawError(f"<{name}> is not in the vocabulary")
-    parts = []
-    for key, value in (attributes or {}).items():
-        if key not in ATTRIBUTES:
-            raise ChartDrawError(f"{key} is not in the vocabulary")
-        parts.append(f' {key}="{_value(key, value)}"')
-    return f"<{name}{''.join(parts)}>{''.join(content)}</{name}>"
-
-
-def _text(text: str) -> str:
-    return escape(text, quote=True)
 
 
 def _width(text: str) -> float:
@@ -224,11 +142,11 @@ def _legend(chart: Chart, top: float, full: float) -> tuple[str, float]:
         if x and x + width > full:
             x, y = 0.0, y + _LINE
         if chart.type == "line":
-            swatch = _element("line", {"class": _LINE_CLASSES[index], "x1": x, "y1": y - 4,
+            swatch = _element("line", {"class": LINE_CLASSES[index], "x1": x, "y1": y - 4,
                                        "x2": x + 14, "y2": y - 4, "stroke": SERIES[index],
                                        "stroke-width": 2})
         else:
-            swatch = _element("rect", {"class": _SERIES_CLASSES[index], "x": x, "y": y - 10,
+            swatch = _element("rect", {"class": SERIES_CLASSES[index], "x": x, "y": y - 10,
                                        "width": 12, "height": 12, "fill": SERIES[index]})
         items.append(swatch + _label(x + 18, y, name, "chart-legend", "start"))
         x += width
@@ -336,7 +254,7 @@ def _bars(chart: Chart, left: float, step: float, y, labelled: bool) -> list[str
             x = x0 + number * (width + _GAP)
             if cell.kind == "number":
                 top, bottom = y(max(cell.number, 0)), y(min(cell.number, 0))
-                marks.append(_element("rect", {"class": _SERIES_CLASSES[number], "x": x, "y": top,
+                marks.append(_element("rect", {"class": SERIES_CLASSES[number], "x": x, "y": top,
                                                "width": width, "height": bottom - top,
                                                "fill": SERIES[number]},
                                       _mark_title(chart, series.name, category, cell.text)))
@@ -369,7 +287,7 @@ def _lines(chart: Chart, x, y, end_label: str) -> list[str]:
         lines, markers = [], []
         for run in _runs(points):
             if len(run) > 1:
-                lines.append(_element("polyline", {"class": _LINE_CLASSES[number], "points": run,
+                lines.append(_element("polyline", {"class": LINE_CLASSES[number], "points": run,
                                                    "fill": NONE, "stroke": SERIES[number],
                                                    "stroke-width": 2}))
         for index, (point, cell) in enumerate(zip(points, series.cells)):
@@ -377,7 +295,7 @@ def _lines(chart: Chart, x, y, end_label: str) -> list[str]:
                 points[i] is None for i in (index - 1, index + 1) if 0 <= i < len(points))
             if point is not None and (marked or alone):
                 markers.append(_element(
-                    "circle", {"class": _MARKER_CLASSES[number], "cx": point[0], "cy": point[1],
+                    "circle", {"class": MARKER_CLASSES[number], "cx": point[0], "cy": point[1],
                                "r": 4, "fill": SERIES[number], "stroke": SURFACE,
                                "stroke-width": 2},
                     _mark_title(chart, series.name, chart.categories[index], cell.text)))
@@ -438,7 +356,7 @@ def _horizontal(chart: Chart, full: float) -> tuple[str, float, Scale]:
             bar_y = band_top + 6 + number * (thickness + _GAP)
             if cell.kind == "number":
                 start, end = x(min(cell.number, 0)), x(max(cell.number, 0))
-                marks.append(_element("rect", {"class": _SERIES_CLASSES[number], "x": start,
+                marks.append(_element("rect", {"class": SERIES_CLASSES[number], "x": start,
                                                "y": bar_y, "width": end - start,
                                                "height": thickness, "fill": SERIES[number]},
                                       _mark_title(chart, series.name, category, cell.text)))

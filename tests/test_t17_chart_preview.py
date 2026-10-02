@@ -8,7 +8,7 @@ import re
 
 import pytest
 
-from app import chart_drawing, charts, data_bites, reports
+from app import chart_drawing, chart_svg, charts, data_bites, reports
 from app.rendering import render_markdown
 from tests.conftest import csrf_from
 from tests.test_t16_charts import fence, series, source
@@ -57,7 +57,7 @@ def test_a_valid_chart_is_drawn_as_the_public_page_draws_it(client_as, role):
         return re.sub(r"chart-[0-9a-f]{32}-[0-9]+-title", "ID", html)
 
     assert without_ids(found["drawing"]) == without_ids(public)
-    assert chart_drawing.TITLE_ID.search(found["drawing"])
+    assert chart_svg.TITLE_ID.search(found["drawing"])
 
 
 def test_each_error_comes_back_with_its_field(analyst):

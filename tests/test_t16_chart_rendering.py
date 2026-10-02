@@ -11,8 +11,8 @@ from html.parser import HTMLParser
 
 import pytest
 
-from app import chart_drawing, charts, rendering
-from app.chart_drawing import CLASSES, ELEMENTS, PALETTE, ChartDrawError
+from app import chart_drawing, chart_svg, charts, rendering
+from app.chart_svg import CLASSES, ELEMENTS, PALETTE, ChartDrawError
 from app.publish import render_site
 from app.rendering import CHART_NOT_SHOWN, ChartPlacementError, render_markdown
 from tests.test_t07_public_site import crawl, published_bite, published_report
@@ -119,7 +119,7 @@ def test_the_vocabulary_is_the_specs():
     assert ELEMENTS == {"figure", "figcaption", "svg", "g", "title", "rect", "line", "polyline",
                         "circle", "text", "p", "small", "details", "summary", "table", "thead",
                         "tbody", "tr", "th", "td"}
-    assert chart_drawing.ATTRIBUTES == ATTRIBUTES
+    assert chart_svg.ATTRIBUTES == ATTRIBUTES
 
 
 HOSTILE = ["<script>alert(1)</script>", '"><svg onload=alert(1)>', "javascript:alert(1)",
@@ -308,18 +308,18 @@ def test_the_svg_is_an_image_named_by_the_title():
 
 def test_the_drawing_refuses_anything_outside_its_vocabulary():
     with pytest.raises(ChartDrawError):
-        chart_drawing._element("script")
+        chart_svg.element("script")
     with pytest.raises(ChartDrawError):
-        chart_drawing._element("rect", {"style": "fill:red"})
+        chart_svg.element("rect", {"style": "fill:red"})
     with pytest.raises(ChartDrawError):
-        chart_drawing._element("rect", {"fill": "url(#x)"})
+        chart_svg.element("rect", {"fill": "url(#x)"})
     with pytest.raises(ChartDrawError):
-        chart_drawing._element("rect", {"class": "chart-figure other"})
+        chart_svg.element("rect", {"class": "chart-figure other"})
     with pytest.raises(ChartDrawError):
-        chart_drawing._element("figcaption", {"id": "chart-x-0-title"})
+        chart_svg.element("figcaption", {"id": "chart-x-0-title"})
     for bad in (float("nan"), float("inf"), "10", True):
         with pytest.raises(ChartDrawError):
-            chart_drawing._element("rect", {"x": bad})
+            chart_svg.element("rect", {"x": bad})
 
 
 # On every page.
