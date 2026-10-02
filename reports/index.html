@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reports · Kenyon Office of Institutional Research</title>
+  <meta property="og:title" content="Reports">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -12,10 +14,16 @@
   <div class="field-site"><div class="layout-wrap">
     <header class="header-site">
       <a class="header-home" href="../index.html"><span class="header-mark" aria-hidden="true">IR</span><b class="header-home-text">Kenyon Office of Institutional Research</b></a>
+      <form class="search-site" role="search" action="../search.html" method="get">
+        <label class="text-hidden" for="search-site-q">Search the site</label>
+        <input id="search-site-q" type="search" name="q" placeholder="Search Reports and Data Bites">
+        <button type="submit">Search</button>
+      </form>
     </header>
     <nav class="nav-site" aria-label="Site"><ul>
-      <li><a href="../reports/survey-calendar.html"><span class="text-mono">01</span>Survey Calendar</a></li>
-      <li><a href="../data-bites/index.html"><span class="text-mono">02</span>Data Bites</a></li>
+      <li><a href="../reports/factbook.html"><span class="text-mono">01</span>Factbook</a></li>
+      <li><a href="../reports/survey-calendar.html"><span class="text-mono">02</span>Survey Calendar</a></li>
+      <li><a href="../data-bites/index.html"><span class="text-mono">03</span>Data Bites</a></li>
     </ul></nav>
   </div></div>
   <main id="main">
@@ -23,16 +31,20 @@
       <nav class="nav-breadcrumb text-label" aria-label="Breadcrumb"><a href="../index.html">Home</a></nav>
       <h1>Reports</h1>
       <dl class="meta-item text-label">
-        <div><dt>Count</dt><dd><span class="text-mono">1</span></dd></div>
+        <div><dt>Count</dt><dd><span class="text-mono">2</span></dd></div>
         <div><dt>Order</dt><dd>By title</dd></div>
       </dl>
     </div></div></div>
     <div class="layout-wrap">
     <section class="section-list">
       
-  <ul class="list-reports">
-    <li><span class="text-mono"><time datetime="2026-09-29">2026-09-29</time></span><a href="../reports/survey-calendar.html">Survey Calendar</a></li>
-  </ul>
+  <table class="table-reports" role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Report</th><th role="columnheader" scope="col">What it covers</th><th role="columnheader" scope="col">Updated</th><th role="columnheader" scope="col">Format</th></tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row"><td role="cell"><a href="../reports/factbook.html">Factbook</a></td><td role="cell">Admissions, enrollment, diversity and academic programs, updated each term.</td><td role="cell" class="text-mono"><time datetime="2026-10-02">2026-10-02</time></td><td role="cell"><span class="badge-format text-mono">WEB</span></td></tr>
+      <tr role="row"><td role="cell"><a href="../reports/survey-calendar.html">Survey Calendar</a></td><td role="cell"></td><td role="cell" class="text-mono"><time datetime="2026-09-29">2026-09-29</time></td><td role="cell"><span class="badge-format text-mono">WEB</span></td></tr>
+    </tbody>
+  </table>
     </section>
     </div>
   </main>

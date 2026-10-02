@@ -25,7 +25,8 @@
   --color-field-line: rgb(255 255 255 / 0.16);
   --color-field-grid: rgb(255 255 255 / 0.045);
   --color-field-text: #d9d3f0;
-  --color-purple: #4b2e84;         /* Kenyon purple */
+  --color-kenyon: #4b2e84;         /* Kenyon purple, in both themes */
+  --color-purple: var(--color-kenyon);  /* links and marks; a lighter step in dark mode */
   --color-bright: #8f80ff;         /* Kenyon bright purple */
   --color-citron: #d6f550;         /* only ever on --color-field */
   /* Chart series (the newest last): Kenyon purple, then bright purple, then
@@ -64,6 +65,8 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .skip-link:focus { top: 0.5rem; }
 .text-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
 .text-label { font: 500 0.78rem/1.3 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+/* Read by a screen reader, not shown. */
+.text-hidden { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 
 /* The purple field: the header on every page, then the home intro or a
    page's title, and the footer. A faint plotting grid sits under it. */
@@ -73,10 +76,22 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 /* A Site preview's banner (Page.render_preview); never on a published page. */
 .site-preview-banner { border-bottom: 1px dashed var(--color-citron); color: var(--color-citron); font: 500 0.78rem/1.3 var(--font-mono); letter-spacing: 0.04em; margin: 0; padding-block: 0.6rem; text-transform: uppercase; }
 
-.header-site { align-items: center; display: flex; gap: 1rem 2rem; padding-block: 1.25rem; }
+.header-site { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; padding-block: 1.25rem; }
 .header-home { align-items: center; display: flex; gap: 0.8rem; text-decoration: none; }
 .header-mark { background: var(--color-citron); color: var(--color-field); display: grid; flex: none; font: 700 1.05rem/1 var(--font-mono); height: 2.6rem; letter-spacing: -0.04em; place-items: center; width: 2.6rem; }
 .header-home-text { font-size: 1.1rem; line-height: 1.25; }
+/* Site search in the header: a plain GET to search.html. Its label is
+   read, not shown (.text-hidden); the field's own placeholder says what it searches. On a
+   phone it takes the header's full width, under the name. */
+.search-site { display: flex; }
+.search-site input { background: rgb(255 255 255 / 0.07); border: 1px solid var(--color-field-line); border-radius: 0; border-right: 0; color: #fff; font: 400 0.95rem var(--font-text); padding: 0.55rem 0.8rem; width: 16rem; }
+.search-site input::placeholder { color: var(--color-field-text); opacity: 1; }
+.search-site button { background: var(--color-citron); border: 0; border-radius: 0; color: var(--color-field); cursor: pointer; font: 700 0.9rem var(--font-text); padding: 0 1rem; }
+.search-site button:hover { background: #fff; }
+@media (max-width: 40rem) {
+  .search-site { flex: 1 1 100%; }
+  .search-site input { flex: 1; min-width: 0; width: auto; }
+}
 
 /* Numbered nav: the Reports, then Data Bites. On a phone it scrolls
    sideways, fading at the edge, and never wraps. */
@@ -93,14 +108,48 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   .nav-site ul { gap: 0 1.4rem; mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 2.5rem; }
 }
 
-/* The home intro. */
+/* The home intro: the Homepage settings' headline, its accent in bright
+   purple, the intro, and the Key figures in mono, four across, two on a
+   phone. */
 .intro-home { border-top: 1px solid var(--color-field-line); padding-block: clamp(2.5rem, 7vw, 5rem) clamp(2.5rem, 6vw, 4rem); }
-.intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; }
+.intro-home h1 { font-size: clamp(2.3rem, 5.6vw, 4.4rem); letter-spacing: -0.035em; max-width: 18ch; overflow-wrap: break-word; }
+.intro-home-accent { color: var(--color-bright); }
+.intro-home-lede { color: var(--color-field-text); font-size: 1.2rem; margin: 1.25rem 0 0; max-width: 36rem; }
+.figures-home { border-top: 1px solid var(--color-field-line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: clamp(2.5rem, 6vw, 4rem) 0 0; }
+.figures-home div { border-left: 1px solid var(--color-field-line); display: flex; flex-direction: column-reverse; justify-content: flex-end; min-width: 0; padding: 1.5rem 1.25rem 0; }
+.figures-home div:first-child { border-left: 0; padding-left: 0; }
+.figures-home dd { font: 500 clamp(2.2rem, 5vw, 3.9rem)/1 var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.04em; margin: 0 0 0.75rem; overflow-wrap: anywhere; }
+.figures-home dt { color: var(--color-field-text); font-size: 0.95rem; line-height: 1.35; }
+.figures-home dt small { color: var(--color-bright); display: block; font: 500 0.75rem var(--font-mono); letter-spacing: 0.04em; margin-top: 0.3rem; text-transform: uppercase; }
+@media (max-width: 48rem) {
+  .figures-home { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures-home div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .figures-home div:nth-child(n+3) { border-top: 1px solid var(--color-field-line); margin-top: 1.5rem; }
+}
 
-/* A page's title on the field: breadcrumb, title, and its facts row. */
+/* 01 Latest: the newest Data Bite beside its first Chart, stacked on a
+   narrow screen; alone, at the body's measure. */
+.latest-home { align-items: start; display: grid; gap: 2rem 3.5rem; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); padding-top: 1.5rem; }
+.latest-home-text:only-child { grid-column: 1 / -1; max-width: var(--width-measure); }
+@media (max-width: 56rem) { .latest-home { grid-template-columns: minmax(0, 1fr); } }
+.latest-home-text > .text-label { color: var(--color-muted); }
+.latest-home h3 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); letter-spacing: -0.03em; margin: 0.6rem 0 0.9rem; overflow-wrap: break-word; }
+.latest-home h3 a { color: inherit; text-decoration: none; }
+.latest-home h3 a:hover { color: var(--color-purple); text-decoration: underline; }
+.latest-home-summary { color: var(--color-muted); margin: 0 0 1.5rem; }
+.latest-home .chart-figure { margin: 0; }
+.button-read { background: var(--color-field); color: #fff; display: inline-flex; font-weight: 700; gap: 0.6rem; padding: 0.7rem 1.1rem; text-decoration: none; }
+/* Kenyon purple itself on hover, in both themes: dark mode's --color-purple
+   is a light step that white text can't sit on. */
+.button-read:hover { background: var(--color-kenyon); color: #fff; }
+@media (prefers-color-scheme: dark) { .button-read { box-shadow: inset 0 0 0 1px var(--color-bright); } }
+
+/* A page's title on the field: breadcrumb, title, its Summary, and its
+   facts row. */
 .title-item { border-top: 1px solid var(--color-field-line); padding-top: clamp(2rem, 6vw, 3.75rem); }
 .nav-breadcrumb, .nav-breadcrumb a { color: var(--color-field-text); }
 .title-item h1 { font-size: clamp(2.3rem, 5.4vw, 4rem); letter-spacing: -0.035em; margin: 1rem 0; max-width: 20ch; overflow-wrap: break-word; }
+.summary-item { color: var(--color-field-text); font-size: 1.25rem; line-height: 1.5; margin: 0; max-width: 38rem; }
 .meta-item { border-top: 1px solid var(--color-field-line); display: flex; flex-wrap: wrap; gap: 0.5rem 2.5rem; margin: 2.5rem 0 0; padding-block: 1rem; }
 .meta-item div { display: flex; gap: 0.6rem; min-width: 0; }
 .meta-item dt { color: var(--color-bright); }
@@ -115,16 +164,47 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
 .section-head h2 { font-size: 1.6rem; }
 .section-head a { color: var(--color-muted); margin-left: auto; }
 
-/* Data Bites and Reports: an ISO date column, then the title. */
-.list-data-bites, .list-reports { list-style: none; margin: 0; padding: 0; }
-.list-data-bites li, .list-reports li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.15rem 2rem; grid-template-columns: 8rem minmax(0, 1fr); padding: 1.15rem 0; position: relative; }
-.list-data-bites li:hover, .list-reports li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
-.list-data-bites .text-mono, .list-reports .text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 0.25rem; }
-.list-data-bites a, .list-reports a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+/* Data Bites: an ISO date column, then the title and its Summary. */
+/* Search results (search.html) share these rules, in one column: a title,
+   then its date and kind, then its Summary. */
+.list-data-bites, .list-search { list-style: none; margin: 0; padding: 0; }
+.list-data-bites li, .list-search li { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.15rem 2rem; grid-template-columns: 8rem minmax(0, 1fr); padding: 1.15rem 0; position: relative; }
+.list-data-bites li:hover, .list-search li:hover { background: linear-gradient(90deg, var(--color-tint), transparent); }
+.list-data-bites .text-mono, .list-search .text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 0.25rem; }
+.list-data-bites a, .list-search a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+.list-data-bites p, .list-search p { color: var(--color-muted); grid-column: 2; margin: 0; overflow-wrap: break-word; }
 /* The whole row is the link's target. */
-.list-data-bites a::after, .list-reports a::after { content: ""; inset: 0; position: absolute; }
-.list-data-bites li:hover a, .list-reports li:hover a { color: var(--color-purple); text-decoration: underline; }
-@media (max-width: 40rem) { .list-data-bites li, .list-reports li { grid-template-columns: 1fr; } }
+.list-data-bites a::after, .list-search a::after { content: ""; inset: 0; position: absolute; }
+.list-data-bites li:hover a, .list-search li:hover a { color: var(--color-purple); text-decoration: underline; }
+@media (max-width: 40rem) { .list-data-bites li { grid-template-columns: 1fr; } .list-data-bites p { grid-column: 1; } }
+
+/* Search results (search.html), in one column, under a status line. */
+.search-status { color: var(--color-muted); font: 500 0.85rem/1.4 var(--font-mono); margin: 0 0 0.5rem; }
+.list-search { border-top: 2px solid var(--color-ink); }
+.list-search li { gap: 0.2rem; grid-template-columns: minmax(0, 1fr); padding-block: 1.1rem; }
+.list-search .text-mono { font-size: 0.78rem; padding-top: 0; }
+.list-search p { grid-column: 1; }
+
+/* Reports, in a real table: Report, What it covers, Updated, Format. On a
+   phone each row stacks: the title and Summary, then the date and format. */
+.table-reports { border-collapse: collapse; width: 100%; }
+.table-reports th { border-bottom: 1px solid var(--color-line); color: var(--color-muted); font: 500 0.78rem var(--font-mono); letter-spacing: 0.04em; padding: 0.9rem 1rem 0.6rem 0; text-align: left; text-transform: uppercase; }
+.table-reports td { border-bottom: 1px solid var(--color-line); padding: 1.1rem 1rem 1.1rem 0; vertical-align: top; }
+.table-reports td:first-child a { color: var(--color-ink); font-size: 1.25rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; text-decoration: none; }
+.table-reports td:first-child a:hover { color: var(--color-purple); text-decoration: underline; }
+.table-reports td:nth-child(2) { color: var(--color-muted); max-width: 30rem; overflow-wrap: break-word; }
+.table-reports td.text-mono { color: var(--color-muted); font-size: 0.9rem; padding-top: 1.35rem; white-space: nowrap; }
+.table-reports tbody tr:hover { background: var(--color-tint); }
+.badge-format { border: 1px solid var(--color-line); color: var(--color-muted); display: inline-block; font-size: 0.75rem; margin-top: 0.2rem; padding: 0.15rem 0.4rem; }
+@media (max-width: 40rem) {
+  /* Hidden but still read (as .text-hidden), so each cell keeps its
+     column's name. */
+  .table-reports thead { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
+  .table-reports tr { border-bottom: 1px solid var(--color-line); display: grid; gap: 0.25rem 1rem; grid-template-columns: auto auto 1fr; padding-block: 1rem; }
+  .table-reports td, .table-reports td.text-mono { border: 0; padding: 0; }
+  .table-reports td:nth-child(-n+2) { grid-column: 1 / -1; }
+  .table-reports td:nth-child(2):empty { display: none; }
+}
 
 /* An item's body, at a readable measure. */
 .body-item { max-width: var(--width-measure); padding-top: 2.5rem; }
@@ -204,7 +284,10 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin
   body { font-size: 11pt; }
   .field-site { background: none; color: #000; }
   .field-site a, .nav-breadcrumb, .nav-breadcrumb a, .meta-item dt, .meta-item dd, .meta-item a { color: #000; }
-  .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back { display: none; }
+  .summary-item, .intro-home-accent, .intro-home-lede, .figures-home dt, .figures-home dt small { color: #000; }
+  .figures-home, .figures-home div { border-color: #000; }
+  .button-read { display: none; }
+  .skip-link, .nav-site, .nav-breadcrumb, .footer-site, .site-preview-banner, .link-back, .search-site { display: none; }
   .header-site { padding-block: 0 0.5rem; }
   .header-mark { background: none; border: 1px solid #000; color: #000; }
   .title-item, .intro-home, .meta-item { border-color: #000; padding-top: 0.5rem; }

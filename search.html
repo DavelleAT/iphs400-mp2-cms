@@ -4,14 +4,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <base href="https://davelleat.github.io/iphs400-mp2-cms/">
-  <title>Page not found · Kenyon Office of Institutional Research</title>
-  <meta property="og:title" content="Page not found">
+  <title>Search · Kenyon Office of Institutional Research</title>
+  <meta property="og:title" content="Search">
   <meta property="og:type" content="website">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <a class="skip-link" href="404.html#main">Skip to content</a>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="field-site"><div class="layout-wrap">
     <header class="header-site">
       <a class="header-home" href="index.html"><span class="header-mark" aria-hidden="true">IR</span><b class="header-home-text">Kenyon Office of Institutional Research</b></a>
@@ -30,16 +29,24 @@
   <main id="main">
     <div class="field-site"><div class="layout-wrap"><div class="title-item">
       <nav class="nav-breadcrumb text-label" aria-label="Breadcrumb"><a href="index.html">Home</a></nav>
-      <h1>Page not found</h1>
+      <h1>Search</h1>
       <dl class="meta-item text-label">
-        <div><dt>Status</dt><dd><span class="text-mono">404</span></dd></div>
+        <div><dt>Searches</dt><dd>Titles and Summaries</dd></div>
+        <div><dt>Published</dt><dd><span class="text-mono">5</span></dd></div>
       </dl>
     </div></div></div>
     <div class="layout-wrap">
-      <div class="body-item">
-        <p>Nothing is published at this address. The page may have been taken down, or the link may be mistyped.</p>
-        <p><a href="index.html">Go to the home page</a></p>
-      </div>
+    <section class="section-list" aria-labelledby="search-results-title">
+      <h2 id="search-results-title" class="text-hidden">Results</h2>
+      <p class="search-status" role="status">Everything published, 5 items. Search above to narrow it.</p>
+      <ul class="list-search">
+        <li><a href="reports/factbook.html">Factbook</a><span class="text-label text-mono"><time datetime="2026-10-02">2026-10-02</time> · Report</span><p>Admissions, enrollment, diversity and academic programs, updated each term.</p></li>
+        <li><a href="reports/survey-calendar.html">Survey Calendar</a><span class="text-label text-mono"><time datetime="2026-09-29">2026-09-29</time> · Report</span></li>
+        <li><a href="data-bites/first-year-retention.html">First-year retention holds at 91 percent</a><span class="text-label text-mono"><time datetime="2026-10-02">2026-10-02</time> · Data Bite</span><p>The class that entered in fall 2025 returned at the same rate as the year before.</p></li>
+        <li><a href="data-bites/survey-calendar-set.html">This year&#39;s survey calendar is set</a><span class="text-label text-mono"><time datetime="2026-10-02">2026-10-02</time> · Data Bite</span><p>Three surveys open between October and February; here is who receives each.</p></li>
+        <li><a href="data-bites/fall-enrollment-snapshot.html">Fall enrollment snapshot</a><span class="text-label text-mono"><time datetime="2026-09-29">2026-09-29</time> · Data Bite</span></li>
+      </ul>
+    </section>
     </div>
   </main>
   <footer class="footer-site field-site"><div class="layout-wrap">
@@ -48,5 +55,6 @@
     <div><span class="text-label">Location</span><p>Kenyon College<br>Gambier, Ohio</p></div>
     <p class="footer-colophon text-label">Set in Atkinson Hyperlegible <a href="fonts/OFL-atkinson-hyperlegible-next.txt">Next</a> and <a href="fonts/OFL-atkinson-hyperlegible-mono.txt">Mono</a>, under the SIL Open Font License</p>
   </div></footer>
+  <script src="search.js" defer></script>
 </body>
 </html>
