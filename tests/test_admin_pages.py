@@ -16,9 +16,12 @@ def test_every_admin_page_links_a_stylesheet_that_loads(client_as, path):
     director = client_as("admin")
     url = f"http://testserver{path.format(bid=create_bite(director))}"
     page = director.get(url)
-    [href] = re.findall(r'<link rel="stylesheet" href="([^"]+)"', page.text)
-    css = director.get(urljoin(url, href))
-    assert css.status_code == 200 and css.headers["content-type"].startswith("text/css"), href
+    # admin.css, and editor.css on a page with the Editor (ADR-007).
+    hrefs = re.findall(r'<link rel="stylesheet" href="([^"]+)"', page.text)
+    assert hrefs
+    for href in hrefs:
+        css = director.get(urljoin(url, href))
+        assert css.status_code == 200 and css.headers["content-type"].startswith("text/css"), href
 
 
 def test_an_analyst_refused_a_director_page_sees_a_page(client_as):

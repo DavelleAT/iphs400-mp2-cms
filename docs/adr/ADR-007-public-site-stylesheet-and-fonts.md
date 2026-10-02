@@ -90,3 +90,15 @@ unchanged", and the console no longer looks as it did before spec #22.
   no new route.
 - The Editor's and Chart builder's rules stay in `admin.css` until T23
   restyles them by class.
+
+## Amended after T24 (2026-10-01)
+
+T23 restyled the Editor and the Chart builder by class, and `admin.css`
+passed 500 lines, the course's limit for one source file. Their rules (the
+Editor, the Chart builder, a body's tables and chart images, and the
+Charts' recolouring) moved to `static/editor.css`, served at
+`/admin/editor.css` to a signed-in user, as `editor.js` is, and linked after
+`admin.css` only on the pages with the Editor (a Data Bite's or Report's
+create and edit pages). It is still the console's: it uses `admin.css`'s
+tokens, so it follows its light and dark themes, and no rule crosses to or
+from `site.css`. The two sides are still two, the console's in two files.

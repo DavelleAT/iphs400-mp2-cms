@@ -93,4 +93,4 @@
   </div>
   {% include "admin/_site_preview.html" %}
 </div>
-  <script src="{{ path_for('editor_script') }}" defer></script>
+  <script type="module" src="{{ path_for('editor_script', module='editor') }}"></script>

@@ -77,7 +77,7 @@ def test_a_public_page_links_only_the_sites_stylesheet(client_as, client, path):
     page = client.get(path).text
     root = "../" * path.removeprefix("/").count("/")
     assert stylesheets(page) == [f"{root}style.css"] or path == "/404.html", stylesheets(page)
-    assert "admin.css" not in page
+    assert "admin.css" not in page and "editor.css" not in page
 
 
 @pytest.mark.parametrize("path", ["/login", "/admin", "/admin/content", "/admin/users",
@@ -88,16 +88,25 @@ def test_an_admin_page_links_only_the_consoles_stylesheet(client_as, path):
     director = client_as("admin")
     page = director.get(path.format(bid=create_bite(director))).text
     # An edit page's Site preview is a public page, in an escaped srcdoc.
-    assert stylesheets(page) == ["/admin.css"]
+    # A page with the Editor also has the Editor's own stylesheet (split from
+    # admin.css after T24, ADR-007): both the console's, never the site's.
+    editor = path.endswith(("/new", "{bid}"))
+    assert stylesheets(page) == ["/admin.css", *(["/admin/editor.css"] if editor else [])]
 
 
-def test_the_consoles_stylesheet_has_the_editors_rules_and_the_sites_has_no_admin_rules(client):
+def test_the_consoles_stylesheet_has_the_editors_rules_and_the_sites_has_no_admin_rules(client_as, client):
     # T21 (spec #25) gave the console the site's fonts, copied into its own
-    # stylesheet (tests/test_t21_console_shell.py); the Editor's rules stay.
+    # stylesheet (tests/test_t21_console_shell.py). The Editor's rules moved
+    # to their own console stylesheet after T24 (ADR-007); it needs sign-in,
+    # as editor.js does.
     admin = client.get("/admin.css")
     assert admin.status_code == 200 and admin.headers["content-type"].startswith("text/css")
-    assert ".admin-editor-toolbar" in admin.text and ".chart-svg-phone" in admin.text
-    assert "site-preview-banner" not in admin.text
+    editor = client_as("editor").get("/admin/editor.css")
+    assert editor.status_code == 200 and editor.headers["content-type"].startswith("text/css")
+    assert ".admin-editor-toolbar" in editor.text and ".chart-svg-phone" in editor.text
+    assert ".admin-editor-toolbar" not in admin.text
+    assert "site-preview-banner" not in admin.text + editor.text
+    assert client.get("/admin/editor.css", follow_redirects=False).status_code == 303
     site = client.get("/style.css").text
     assert ".admin-" not in site and "body:has(" not in site
 

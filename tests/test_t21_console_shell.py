@@ -146,8 +146,9 @@ def test_the_consoles_stylesheet_has_the_sites_fonts_and_never_its_stylesheet(cl
         assert needle in css, needle
 
 
-def test_the_consoles_class_names_are_all_prefixed(client):
-    css = re.sub(r"/\*.*?\*/", "", client.get("/admin.css").text, flags=re.S)
+def test_the_consoles_class_names_are_all_prefixed(client_as, client):
+    both = client.get("/admin.css").text + client_as("editor").get("/admin/editor.css").text
+    css = re.sub(r"/\*.*?\*/", "", both, flags=re.S)
     classes = set(re.findall(r"\.(-?[a-zA-Z_][\w-]*)", re.sub(r'url\("[^"]*"\)', "", css)))
     assert classes and not [name for name in classes if "-" not in name.strip("-")], classes
 
@@ -156,4 +157,7 @@ def test_the_consoles_class_names_are_all_prefixed(client):
 def test_no_console_page_links_the_public_stylesheet(client_as, path):
     director = client_as("admin")
     html = page(director, path) if path != "/login" else TestClient(director.app).get(path).text
-    assert re.findall(r'<link rel="stylesheet" href="([^"]+)"', html) == ["/admin.css"]
+    # A page with the Editor also has its stylesheet, split from admin.css
+    # after T24 (ADR-007): both the console's own.
+    editor = ["/admin/editor.css"] if path.endswith(("/new", "{bid}", "{rid}")) else []
+    assert re.findall(r'<link rel="stylesheet" href="([^"]+)"', html) == ["/admin.css", *editor]

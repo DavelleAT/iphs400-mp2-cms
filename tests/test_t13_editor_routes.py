@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 from html import unescape
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,6 +18,8 @@ from tests.test_t04_reports import REPORT, create_report
 from tests.test_t06_admin_console import site_preview_page
 from tests.test_t09_tables import content_body
 from tests.test_t13_editor import HOSTILE, LOCKED_BODY
+
+ROOT = Path(__file__).resolve().parent.parent
 
 KINDS = [pytest.param("data-bites", BITE, create_bite, data_bites, id="data-bite"),
          pytest.param("reports", REPORT, create_report, reports, id="report")]
@@ -232,6 +235,20 @@ def test_hostile_editor_html_is_inert_on_the_public_page(director, client):
 def test_the_editor_script_is_served_to_signed_in_users_only(director, client):
     assert director.get("/admin/editor.js").headers["content-type"].startswith("text/javascript")
     assert client.get("/admin/editor.js", follow_redirects=False).status_code == 303
+
+
+def test_each_of_the_editors_modules_is_served_and_nothing_else(director, client):
+    """editor.js is a module that imports the others beside it (static/editor-*.js);
+    the route serves those files and no other name."""
+    modules = sorted(path.name for path in (ROOT / "static").glob("editor*.js"))
+    assert "editor.js" in modules and len(modules) > 1
+    for name in modules:
+        response = director.get(f"/admin/{name}")
+        assert response.status_code == 200, name
+        assert response.headers["content-type"].startswith("text/javascript")
+        assert client.get(f"/admin/{name}", follow_redirects=False).status_code == 303
+    for name in ("site.js", "editor-missing.js", "..%2Fsettings.js"):
+        assert director.get(f"/admin/{name}").status_code == 404, name
 
 
 @pytest.mark.parametrize("kind, item, create, module", KINDS)

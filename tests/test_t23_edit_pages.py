@@ -234,7 +234,8 @@ def test_the_marker_follows_the_editors_unsaved_state():
 # --- The Editor and Chart builder, restyled ----------------------------------
 
 def test_chart_cards_use_the_public_purples_and_greys():
-    css = (ROOT / "static/admin.css").read_text()
+    # The tokens are admin.css's; the Chart rules, editor.css's since T24.
+    css = (ROOT / "static/admin.css").read_text() + (ROOT / "static/editor.css").read_text()
     for token in ("--color-chart-newest", "--color-chart-bright", "--color-chart-grey",
                   "--color-chart-neutral"):
         assert token in css, token

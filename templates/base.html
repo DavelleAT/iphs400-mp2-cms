@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }} · Console</title>
   <link rel="stylesheet" href="{{ path_for('admin_stylesheet') }}">
+  {%- if editor_html is defined %}
+  {#- A page with the Editor (its create and edit pages) also has its styles. #}
+  <link rel="stylesheet" href="{{ path_for('editor_stylesheet') }}">
+  {%- endif %}
 </head>
 <body>
   <a class="link-skip" href="#main">Skip to content</a>

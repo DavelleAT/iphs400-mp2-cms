@@ -6,7 +6,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -89,7 +89,20 @@ def content_list(request: Request, user=Depends(current_user),
     )
 
 
-@router.get("/editor.js")
-def editor_script():
-    """The Editor's script (app.editor), for the edit and create pages only."""
-    return FileResponse(settings.STATIC / "editor.js", media_type="text/javascript")
+# The Editor's script (app.editor) and the modules it imports (static/editor-*.js).
+EDITOR_MODULES = frozenset({"editor", "editor-dom", "editor-tables", "editor-links",
+                            "editor-images", "editor-paste", "editor-chart-builder"})
+
+
+@router.get("/{module}.js")
+def editor_script(module: str):
+    """The Editor's script and its modules, for the edit and create pages only."""
+    if module not in EDITOR_MODULES:
+        raise HTTPException(status_code=404)
+    return FileResponse(settings.STATIC / f"{module}.js", media_type="text/javascript")
+
+
+@router.get("/editor.css")
+def editor_stylesheet():
+    """The Editor's and Chart builder's stylesheet, for the same pages."""
+    return FileResponse(settings.STATIC / "editor.css", media_type="text/css; charset=utf-8")
