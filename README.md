@@ -1,18 +1,20 @@
-# IPHS 400 — Mini-Project #2 starter (Web CMS)
+# Kenyon IR Office CMS — IPHS 400 Mini-Project #2
 
-Click **Use this template** → name your repo **`iphs400-mp2-cms`** → make it **Public**.
-Do not fork: a fork arrives without an Issues tab, and your tickets live in Issues.
+A small CMS for Kenyon College's Office of Institutional Research. Staff write
+in a local Console (FastAPI, Jinja, SQLite); `cms publish` turns the published
+content into a static site on GitHub Pages. The Console never goes online.
+
+Two kinds of content, two roles. **Data Bites** are short updates an Analyst
+can publish on their own. **Reports** are the durable documents people cite:
+an Analyst can draft one, but only the Director publishes it, and published
+Reports appear in the site's navigation. The Director also manages accounts
+and the homepage. Writers use a document-style Editor with tables, Charts
+built from pasted data, Chart images, and a Site preview of the public page.
 
 ## Live URL
 
 https://davelleat.github.io/iphs400-mp2-cms/ — the public site, rebuilt with
 `uv run cms publish && uv run cms deploy`.
-
-## Start here
-
-1. `docs/manual_iphs400_mp2-web-cms_20260922.md` — the manual. Read Part 0 and Part 1 first.
-2. `docs/mp2-grading-rubric_20260922.md` — how you are graded. Read it **before** you build.
-3. `docs/mp2-setup_context-threshold-hook_20260922.md` — Exercise A, in Part 4 of the manual.
 
 ## Run locally
 
@@ -22,29 +24,24 @@ cp .env.example .env
 git config core.hooksPath .githooks  # refuse to commit an unredacted transcript
 uv run python scripts/seed_demo.py   # demo Director + Analyst (passwords from .env)
 uv run cms serve        # then open http://localhost:8000/admin and log in as
-                        # admin@example.test or editor@example.test
+                        # admin@example.test (Director) or editor@example.test (Analyst)
+uv run pytest -q        # the test suite
 ```
 
 ## What is here
 
 ```text
-.claude/hooks/     the context meter and usage ledger (Exercise A lives in ctx_guard.py)
-scripts/           usage_report.py (Exercise B lives in spend()), check_submission.py, seed_demo.py
-tests/             the exercise tests, plus helpers such as client_as("editor")
-app/, templates/   the T00 skeleton — every CMS feature is yours to build
-docs/adr/          two example decision records
+app/               models and services (content, users, Charts, the Editor's Markdown, publish)
+app/routes/        the Console's routes, one module per area
+templates/         admin/ for the Console, public/ for the published site
+static/            the Console and site stylesheets, the Editor's scripts, fonts
+scripts/           seed_demo.py, check_submission.py, usage_report.py, redact_transcripts.py
+tests/             one or more test files per ticket (test_t01_auth.py … test_t24_dashboard.py)
+CONTEXT.md         the glossary: Director, Analyst, Data Bite, Report, Chart, …
+docs/adr/          decision records, ADR-001 to ADR-007
+docs/              the report, handoff, compaction log, transcripts, screenshots
+notes/             field notes, client brief, token budget plan, usage ledger
 ```
-
-Two functions are deliberately unfinished and their tests fail until you write them:
-`decide()` in `.claude/hooks/ctx_guard.py` and `spend()` in `scripts/usage_report.py`.
-Both are graded. Use `/tdd`, as the manual says.
-
-## Deadlines
-
-Stage 1 (`mp2-mvp` tag): Tue Sep 29, 2:40 pm Eastern (soft target).
-Stage 2 (`mp2-final` tag): Tue Oct 6, 2:40 pm Eastern, grace until Wed Oct 7, 2:40 pm.
-
-Run `uv run python scripts/check_submission.py --stage 2` before you submit.
 
 ## Generative AI Use Statement
 
@@ -70,9 +67,15 @@ I checked AI output through acceptance criteria, tests, browser checks, and tick
 
 ## Backends used
 
+Every Claude Code session ran on Anthropic's own API. No session used a
+backup backend, so no commit has a `Backend:` trailer, and every row of
+`notes/usage-ledger.csv` says `anthropic`.
 
-| Provider  | Model                | Use                                        |
-| --------- | -------------------- | ------------------------------------------ |
-| Anthropic | Sonnet 5             | Grill, specification, and ticket planning  |
-| Anthropic | Opus 5.5             | Implementation, TDD, review, and design    |
-| OpenAI    | Codex based on GPT-5 | Research, rubric audit, and report support |
+| Provider  | Model    | Use                                                        |
+| --------- | -------- | ---------------------------------------------------------- |
+| Anthropic | Sonnet 5 | Stage 1 grill, specification, and tickets                  |
+| Anthropic | Opus 5.5 | Stage 2 grills and specs, implementation, TDD, review, design |
+
+**Other AI tools, outside Claude Code:** OpenAI Codex (GPT-5), used for
+research, the final rubric audit, and help organizing the report. It was a
+separate tool, not a Claude Code backend, so it does not appear in the ledger.

@@ -84,7 +84,7 @@ I also used OpenAI Codex for research support and for the final rubric audit. Th
 
 My token planning was late. The assignment asked for the plan before the first implementation ticket. I completed it after T11. I am leaving that history alone.
 
-My original estimate was about one percent of weekly usage for implementation and another one percent for review on each ticket. The final ledger contains 24 ticket phases and reports an average of about 2.4 percent per ticket. The Editor and chart work cost more than the first set of CMS tickets. The design and Console work also expanded the project after the original core was complete.
+My original estimate was about one percent of weekly usage for implementation and another one percent for review on each ticket, so about two percent. The ledger says the Stage 1 tickets, T01 to T11, averaged 1.1 percent each, under the estimate. The Stage 2 tickets, T12 to T24, averaged 3.2 percent, about 60 percent over it. Across all 24 tickets that is about 2.2 percent. The costliest were the Chart builder (T17, 5 percent) and the Editor, Links, Chart rendering, homepage, and Lists tickets (T13, T14, T16, T20, and T22, 4 percent each). `notes/token-budget-plan.md` has the figures, with a per-ticket table for Stage 2. The Editor and chart work cost more than the first set of CMS tickets. The design and Console work also expanded the project after the original core was complete.
 
 Most tickets started in a fresh session. The project recorded one automatic compaction across the saved sessions. The largest sessions involved the Editor, Chart builder, public redesign, and final dashboard. Clearing context between tickets kept unrelated decisions from piling up in one conversation.
 
