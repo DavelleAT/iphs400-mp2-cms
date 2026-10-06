@@ -48,6 +48,31 @@ Run `uv run python scripts/check_submission.py --stage 2` before you submit.
 
 ## Generative AI Use Statement
 
-*(Required. Replace this section: name the models and skills you used, quote two
-prompts you really sent, describe one real model failure, and include a
-"Backends used" table if you ever switched providers.)*
+I used Claude Code throughout this project for planning, implementation, testing, code review, and design. Sonnet 5 helped with the first grill, specification, and ticket plan. Opus 5.5 handled most implementation and review sessions. I used OpenAI Codex based on GPT-5 for research support, the final rubric audit, and help organizing the report.
+
+The main skills were `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`, `/tdd`, `/code-review`, and `/handoff`.
+
+One prompt I used while reviewing the authoring specification was
+
+> "Replace `body_base` with an item-level base hash covering at least `title`, `slug`, and `body`. The form saves all three, so a body-only hash could let a stale tab overwrite someone else's newer title or slug. Add a test for that conflict."
+
+This changed stale-save protection so an old browser tab could not overwrite a newer title, slug, or body.
+
+I also rejected an early visual direction with
+
+> "its a bit too juvinile and AI-ey. lets be more creative and not dfall on the defaults."
+
+I asked for a less generic design, later removed the bright green from the Chart palette, and requested a full Console redesign when the public site improved but the staff interface remained barebones.
+
+The clearest model failure involved Analyst accounts. After the WordPress field trip, I changed the decision from a shared account to individual accounts. ADR-003 and the code used the new decision, but one old sentence in the specification still claimed individual accounts were out of scope. I caught the contradiction during submission review on September 29 and corrected the issue with an explanatory comment.
+
+I checked AI output through acceptance criteria, tests, browser checks, and ticket reviews. The final suite has 1,540 passing tests. My token plan was completed late, and I have left that history unchanged rather than backdating it.
+
+## Backends used
+
+
+| Provider  | Model                | Use                                        |
+| --------- | -------------------- | ------------------------------------------ |
+| Anthropic | Sonnet 5             | Grill, specification, and ticket planning  |
+| Anthropic | Opus 5.5             | Implementation, TDD, review, and design    |
+| OpenAI    | Codex based on GPT-5 | Research, rubric audit, and report support |
