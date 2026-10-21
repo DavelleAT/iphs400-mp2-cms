@@ -28,6 +28,32 @@ uv run cms serve        # then open http://localhost:8000/admin and log in as
 uv run pytest -q        # the test suite
 ```
 
+## Production
+
+Production runs the same console on one trusted machine, never on the public
+internet (ADR-001), with settings it checks before it starts.
+`CMS_ENV=production` refuses to start, and names the variable, if any of these
+is unset or still a published default:
+
+| Variable | Production needs |
+|---|---|
+| `CMS_ENV` | `production` (anything but `development` or `production` is refused) |
+| `CMS_SECRET_KEY` | a long random value, not the `.env.example` one or the built-in development default |
+| `CMS_ADMIN_EMAIL` | the Director's email |
+| `CMS_ADMIN_PASSWORD` | the Director's password, at least 8 characters, not the `.env.example` one |
+| `CMS_DATABASE` | its own database file, e.g. `prod.db`; a database holding the demo accounts (a seeded `cms.db`) is refused |
+
+```bash
+CMS_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')" \
+CMS_ADMIN_EMAIL=director@example.org CMS_ADMIN_PASSWORD='a-new-long-password' \
+CMS_DATABASE=prod.db CMS_ENV=production uv run cms serve --port 8000
+```
+
+On an empty database the first start creates one Director from
+`CMS_ADMIN_EMAIL` and `CMS_ADMIN_PASSWORD`; later starts leave accounts alone.
+`scripts/seed_demo.py` refuses to run in production, so the demo accounts
+never exist there. Variables set on the command line win over `.env`.
+
 ## What is here
 
 ```text

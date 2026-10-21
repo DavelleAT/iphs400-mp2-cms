@@ -6,7 +6,9 @@ here. Keep this file small.
 """
 from __future__ import annotations
 
+import os
 import sys
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -14,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import db, settings
+from app import db, production, settings
 from app.auth import LoginRequired, current_user
 from app.routes import admin, auth, charts, data_bites, homepage, public, reports, users
 
@@ -26,6 +28,7 @@ ALL_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 async def lifespan(app: FastAPI):
     # At server start, not import, so importing app.main never touches a database.
     db.init_db()
+    production.ensure_director(app.state.env)
     if settings.SECRET_KEY_IS_PLACEHOLDER:
         print("WARNING: CMS_SECRET_KEY is unset or the .env.example placeholder; "
               "session cookies can be forged. Set a long random value in .env.",
@@ -33,10 +36,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-def create_app() -> FastAPI:
+def create_app(env: Mapping[str, str] | None = None) -> FastAPI:
+    """`env` defaults to the real environment; tests pass a dict."""
+    env = os.environ if env is None else env
+    production.check(env)
     app = FastAPI(title="IPHS 400 MP2 CMS", lifespan=lifespan)
+    app.state.env = env
     app.add_middleware(
-        SessionMiddleware, secret_key=settings.SECRET_KEY,
+        SessionMiddleware,
+        secret_key=env.get("CMS_SECRET_KEY") or settings.DEV_SECRET_KEY,
         session_cookie="cms_session", max_age=SESSION_MAX_AGE, same_site="lax",
     )
 
