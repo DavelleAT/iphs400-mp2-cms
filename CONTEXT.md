@@ -166,3 +166,12 @@ published publicly.
 **Survey Calendar**:
 A specific Report: the schedule of past, current, and upcoming surveys the
 office runs (e.g. faculty/staff surveys, external review surveys).
+
+## Decisions
+
+| Question | Choice | Why |
+|---|---|---|
+| What does the login lockout key on? | The email: 5 failed logins for one email within 15 minutes refuse that email, even with the right password (S2, `app/login_limiter.py`) | Since the Director and interns share the same office network, locking accounts by IP address could prevent everyone from logging in just because one person entered the wrong password too many times. |
+| What does production do with an unsafe setting? | Refuses to start and names the variable, rather than printing a warning (F9, `app/production.py`) | Since the example password is publicly available in the project files, the system should refuse to start with it rather than risk running with a password anyone could know. |
+| Who can publish what? | Analysts publish Data Bites; only the Director publishes Reports (ADR-003) | Interns and analysts need to publish Data Bites without waiting for the Director, but Reports require stricter approval because they are shared with the board and accreditors. |
+| Can an account be deleted? | No: the Director deactivates it, and the row stays (ADR-008) | Keeping deactivated accounts preserves the authorship history of published content, especially since interns rotate every semester. |
