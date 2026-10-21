@@ -14,11 +14,11 @@ Repo: https://github.com/DavelleAT/iphs400-mp2-cms · Pages: https://davelleat.g
 | P3 | CONTEXT.md Decisions table; docs/adr/ADR-008-deactivate-never-delete-accounts.md |
 | P4 | before: commit 49cd879; after: commit 6af1232; see the P4 section |
 
-**Left broken or limited, one line each:**
-- **S2:** the lockout count is kept in memory, so a server restart clears it. That's acceptable for a console that runs as one process on one machine (ADR-001).
-- **F9:** nothing known. The `/code-review` on PR #31 found that production would start on a database holding the demo accounts; the fix commit `d7d7277` refuses it.
+**Left broken or limited, one sentence each:**
+- **S2:** the lockout count is kept in memory, so a server restart clears it, which is acceptable for a console that runs as one process on one machine (ADR-001).
+- **F9:** nothing known, since the review on PR #31 caught the one real bug (production starting on a database holding the demo accounts) and `d7d7277` fixed it.
 - **P1:** nothing known.
-- **S1:** the collector opens FastAPI 0.141's included-router wrappers through `original_router`, so a FastAPI upgrade that renames that attribute would empty the list. The floor of known Director-only routes in the test would fail loudly if that happened.
+- **S1:** the collector relies on FastAPI 0.141's `original_router` attribute, so an upgrade that renames it would empty the generated list, though the test's floor of known Director-only routes would then fail loudly.
 - **P3:** nothing known.
 - **P4:** the ledger records the weekly meter in whole percents, so a short exercise can record 0.0% (see below).
 
