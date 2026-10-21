@@ -7,3 +7,5 @@ At mp2plus-base (`feb8733`, the same commit as `mp2-final`): checker "22/22 chec
 ## P4 before
 Next exercise: S2. Command: `uv run python scripts/usage_report.py --remaining 4`
 
+Tickets done: 24 · average weekly cost per ticket: 2.4%
+Forecast: 4 tickets need ~10% of the weekly cap; 66% remains → FITS

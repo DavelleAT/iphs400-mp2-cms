@@ -229,3 +229,4 @@ ts,session,phase,provider,model,effort,ctx_pct,five_h_pct,weekly_pct
 2026-10-21T14:15:25Z,fdac9c1d,submission,anthropic,Opus 5.5,medium,10.0,2,34
 2026-10-21T14:15:53Z,fdac9c1d,submission,anthropic,Opus 5.5,medium,10.0,2,34
 2026-10-21T14:17:07Z,fdac9c1d,submission,anthropic,Opus 5.5,medium,10.0,2,34
+2026-10-21T14:18:16Z,fdac9c1d,mp2plus-setup,anthropic,Opus 5.5,medium,11.0,3,34
