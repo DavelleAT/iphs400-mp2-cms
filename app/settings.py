@@ -7,17 +7,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _load_dotenv(path: Path) -> None:
-    """Read KEY=VALUE lines from .env into os.environ. Variables already set in
-    the real environment win."""
+def read_env_file(path: Path) -> dict[str, str]:
+    """The KEY=VALUE lines of an env file (.env, .env.example); {} if absent."""
+    values = {}
     if not path.is_file():
-        return
+        return values
     for line in path.read_text().splitlines():
         key, sep, value = line.partition("=")
         key = key.strip()
         if not sep or not key or key.startswith("#"):
             continue
-        os.environ.setdefault(key, value.strip().strip("'\""))
+        values[key] = value.strip().strip("'\"")
+    return values
+
+
+def _load_dotenv(path: Path) -> None:
+    """Read KEY=VALUE lines from .env into os.environ. Variables already set in
+    the real environment win."""
+    for key, value in read_env_file(path).items():
+        os.environ.setdefault(key, value)
 
 
 _load_dotenv(ROOT / ".env")

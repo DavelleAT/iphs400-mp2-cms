@@ -21,23 +21,32 @@ class UnsafeConfig(Exception):
     """The production configuration is unsafe; the message names each variable."""
 
 
+ENVIRONMENTS = ("development", "production")
+# The accounts scripts/seed_demo.py creates (a test keeps the two in step).
+# Their passwords are in .env.example, so production refuses a database that
+# holds them.
+DEMO_EMAILS = ("admin@example.test", "editor@example.test")
+
+
+def _environment(env: Mapping[str, str]) -> str:
+    return env.get("CMS_ENV", "development").strip().lower()
+
+
 def is_production(env: Mapping[str, str]) -> bool:
-    return env.get("CMS_ENV", "development").strip().lower() == "production"
+    return _environment(env) == "production"
 
 
 def example_values() -> dict[str, str]:
     """The values .env.example ships with: public, so never safe in production."""
-    values = {}
-    for line in (settings.ROOT / ".env.example").read_text().splitlines():
-        key, sep, value = line.partition("=")
-        if sep and key.strip() and not key.strip().startswith("#"):
-            values[key.strip()] = value.strip().strip("'\"")
-    return values
+    return settings.read_env_file(settings.ROOT / ".env.example")
 
 
 def problems(env: Mapping[str, str]) -> list[str]:
     """What makes this configuration unsafe for production: one line per
     problem, each naming its variable. Empty outside production."""
+    if _environment(env) not in ENVIRONMENTS:
+        # A typo such as "prod" must not quietly run as development.
+        return [f"CMS_ENV must be development or production, not {env['CMS_ENV']!r}."]
     if not is_production(env):
         return []
     example = example_values()
@@ -49,8 +58,11 @@ def problems(env: Mapping[str, str]) -> list[str]:
     elif secret in (settings.DEV_SECRET_KEY, example.get("CMS_SECRET_KEY")):
         found.append("CMS_SECRET_KEY is a published default; set a long random value.")
 
-    if not env.get("CMS_ADMIN_EMAIL", "").strip():
+    email = env.get("CMS_ADMIN_EMAIL", "").strip()
+    if not email:
         found.append("CMS_ADMIN_EMAIL is unset.")
+    elif not users.is_valid_email(email):
+        found.append("CMS_ADMIN_EMAIL is not a valid email address.")
 
     password = env.get("CMS_ADMIN_PASSWORD", "")
     if not password:
@@ -67,14 +79,23 @@ def check(env: Mapping[str, str]) -> None:
     """Raise UnsafeConfig listing every problem, or return quietly."""
     found = problems(env)
     if found:
-        raise UnsafeConfig("Refusing to start with CMS_ENV=production:\n  "
+        raise UnsafeConfig("Refusing to start:\n  "
                            + "\n  ".join(found))
 
 
 def ensure_director(env: Mapping[str, str]) -> None:
-    """In production, create the Director from the environment if the database
-    has none. Call after db.init_db()."""
-    if not is_production(env) or users.has_director():
+    """In production, refuse a database that holds the demo accounts, and
+    create the Director from the environment if the database has none. Call
+    after db.init_db()."""
+    if not is_production(env):
+        return
+    demo = users.existing_emails(DEMO_EMAILS)
+    if demo:
+        raise UnsafeConfig(
+            f"Refusing to start: CMS_DATABASE holds the demo "
+            f"accounts ({', '.join(demo)}), whose passwords are public. "
+            f"Point CMS_DATABASE at a new file.")
+    if users.has_director():
         return
     try:
         users.create_user(env["CMS_ADMIN_EMAIL"], env["CMS_ADMIN_PASSWORD"],

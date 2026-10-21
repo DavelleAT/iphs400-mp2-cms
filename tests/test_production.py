@@ -59,7 +59,7 @@ def test_step1_create_app_refuses_an_unsafe_configuration():
         create_app(env(CMS_SECRET_KEY=None))
 
 
-def test_step1_cms_serve_starts_with_a_safe_configuration(monkeypatch):
+def test_step1_cms_serve_starts_with_a_safe_configuration(monkeypatch, empty_db):
     started = []
     monkeypatch.setattr("uvicorn.run", lambda *a, **k: started.append(k))
     assert cli.main(["serve", "--port", "8001"], env=SAFE) == 0
@@ -166,3 +166,41 @@ def test_step5_env_example_and_readme_document_production():
                      "CMS_ADMIN_PASSWORD", "CMS_DATABASE"):
         assert variable in section
     assert "CMS_ENV=production uv run cms serve" in section
+
+
+# Review findings (PR #31).
+
+@pytest.mark.parametrize("value", ["prod", "Prod", "staging", "1"])
+def test_step2_an_unknown_cms_env_is_refused_not_treated_as_development(value):
+    assert "CMS_ENV" in refusal(env(CMS_ENV=value))
+
+
+def test_step2_a_malformed_admin_email_is_refused_before_start():
+    assert "CMS_ADMIN_EMAIL" in refusal(env(CMS_ADMIN_EMAIL="not-an-email"))
+
+
+def test_step4_a_database_holding_the_demo_accounts_is_refused():
+    """conftest's database holds the demo accounts, like a seeded cms.db."""
+    with pytest.raises(production.UnsafeConfig, match="CMS_DATABASE"):
+        with TestClient(create_app(SAFE)):
+            pass
+
+
+def test_step4_the_demo_emails_match_the_seed_script():
+    from tests.test_seed_demo import seed_demo
+    assert {email for email, *_ in seed_demo.DEMO_ACCOUNTS} == set(production.DEMO_EMAILS)
+
+
+def test_step1_the_session_cookie_is_signed_with_the_checked_key(empty_db):
+    from itsdangerous import TimestampSigner
+
+    with TestClient(create_app(SAFE)) as c:
+        _login(c, SAFE["CMS_ADMIN_EMAIL"], SAFE["CMS_ADMIN_PASSWORD"])
+        cookie = c.cookies["cms_session"]
+    TimestampSigner(SAFE["CMS_SECRET_KEY"]).unsign(cookie)  # raises if another key signed it
+
+
+def test_step4_cms_serve_refuses_a_demo_database_with_a_message(monkeypatch, capsys):
+    monkeypatch.setattr("uvicorn.run", lambda *a, **k: pytest.fail("uvicorn started"))
+    assert cli.main(["serve"], env=SAFE) == 1
+    assert "CMS_DATABASE" in capsys.readouterr().err

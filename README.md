@@ -37,11 +37,11 @@ is unset or still a published default:
 
 | Variable | Production needs |
 |---|---|
-| `CMS_ENV` | `production` |
+| `CMS_ENV` | `production` (anything but `development` or `production` is refused) |
 | `CMS_SECRET_KEY` | a long random value, not the `.env.example` one or the built-in development default |
 | `CMS_ADMIN_EMAIL` | the Director's email |
 | `CMS_ADMIN_PASSWORD` | the Director's password, at least 8 characters, not the `.env.example` one |
-| `CMS_DATABASE` | its own database file, e.g. `prod.db`, not the demo `cms.db` |
+| `CMS_DATABASE` | its own database file, e.g. `prod.db`; a database holding the demo accounts (a seeded `cms.db`) is refused |
 
 ```bash
 CMS_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')" \

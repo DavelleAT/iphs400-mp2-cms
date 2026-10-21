@@ -43,7 +43,8 @@ def create_app(env: Mapping[str, str] | None = None) -> FastAPI:
     app = FastAPI(title="IPHS 400 MP2 CMS", lifespan=lifespan)
     app.state.env = env
     app.add_middleware(
-        SessionMiddleware, secret_key=settings.SECRET_KEY,
+        SessionMiddleware,
+        secret_key=env.get("CMS_SECRET_KEY") or settings.DEV_SECRET_KEY,
         session_cookie="cms_session", max_age=SESSION_MAX_AGE, same_site="lax",
     )
 

@@ -35,6 +35,17 @@ def is_director(user: sqlite3.Row) -> bool:
     return user["role"] == "admin"
 
 
+def is_valid_email(email: str) -> bool:
+    return _EMAIL_PATTERN.fullmatch(email.strip()) is not None
+
+
+def existing_emails(emails) -> list[str]:
+    """Which of these emails have an account."""
+    with db.connect() as conn:
+        return [email for email in emails
+                if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()]
+
+
 def has_director() -> bool:
     with db.connect() as conn:
         return conn.execute(
@@ -49,7 +60,7 @@ def _check_role(role: str) -> None:
 def create_user(email: str, password: str, role: str, name: str | None = None) -> int:
     """Create an active user. `name` defaults to the email's local part."""
     email = email.strip()
-    if not _EMAIL_PATTERN.fullmatch(email):
+    if not is_valid_email(email):
         raise UserError("Enter a valid email address.")
     if name is not None and not name.strip():
         raise UserError("Enter a name.")
