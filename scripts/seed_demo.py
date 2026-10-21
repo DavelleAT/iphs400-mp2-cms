@@ -19,7 +19,7 @@ import json
 import os
 import sys
 
-from app import charts, data_bites, db, reports, settings, users
+from app import charts, data_bites, db, production, reports, settings, users
 
 # Keep in step with DEMO_USERS in tests/conftest.py.
 DEMO_ACCOUNTS = [
@@ -107,6 +107,12 @@ def seed_content() -> None:
 
 
 def main() -> int:
+    # Before anything touches the database: production gets no demo accounts.
+    if production.is_production(os.environ):
+        print("Refusing to seed demo accounts and content with CMS_ENV=production. "
+              "Production creates its Director from CMS_ADMIN_EMAIL and "
+              "CMS_ADMIN_PASSWORD when the server starts.", file=sys.stderr)
+        return 1
     missing = [var for _, var, _, _ in DEMO_ACCOUNTS if not os.environ.get(var)]
     if missing:
         print(f"Set {' and '.join(missing)} in .env (copy .env.example).")

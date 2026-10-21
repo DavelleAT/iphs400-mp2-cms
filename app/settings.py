@@ -28,9 +28,12 @@ TEMPLATES = ROOT / "templates"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
 
-SECRET_KEY = os.environ.get("CMS_SECRET_KEY", "dev-only-not-for-production")
+# The fallback when CMS_SECRET_KEY is unset: fine on a laptop, refused in
+# production (app/production.py).
+DEV_SECRET_KEY = "dev-only-not-for-production"
+SECRET_KEY = os.environ.get("CMS_SECRET_KEY", DEV_SECRET_KEY)
 SECRET_KEY_IS_PLACEHOLDER = SECRET_KEY in (
-    "dev-only-not-for-production", "change-me-to-a-long-random-string")
+    DEV_SECRET_KEY, "change-me-to-a-long-random-string")
 # A relative CMS_DATABASE is relative to the repo, not the current directory.
 DATABASE_PATH = ROOT / os.environ.get("CMS_DATABASE", "cms.db")
 # Uploaded Report files. Outside site/, and gitignored like the database.

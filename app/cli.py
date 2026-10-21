@@ -7,14 +7,16 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
+from collections.abc import Mapping
 
-from app import settings
+from app import production, settings
 from app.publish import render_site
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, env: Mapping[str, str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="cms")
     sub = parser.add_subparsers(dest="command", required=True)
     serve = sub.add_parser("serve", help="run the admin console locally")
@@ -27,6 +29,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "serve":
         import uvicorn
+
+        try:
+            production.check(os.environ if env is None else env)
+        except production.UnsafeConfig as exc:
+            print(exc, file=sys.stderr)
+            return 1
 
         uvicorn.run("app.main:app", port=args.port, reload=args.reload)
         return 0

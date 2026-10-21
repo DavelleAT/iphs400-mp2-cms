@@ -35,6 +35,12 @@ def is_director(user: sqlite3.Row) -> bool:
     return user["role"] == "admin"
 
 
+def has_director() -> bool:
+    with db.connect() as conn:
+        return conn.execute(
+            "SELECT 1 FROM users WHERE role = 'admin' LIMIT 1").fetchone() is not None
+
+
 def _check_role(role: str) -> None:
     if role not in ROLE_LABELS:
         raise UserError(f"Choose a role: {' or '.join(ROLE_LABELS.values())}.")
