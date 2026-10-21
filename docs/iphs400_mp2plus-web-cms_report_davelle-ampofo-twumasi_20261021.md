@@ -12,7 +12,7 @@ Repo: https://github.com/DavelleAT/iphs400-mp2-cms · Pages: https://davelleat.g
 | P1 | PR #31 closing issue #30; carries F9 |
 | S1 | tests/test_access_matrix.py |
 | P3 | CONTEXT.md Decisions table; docs/adr/ADR-008-deactivate-never-delete-accounts.md |
-| P4 | before: commit 49cd879; after: the commit `P4: after`; see the P4 section |
+| P4 | before: commit 49cd879; after: commit 6af1232; see the P4 section |
 
 **Left broken or limited, one line each:**
 - **S2:** the lockout count is kept in memory, so a server restart clears it. That's acceptable for a console that runs as one process on one machine (ADR-001).
@@ -47,4 +47,4 @@ Tickets done: 25 · average weekly cost per ticket: 2.3%
 Forecast: 1 tickets need ~2% of the weekly cap; 64% remains → FITS
 ```
 
-**The gap.** The forecast was 2.4% of the weekly cap per ticket, but S2 actually cost 0.0% weekly and F9 with P1 (T30), the largest exercise, cost 1.0%. The ledger stores the weekly meter in whole percents, and it read 34 or 35 for the whole of MP2plus. So an exercise that doesn't tip it to the next percent records 0, and the real cost of all MP2plus work was about 1 point of the weekly cap. The 2.4% average comes from MP2, where planning phases (spec, tickets) and big tickets like T24 (24% weekly) ran at higher cost. The MP2plus exercises were small changes to an app and test suite that already existed, all done in one continuous session at medium effort.
+**The gap.** The forecast was 2.4% of the weekly cap per ticket, but S2 actually cost 0.0% weekly and F9 with P1 (T30), the largest exercise, cost 1.0%. The ledger stores the weekly meter in whole percents, and it only moved from 34 to 36 across all of MP2plus. So an exercise that doesn't tip it to the next percent records 0, and the real cost of all MP2plus work was about 2 points of the weekly cap. The 2.4% average comes from MP2, where planning phases (spec, tickets) and big tickets like T24 (24% weekly) ran at higher cost. The MP2plus exercises were small changes to an app and test suite that already existed, all done in one continuous session at medium effort.
