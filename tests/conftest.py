@@ -15,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import db, settings, users
+from app import login_limiter
 from app.main import create_app
 
 # Matches scripts/seed_demo.py. Passwords come from the environment there; in
@@ -98,6 +99,15 @@ def seeded_db(tmp_path, monkeypatch):
     for role, user in DEMO_USERS.items():
         users.create_user(user["email"], user["password"], role)
     return settings.DATABASE_PATH
+
+
+@pytest.fixture(autouse=True)
+def reset_login_limiter():
+    """Every test starts with no failed logins counted (S2), so one test's
+    failures never lock an account in the next."""
+    login_limiter.limiter.reset()
+    yield
+    login_limiter.limiter.reset()
 
 
 @pytest.fixture

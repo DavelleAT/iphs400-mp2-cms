@@ -6,11 +6,13 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import FileResponse, RedirectResponse
 
 from app import auth, settings, users
+from app.login_limiter import limiter
 from app.templating import templates
 
 router = APIRouter()
 
 LOGIN_FAILED = "Invalid email or password."
+LOCKED_OUT = "Too many failed logins for this email. Try again in 15 minutes."
 
 
 def _login_page(request: Request, error: str | None = None, status_code: int = 200):
@@ -28,11 +30,16 @@ def login_form(request: Request):
 
 @router.post("/login", dependencies=[Depends(auth.require_csrf)])
 def login(request: Request, email: str = Form(""), password: str = Form("")):
+    # Checked before the password, so a locked account can't be guessed at.
+    if limiter.is_locked(email):
+        return _login_page(request, LOCKED_OUT, status_code=429)
     user = users.authenticate(email, password)
     if user is None:
+        limiter.record_failure(email)
         # Same message whether the account is unknown, inactive, or the
         # password is wrong.
         return _login_page(request, LOGIN_FAILED, status_code=401)
+    limiter.record_success(email)
     auth.log_in(request, user)
     return RedirectResponse("/admin", status_code=303)
 
